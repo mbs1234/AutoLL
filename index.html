@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en-US">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BG1 Setup</title>
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<script id="bm-script">
+  (() => {
+    var u = 'https://joelface.github.io/bg1/', d = document;
+    if (origin.match(/https:\/\/.+\.disney(?:\.go)?\.com/)) {
+      d.open();
+      d.write('<!doctype html><link rel=stylesheet href="' + u + 'bg1.css"><body>');
+      var s = d.createElement('script');
+      s.type = 'module';
+      s.src = u + 'bg1.js';
+      d.head.appendChild(s);
+    } else {
+      location.href = u + 'start.html';
+    }
+  });
+</script>
+<link rel="stylesheet" href="index.css">
+<style>
+  .instructions[open] {
+    position: fixed;
+    inset: 0;
+    background: var(--white);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .instructions[open]>* {
+    max-width: 75rem;
+    margin: 0 auto;
+  }
+
+  .instructions[open] summary {
+    display: block;
+    border-radius: 0;
+    font-size: 2.2rem;
+    text-align: center;
+  }
+
+  .instructions[open] summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .instructions>div {
+    max-width: 75rem;
+    margin: 0 auto;
+    padding: 0 1.2rem;
+  }
+
+  .instructions h3 {
+    font-size: 2rem;
+  }
+
+  .instructions summary {
+    margin-top: 1em;
+    border-radius: 8px;
+    padding: 1rem;
+    background: var(--blue);
+    color: var(--white);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .bm-code {
+    display: block;
+    margin: 1em 0;
+    border: 1px solid #000;
+    padding: .8em;
+    font-size: 1.3rem;
+    overflow-wrap: break-word;
+    user-select: all;
+  }
+
+  .noscroll {
+    overflow: hidden;
+  }
+</style>
+
+<div class="page">
+
+  <header>
+    <h1><img src="icon.png" alt="BG1"> Setup</h1>
+  </header>
+
+  <main>
+    <aside class="warning">
+      <p><strong>Warning!</strong> Use at your own risk. BG1 is highly experimental, for demonstration purposes only, and provided "as is" without warranty of any kind. It is in no way endorsed by or associated with the Walt Disney Company and could stop working at any time for any reason. To ensure the intended experience, always use the official Disney app.</p>
+    </aside>
+
+    <h2>What is BG1?</h2>
+
+    <p>BG1 is an unofficial, experimental client for using Lightning Lane Multi Pass and virtual queues at Disney theme parks in the United States.</p>
+
+    <p>The code is open source and <a href="https://github.com/joelface/bg1">available on GitHub</a>.</p>
+
+    <h2>Why did you make this?</h2>
+
+    <p>I originally created BG1 to demonstrate how the virtual queue interface in the Walt Disney World app could be tweaked to provide guests with a less frustrating user experience. Many of these improvements were eventually incorporated into the official park apps. Since then, I updated BG1 to bring a similarly streamlined experience to the Genie+ service. It now supports Lightning Lane Multi Pass.</p>
+
+    <h2>How does it work?</h2>
+
+    <p>BG1 works by loading JavaScript code into your Web browser in a way that allows it to make the same network requests that the official apps use for accessing the these services.</p>
+
+    <h2>How can I try it?</h2>
+
+    <p>There are now two different ways to install and use BG1: the original bookmarklet method and a new userscript method. The benefit of the userscript method is that it will automatically load the BG1 interface for you, as opposed to the manual activation required when you install BG1 as a bookmarklet. However, it requires installing a Web browser extension (and, in the case of Android, the Firefox browser) to enable support for userscripts. Choose whichever method you're more comfortable with.</p>
+
+    <h2>iPhone Installation</h2>
+
+    <details id="safari-bookmarklet" class="instructions">
+      <summary>Bookmarklet Setup</summary>
+      <div>
+        <p>This installation method involves creating a bookmarklet, which is a bookmark that contains JavaScript code instead of a Web address. For a visual tutorial of the setup process, watch the <a href="https://www.youtube.com/watch?v=TLFZ4Le_LnY">BG1 Setup Guide on YouTube</a>.</p>
+
+        <h3>Creating the bookmarklet</h3>
+
+        <ol>
+          <li>Copy the bookmarklet code: <code class="bm-code"></code></li>
+          <li>If the bottom toolbar of Safari isn't already visible, tap at the bottom edge of the screen to bring it up.</li>
+          <li>Tap the share button (box with upward arrow) in the bottom toolbar, select Add to Favorites, and then save the bookmark.</li>
+          <li>Tap in the address bar to bring up your Favorites and find the BG1 Bookmarklet favorite.</li>
+          <li>Tap and hold on BG1 Bookmarklet and select Edit from the menu.</li>
+          <li>Replace the existing text in the address/URL field with the bookmarklet code you copied in Step 1 and save the bookmark.</li>
+        </ol>
+
+        <h3>Using the bookmarklet</h3>
+
+        <ol>
+          <li>Open a new tab and tap on BG1 Bookmarklet in your Favorites. This will load the BG1 Start page.</li>
+          <li>Select the service you wish to use.</li>
+          <li>The page that loads will just have some code on it. To load the BG1 interface, tap on the address bar to bring up your Favorites and tap on BG1 Bookmarklet again.</li>
+        </ol>
+
+        <div class="buttons"><button class="done">Done</button></div>
+      </div>
+    </details>
+
+    <details id="safari-userscript" class="instructions">
+      <summary>Userscript Setup</summary>
+      <div>
+        <p><b>Note:</b> These instructions are for iOS 18. Check to see if your phone needs to be updated before installing BG1.</p>
+
+        <h3>Installing the Userscripts app</h3>
+
+        <ol>
+          <li>Install <a href="https://apps.apple.com/us/app/userscripts/id1463298887">Userscripts</a> from the App Store.</li>
+          <li>Open the UserScripts app. You don't need to do anything in the app. It just needs to be opened once before the Safari extension will work.</li>
+          <li>Go into the <b>Settings</b> app, type <kbd>extensions</kbd> into the search box at the top, and tap on the first suggestion (or go to <b>Apps</b> → <b>Safari</b> → <b>Extensions</b>).</li>
+          <li>Under <b>Allow These Extensions</b>, tap on <b>Userscripts</b>.</li>
+          <li>Enable the <b>Allow Extension</b> setting, and under <b>Permissions</b>, set <b>Other Websites</b> to <b>Allow</b>.</li>
+        </ol>
+
+        <h3>Installing the BG1 userscript</h3>
+        <ol>
+          <li>Close Safari (<a href="https://support.apple.com/en-us/109359" title="How to close an iPhone app">instructions</a>) and reopen it.</li>
+          <li>
+            <a href="autoloader.user.js" title="BG1 autoloader userscript" target="_blank">Follow this link</a> (opens in new tab) to open the BG1 autoloader userscript.
+          </li>
+          <li>Tap the <b>puzzle piece</b> icon on the left side of the address bar and then tap on <b>Userscripts</b> in the menu that pops up.</li>
+          <li>The Userscripts extension will detect the BG1 userscript. Tap the <b>"Tap to install"</b> link, then scroll to the bottom of the userscript details page and tap the <b>Install</b> button.</li>
+        </ol>
+
+        <h3>Bookmarking the BG1 Start page</h3>
+        <ol>
+          <li>Go to the <a href="start.html">BG1 Start</a> page.</li>
+          <li>Tap the <b>share button</b> (box with upward-pointing arrow) in the Safari toolbar and select <b>Add to Favorites</b>.</li>
+        </ol>
+
+        <p>Now you're all set! To use BG1, just go to the <a href="start.html">BG1 Start</a> page and select the service you want to use.</p>
+
+        <div class="buttons"><button class="done">Done</button></div>
+      </div>
+    </details>
+
+    <h2>Android Installation</h2>
+
+    <details id="chrome" class="instructions">
+      <summary>Bookmarklet Setup (Chrome)</summary>
+      <div>
+        <p>This installation method involves creating a bookmarklet, which is a bookmark that contains JavaScript code instead of a Web address. For a visual tutorial of the setup process, watch the <a href="https://www.youtube.com/watch?v=TkEqyxbnYfw">BG1 Setup Guide on YouTube</a>.</p>
+
+        <p>Please note that these instructions are only for the Chrome browser on Android. BG1 cannot be installed in the Samsung Internet Browser, as it no longer allows bookmarklets. If you wish to avoid using Chrome, you can set up BG1 in Firefox via the <a href="#firefox">userscript method</a>.</p>
+
+
+        <h3>Creating the bookmarklet</h3>
+
+        <ol>
+          <li>Copy the bookmarklet code: <code class="bm-code"></code></li>
+          <li>Bookmark this page by tapping the three dots in the toolbar and then tapping the star icon in the menu.
+          </li>
+          <li>Open the three dots menu again and tap the star icon again to edit the bookmark you just created.</li>
+          <li>Replace the existing text in the address/URL field with the bookmarklet code you copied in Step 1 and save the bookmark.</li>
+          <li>Also bookmark the <a href="start.html">BG1 Start</a> page. You'll need to go there first each time before you use the bookmarklet.</li>
+        </ol>
+
+        <h3>Using the bookmarklet</h3>
+
+        <ol>
+          <li>Search for <kbd>BG1 Start</kbd> in the Chrome address bar to go to the BG1 Start page.</li>
+          <li>Select the service you wish to use.</li>
+          <li>The page that loads will just have some code on it. To load the BG1 interface, search for <kbd>BG1 Bookmarklet</kbd> in the Chrome address bar.</li>
+        </ol>
+
+        <div class="buttons"><button class="done">Done</button></div>
+      </div>
+    </details>
+
+    <details id="firefox" class="instructions">
+      <summary>Userscript Setup (Firefox)</summary>
+      <div>
+        <p>Firefox on Android (<a href="https://play.google.com/store/apps/details?id=org.mozilla.firefox&hl=en_US&gl=US&pli=1">download from Google Play Store</a>) offers the easiest method for running BG1. Even if you don't want to use it as your regular Web browser, it may be worth installing Firefox just for the added convenience when using BG1.</p>
+
+        <h3>Adding the BG1 Start shortcut to the Firefox homepage</h3>
+
+        <ol>
+          <li>In Firefox, go to the <a href="start.html">BG1 Start</a> page.</li>
+          <li>Tap the <b>three dots menu</b> in the toolbar and then tap <b>Add to shortcuts</b>.</li>
+        </ol>
+
+        <h3>Installing the BG1 autoloader userscript</h3>
+
+        <ol>
+          <li>In Firefox, go to the <a href="https://addons.mozilla.org/en-US/android/addon/tampermonkey/">Tampermonkey Firefox extension page</a> and tap the <b>Add to Firefox</b> button. Follow the prompt to install the extension.</li>
+          <li>Tap the <b>Install BG1 Autoloader</b> button below to install the userscript in Tampermonkey. Tampermonkey will display information about the script and ask for confirmation that you wish to install it.</li>
+        </ol>
+
+        <div class="buttons"><a href="autoloader.user.js">Install BG1 Autoloader</a></div>
+
+        <p>That's it! To use BG1, just go to the <a href="start.html">BG1 Start</a> page and select the service you want to use.</p>
+
+        <div class="buttons"><button class="done">Done</button></div>
+      </div>
+    </details>
+
+    <h2>Questions of Varying Frequency</h2>
+
+    <dl>
+      <dt>Why is it not working? All I see is a page of "code".</dt>
+      <dd>
+        <p>As I mentioned in the instructions above, tapping a button on the <a href="start.html">BG1 Start</a> page doesn't load BG1 on its own. It just takes you to the page you need to be on for the bookmarklet to work. The BG1 interface will only appear after you've run the bookmarklet on the "code" page.</p>
+        <p>If it still isn't working, here are some other troubleshooting tips:</p>
+        <ul>
+          <li>Make sure you're carefully following the instructions for the specific phone/browser combination you're using.</li>
+          <li>Try a different connection. Switch to mobile data if you're currently using Wi-Fi, or vice versa.</li>
+          <li>If using a VPN, try disabling it.</li>
+          <li>If it isn't working in a private browser tab, try running it in a normal tab.</li>
+          <li>Go into your Web browser's settings and delete the browsing data/cookies. This option is usually listed under the Privacy/Security category.</li>
+        </ul>
+      </dd>
+      <dt>How do I get a Lightning Lane for rides like Rise of the Resistance or Seven Dwarfs Mine Train?</dt>
+      <dd>
+        <p>Only Lightning Lane Multi Pass attractions can be booked through BG1 (and only after you've purchased Multi Pass through the official Disney park app). Lightning Lane Single Pass attractions cannot be purchased through BG1.</p>
+      </dd>
+      <dt>Why does BG1 make me sign into my Disney account?</dt>
+      <dd>
+        <p>To be able to make the authenticated requests required to communicate with Disney's servers, BG1 needs an access token obtained by signing into your Disney account. This access token, which is only valid for a 24 hour period, is stored locally on your device along with its expiration date and an ID used by the Lightning Lane API. No other Disney account-related data is stored, and none of it is ever transmitted to any non-Disney server.</p>
+        <p>Although BG1 cannot see your password, you may choose to log in using a confirmation code that is texted/emailed to you by tapping the "Need help signing in?" link on the login page.</p>
+        <p>You'll receive an automated email from Disney every time you sign in, just like when you log into the Disney app or website on a new device.</p>
+      </dd>
+    </dl>
+  </main>
+
+  <footer>
+    <ul>
+      <li><a href="start.html">BG1 Start</a></li>
+      <li><a href="contact.html">About BG1</a></li>
+      <li><a href="https://github.com/joelface/bg1">GitHub</a></li>
+    </ul>
+  </footer>
+
+</div>
+
+<script>
+  const scriptText = document
+    .getElementById('bm-script')
+    .text
+    .trim()
+    .replace(/;$/, '')
+    .replace(/\s*([;,{}=>+])\s*/g, '$1') + '()';
+  document.querySelectorAll('.bm-code').forEach(code => {
+    code.textContent = 'javascript:' + encodeURIComponent(scriptText);
+  });
+  const originalTitle = document.title;
+  const instrElems = document.querySelectorAll('.instructions');
+
+  function checkHash() {
+    if (location.hash) {
+      const startAt = document.querySelector(location.hash);
+      if (startAt && startAt.tagName === 'DETAILS') {
+        document.querySelector('details[open]')?.removeAttribute('open');
+        startAt.setAttribute('open', true);
+      }
+    } else {
+      instrElems.forEach(details => {
+        details.removeAttribute('open');
+      })
+    }
+  }
+
+  checkHash();
+  addEventListener('hashchange', checkHash);
+
+  document.querySelectorAll('details').forEach(details => {
+    details.addEventListener('toggle', function () {
+      if (location.hash && this.id !== location.hash.slice(1)) return;
+      if (details.open) {
+        location.hash = details.id;
+        document.title = 'BG1 Bookmarklet';
+        document.body.classList.add('noscroll');
+        details.scroll(0, 0);
+      } else {
+        document.title = originalTitle;
+        document.body.classList.remove('noscroll');
+        history.replaceState(null, '', '.');
+      }
+    });
+    details.querySelector('button.done').onclick = () => {
+      details.removeAttribute('open');
+    };
+  });
+</script>
