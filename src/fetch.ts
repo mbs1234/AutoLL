@@ -39,25 +39,49 @@ export async function fetchJson<T = any>(
     init.body = JSON.stringify(data);
   }
   init.method ||= 'GET';
-  const controller = new AbortController();
-  init.signal = controller.signal;
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-  let response: Response;
-  try {
-    response = await fetch(url, init);
-  } catch (error) {
-    console.error(error);
-    return { ok: false, status: 0, data: null };
-  } finally {
-    clearTimeout(timeoutId);
-  }
-  return {
-    ok: response.ok,
-    status: response.status,
-    data: (response.headers.get('Content-Type') || '').startsWith(
-      'application/json'
-    )
-      ? await response.json()
-      : {},
-  };
+
+  return checkCache(url, init, async () => {
+    const controller = new AbortController();
+    init.signal = controller.signal;
+    const abort = () => controller.abort();
+    const timeoutId = setTimeout(abort, timeout);
+    let response: Response;
+
+    try {
+      response = await fetch(url, init);
+    } catch (error) {
+      console.error(error);
+      return { ok: false, status: 0, data: null };
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    return {
+      ok: response.ok,
+      status: response.status,
+      data: (response.headers.get('Content-Type') || '').startsWith(
+        'application/json'
+      )
+        ? await response.json()
+        : {},
+    };
+  });
+}
+
+// This cache is only for preventing duplicate requests in React StrictMode
+const cache: { [key: string]: Promise<JsonResponse> } = {};
+
+function checkCache(
+  url: string,
+  init: RequestInit,
+  requester: () => Promise<JsonResponse>
+) {
+  const key = init.method + url;
+  const entry = cache[key];
+  if (entry) return entry;
+  const response = requester();
+  cache[key] = response;
+  setTimeout(() => {
+    delete cache[key];
+  }, 10);
+  return response;
 }

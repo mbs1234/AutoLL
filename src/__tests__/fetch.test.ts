@@ -28,6 +28,10 @@ const init = {
 };
 
 describe('fetchJson()', () => {
+  beforeEach(() => {
+    jest.advanceTimersByTime(10);
+  });
+
   it('returns response', async () => {
     mockFetch({ a: 1 }, { 'content-type': 'application/json' });
     expect(await fetchJson(url)).toEqual({
