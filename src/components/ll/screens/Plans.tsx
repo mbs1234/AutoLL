@@ -2,8 +2,8 @@ import { memo, use } from 'react';
 
 import { Booking } from '@/api/itinerary';
 import { Park } from '@/api/resort';
+import { Day } from '@/components/Day';
 import Tab from '@/components/Tab';
-import { Time } from '@/components/Time';
 import PlansContext from '@/contexts/PlansContext';
 import ThemeContext, { DEFAULT_THEME } from '@/contexts/ThemeContext';
 import { parkDate } from '@/datetime';
@@ -54,7 +54,7 @@ const PlansList = memo(function PlansList({ plans }: { plans: Booking[] }) {
                 <h2
                   className={`flex-1 mt-0 rounded-r-full px-3 py-1 ${theme.bg} text-white text-sm uppercase`}
                 >
-                  <Time date={date} />
+                  <Day>{date}</Day>
                 </h2>
                 <ul className="px-3 pl-2 text-lg text-right">
                   {[...(parksByDate.get(date) ?? [])].map(park => (

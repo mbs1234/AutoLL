@@ -1,7 +1,7 @@
 import { bookings } from '@/__fixtures__/ll';
 import { Booking } from '@/api/itinerary';
 import PlansContext from '@/contexts/PlansContext';
-import { displayTime, parkDate } from '@/datetime';
+import { parkDate } from '@/datetime';
 import NavProvider from '@/providers/NavProvider';
 import { TODAY, render, screen, see, setTime, within } from '@/testing';
 
@@ -30,17 +30,19 @@ describe('YourDay', () => {
       .forEach((booking, i) => {
         const inLI = within(planLIs[i]);
         inLI.getByText(booking.choices ? 'Multiple Experiences' : booking.name);
-        inLI.getByText(
-          booking.type === 'BG'
-            ? `BG ${booking.boardingGroup}`
-            : booking.start.time
-              ? displayTime(booking.start.time)
-              : 'Park Open'
-        );
+        if (booking.type === 'BG') {
+          inLI.getByText(`BG ${booking.boardingGroup}`);
+        } else if (booking.start.time) {
+          inLI.getByTime(booking.start.time);
+        } else {
+          inLI.getByText('Park Open');
+        }
         if (booking.type === 'LL') {
-          inLI.getByText(
-            booking.end?.time ? displayTime(booking.end.time) : 'Park Close'
-          );
+          if (booking.end?.time) {
+            inLI.getByTime(booking.end.time);
+          } else {
+            inLI.getByText('Park Close');
+          }
         }
         if (booking.modifiable) {
           inLI.getByRole('button', { name: 'Modify' });

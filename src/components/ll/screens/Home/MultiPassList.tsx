@@ -5,6 +5,7 @@ import { Experience, FlexExperience } from '@/api/ll';
 import { Park } from '@/api/resort';
 import Screen from '@/components/Screen';
 import Tab from '@/components/Tab';
+import { Time } from '@/components/Time';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ClientsContext from '@/contexts/ClientsContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
@@ -13,13 +14,7 @@ import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
 import ResortContext from '@/contexts/ResortContext';
 import ThemeContext from '@/contexts/ThemeContext';
-import {
-  DateTime,
-  displayTime,
-  parkDate,
-  timeToMinutes,
-  upcomingTimes,
-} from '@/datetime';
+import { DateTime, parkDate, timeToMinutes, upcomingTimes } from '@/datetime';
 import useSavedParty from '@/hooks/useSavedParty';
 import CheckmarkIcon from '@/icons/CheckmarkIcon';
 import DropIcon from '@/icons/DropIcon';
@@ -374,10 +369,7 @@ function DropTimeDesc({
           <>a day-of</>
         ) : dropTime ? (
           <>
-            the{' '}
-            <time dateTime={dropTime} className="font-semibold">
-              {displayTime(dropTime)}
-            </time>
+            the <Time className="font-semibold">{dropTime}</Time>
           </>
         ) : (
           <>an upcoming</>
@@ -413,7 +405,7 @@ function DropTimeDesc({
                             <div
                               className={`${isNextDrop ? `${park.theme.text} font-bold` : upcoming.has(time) || !isBookingToday ? 'font-semibold' : 'text-gray-500'}`}
                             >
-                              <time dateTime={time}>{displayTime(time)}</time>
+                              <Time>{time}</Time>
                             </div>
                             {isNextDrop ? (
                               <div

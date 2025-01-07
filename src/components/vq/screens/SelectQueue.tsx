@@ -4,11 +4,11 @@ import { authStore } from '@/api/auth';
 import { Queue } from '@/api/vq';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
+import { Time } from '@/components/Time';
 import RefreshButton from '@/components/ll/screens/RefreshButton';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
 import ThemeContext from '@/contexts/ThemeContext';
-import { displayTime } from '@/datetime';
 import useDataLoader from '@/hooks/useDataLoader';
 import onVisible from '@/onVisible';
 
@@ -71,12 +71,9 @@ export default function SelectQueue() {
                   ) : q.nextScheduledOpenTime ? (
                     <>
                       Next opening:{' '}
-                      <time
-                        dateTime={q.nextScheduledOpenTime}
-                        className="font-semibold"
-                      >
-                        {displayTime(q.nextScheduledOpenTime)}
-                      </time>
+                      <Time className="font-semibold">
+                        {q.nextScheduledOpenTime}
+                      </Time>
                     </>
                   ) : (
                     'No more openings today'

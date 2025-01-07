@@ -28,7 +28,7 @@ async function renderComponent(
 
 async function addedOfferTime(times: HourlySlots) {
   await renderComponent(times, modOffer);
-  see.time(offer.start.time, 'button');
+  see(displayTime(offer.start.time), 'button');
 }
 
 describe('SelectReturnTime', () => {
@@ -42,7 +42,7 @@ describe('SelectReturnTime', () => {
     see('12 PM', 'rowheader');
     for (const slots of times) {
       for (const { startTime } of slots) {
-        see.time(startTime, 'button');
+        see(displayTime(startTime), 'button');
       }
     }
     const slot = times[1][1];
@@ -73,22 +73,18 @@ describe('SelectReturnTime', () => {
   });
 
   it("doesn't replace earliest slot if offer time is later", async () => {
+    const startTime = '11:05:00';
     await renderComponent(
-      [
-        [{ startTime: '11:05:00', endTime: '12:05:00' }, ...times[0].slice(1)],
-        times[1],
-      ],
+      [[{ startTime, endTime: '12:05:00' }, ...times[0].slice(1)], times[1]],
       offer
     );
-    see.time('11:05', 'button');
+    see(displayTime(startTime), 'button');
     see.no(displayTime(offer.start.time), 'button');
   });
 
   it('adds offer time button if 1-2 slots for this hour', async () => {
     await addedOfferTime([times[0].slice(1), times[1]]);
-    for (const { startTime } of times[0]) {
-      see.time(startTime, 'button');
-    }
+    for (const { startTime } of times[0]) see(displayTime(startTime), 'button');
   });
 
   it('adds offer time if no slots for this hour', async () => {

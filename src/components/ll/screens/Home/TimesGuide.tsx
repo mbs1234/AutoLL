@@ -5,11 +5,11 @@ import { Land } from '@/api/resort';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
 import Tab from '@/components/Tab';
+import { Time } from '@/components/Time';
 import DasPartiesContext from '@/contexts/DasPartiesContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import NavContext from '@/contexts/NavContext';
 import ThemeContext from '@/contexts/ThemeContext';
-import { displayTime } from '@/datetime';
 
 import DasPartyList from '../DasPartyList';
 import { HomeTabProps } from '../Home';
@@ -168,10 +168,10 @@ function ExperienceList({
                       onClick={() => onInfoClick(exp)}
                       className="underline"
                     >
-                      {displayTime(exp.standby.nextShowTime)}
+                      <Time>{exp.standby.nextShowTime}</Time>
                     </button>
                   ) : (
-                    displayTime(exp.standby.nextShowTime)
+                    <Time>{exp.standby.nextShowTime}</Time>
                   )
                 ) : exp.standby.available ? (
                   (exp.standby.waitTime ?? '–')
@@ -201,7 +201,7 @@ function ExperienceList({
                       </div>
                       {exp.individual.nextAvailableTime && (
                         <div>
-                          {displayTime(exp.individual.nextAvailableTime)}
+                          <Time>{exp.individual.nextAvailableTime}</Time>
                         </div>
                       )}
                     </div>
@@ -223,10 +223,14 @@ const ExperienceInfo = ({ exp }: { exp: Experience }) => (
     <h3>Upcoming {exp.type === 'CHARACTER' ? 'Appearances' : 'Shows'}</h3>
     <ul className="list-disc mt-2 pl-6">
       {!!exp.standby.nextShowTime && (
-        <li>{displayTime(exp.standby.nextShowTime)}</li>
+        <li>
+          <Time>{exp.standby.nextShowTime}</Time>
+        </li>
       )}
       {exp.additionalShowTimes?.map(time => (
-        <li key={time}>{displayTime(time)}</li>
+        <li key={time}>
+          <Time>{time}</Time>
+        </li>
       ))}
     </ul>
   </Screen>

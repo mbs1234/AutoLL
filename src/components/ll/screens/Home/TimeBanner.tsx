@@ -1,7 +1,8 @@
 import { use } from 'react';
 
+import { Time } from '@/components/Time';
 import ThemeContext from '@/contexts/ThemeContext';
-import { DateTime, displayTime } from '@/datetime';
+import { DateTime } from '@/datetime';
 
 export default function TimeBanner({
   bookTime,
@@ -25,9 +26,7 @@ function LabeledTime({ label, time }: { label?: string; time?: string }) {
   return (
     <div>
       {label}:{' '}
-      <time dateTime={time} className="whitespace-nowrap">
-        {time > now ? displayTime(time) : 'now'}
-      </time>
+      {time > now ? <Time>{time}</Time> : <time dateTime={time}>now</time>}
     </div>
   );
 }

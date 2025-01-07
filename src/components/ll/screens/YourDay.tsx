@@ -1,7 +1,7 @@
 import { use } from 'react';
 
+import { Day } from '@/components/Day';
 import Screen from '@/components/Screen';
-import { Time } from '@/components/Time';
 import PlansContext from '@/contexts/PlansContext';
 import { parkDate } from '@/datetime';
 
@@ -24,7 +24,7 @@ export default function YourDay({
   return (
     <Screen
       title="Your Day"
-      subhead={<Time date={date} />}
+      subhead={<Day>{date}</Day>}
       theme={parks[0]?.theme}
     >
       {nonAprPlans && nonAprPlans.length > 0 ? (

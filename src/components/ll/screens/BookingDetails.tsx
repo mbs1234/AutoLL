@@ -3,11 +3,11 @@ import { use, useState } from 'react';
 import { Booking } from '@/api/itinerary';
 import { Park } from '@/api/resort';
 import Button from '@/components/Button';
+import { Day } from '@/components/Day';
 import FloatingButton from '@/components/FloatingButton';
 import GuestList from '@/components/GuestList';
 import Notice from '@/components/Notice';
 import Screen from '@/components/Screen';
-import { Time } from '@/components/Time';
 import ClientsContext from '@/contexts/ClientsContext';
 import DasPartiesContext from '@/contexts/DasPartiesContext';
 import NavContext from '@/contexts/NavContext';
@@ -75,7 +75,7 @@ export default function BookingDetails({
       title={'Your ' + titles[type]}
       theme={theme}
       buttons={!unmodifiable && !isNew && <ModifyButton booking={booking} />}
-      subhead={<Time date={parkDate(start)} />}
+      subhead={<Day>{parkDate(start)}</Day>}
     >
       {choices ? (
         <h2>Multiple Experiences</h2>

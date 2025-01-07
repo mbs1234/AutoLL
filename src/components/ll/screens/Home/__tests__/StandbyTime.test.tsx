@@ -12,7 +12,7 @@ describe('StandbyTime', () => {
         }}
       />
     );
-    see('45 min');
+    see.time('45 min');
   });
 
   it('shows no wait', () => {
@@ -34,15 +34,16 @@ describe('StandbyTime', () => {
   });
 
   it('shows next show time', () => {
+    const nextShowTime = '15:00:00';
     render(
       <StandbyTime
         experience={{
           type: 'ENTERTAINMENT',
-          standby: { available: true, nextShowTime: '15:00:00' },
+          standby: { available: true, nextShowTime },
         }}
       />
     );
-    see('3:00 PM');
+    see.time(nextShowTime);
   });
 
   it('shows no next show', () => {
@@ -58,6 +59,7 @@ describe('StandbyTime', () => {
   });
 
   it('shows next VQ open time', () => {
+    const nextAvailableTime = '07:00:00';
     render(
       <StandbyTime
         experience={{
@@ -65,13 +67,13 @@ describe('StandbyTime', () => {
           standby: { available: true },
           virtualQueue: {
             available: true,
-            nextAvailableTime: '07:00:00',
+            nextAvailableTime,
           },
         }}
       />
     );
     see('VQ');
-    see('7:00 AM');
+    see.time(nextAvailableTime);
   });
 
   it('shows closed VQ', () => {

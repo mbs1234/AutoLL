@@ -4,7 +4,7 @@ import { Booking } from '@/api/itinerary';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import { parkDate } from '@/datetime';
 
-import { Time } from '../Time';
+import { Day } from '../Day';
 
 export default function BookingDate({
   booking,
@@ -12,5 +12,5 @@ export default function BookingDate({
   booking?: Pick<Booking, 'start'>;
 }) {
   const { bookingDate } = use(BookingDateContext);
-  return <Time date={booking ? parkDate(booking.start) : bookingDate} />;
+  return <Day>{booking ? parkDate(booking.start) : bookingDate}</Day>;
 }

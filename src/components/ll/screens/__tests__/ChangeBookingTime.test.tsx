@@ -1,5 +1,4 @@
 import { booking, ll, modOffer, renderResort, times } from '@/__fixtures__/ll';
-import { displayTime } from '@/datetime';
 import { click, loading, nav, see, waitFor } from '@/testing';
 
 import BookNewReturnTime from '../BookNewReturnTime';
@@ -22,7 +21,7 @@ describe('ChangeBookingTime', () => {
     await loading();
     const newOffer = { ...modOffer, id: 'new-offer' };
     ll.changeOfferTime.mockResolvedValueOnce(newOffer);
-    click(displayTime(times[1][1].startTime));
+    click(see.time(times[1][1].startTime));
     await waitFor(() =>
       expect(goTo).toHaveBeenCalledWith(<BookNewReturnTime offer={newOffer} />)
     );

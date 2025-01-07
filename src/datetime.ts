@@ -92,6 +92,7 @@ export function displayDate(date: string, type?: DisplayType) {
 }
 
 export function displayTime(time: string) {
+  if (!time.match(/^[\d:]+$/)) return time;
   const t = time.split(':').slice(0, 2).map(Number);
   const ampm = t[0] >= 12 ? 'PM' : 'AM';
   t[0] = t[0] % 12 || 12;

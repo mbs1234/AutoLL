@@ -3,6 +3,7 @@ import { use, useCallback, useEffect, useState } from 'react';
 import { HourlySlots, Offer } from '@/api/ll';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
+import { Time } from '@/components/Time';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
 import RebookingContext from '@/contexts/RebookingContext';
@@ -121,7 +122,7 @@ export default function SelectReturnTime<B extends Offer['booking']>({
                           });
                         }}
                       >
-                        {displayTime(slot.startTime)}
+                        <Time>{slot.startTime}</Time>
                       </Button>
                     </td>
                   ))}

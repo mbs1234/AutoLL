@@ -1,7 +1,7 @@
 import { use, useLayoutEffect } from 'react';
 
 import { DasParty } from '@/api/das';
-import { isType } from '@/api/itinerary';
+import { DasBooking, isType } from '@/api/itinerary';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
 import { Time } from '@/components/Time';
@@ -22,7 +22,7 @@ export default function DasPartyList({ parties }: { parties: DasParty[] }) {
   const dasGuestIds = new Set(parties.map(p => p.primaryGuest.id));
   const selectionByGuestId = new Map(
     plans
-      .filter(b => isType(b, 'DAS', 'IN_PARK'))
+      .filter((b): b is DasBooking => isType(b, 'DAS', 'IN_PARK'))
       .map(b => [b.guests.find(g => dasGuestIds.has(g.id))?.id ?? '', b])
   );
 
@@ -125,7 +125,7 @@ export default function DasPartyList({ parties }: { parties: DasParty[] }) {
                         {selection && (
                           <div className="text-gray-500 text-xs font-semibold uppercase">
                             {selection.name} @{' '}
-                            <Time time={selection.start.time} />
+                            <Time>{selection.start.time}</Time>
                           </div>
                         )}
                       </div>

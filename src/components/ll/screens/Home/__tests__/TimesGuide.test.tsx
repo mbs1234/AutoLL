@@ -129,7 +129,7 @@ describe('TimesGuide', () => {
       },
     });
 
-    click(displayTime(fofShowTime));
+    click(see.time(fofShowTime));
     expect(
       screen.queryByRole('heading', { name: fof.name, level: 2 })
     ).not.toBeInTheDocument();

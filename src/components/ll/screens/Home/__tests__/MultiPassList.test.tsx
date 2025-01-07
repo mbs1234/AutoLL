@@ -109,9 +109,9 @@ describe('MultiPassList', () => {
 
     click('Upcoming Drop (more info)');
     await see.screen('Upcoming Drop');
-    expect(see.all(displayTime(mk.dropTimes[0]))).toHaveLength(1);
-    expect(see.all(displayTime(mk.dropTimes[1]))).toHaveLength(3);
-    expect(see.all(displayTime(mk.dropTimes[2]))).toHaveLength(1);
+    see.time(mk.dropTimes[0]);
+    expect(screen.getAllByTime(mk.dropTimes[1])).toHaveLength(3);
+    see.time(mk.dropTimes[2]);
     see(hm.name, 'heading');
     see(sm.name, 'heading');
     await goBack();

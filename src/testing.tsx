@@ -3,11 +3,13 @@ import {
   ByRoleMatcher,
   ByRoleOptions,
   act,
+  queries as baseQueries,
+  screen as baseScreen,
+  within as baseWithin,
+  buildQueries,
   fireEvent,
   queryHelpers,
-  screen,
   waitForElementToBeRemoved,
-  within,
 } from '@testing-library/react';
 
 import NavContext from './contexts/NavContext';
@@ -19,6 +21,32 @@ export * from '@testing-library/react';
 export const YESTERDAY = '2021-09-30';
 export const TODAY = '2021-10-01';
 export const TOMORROW = '2021-10-02';
+
+function queryAllByTime(c: HTMLElement, time: string) {
+  time = displayTime(time);
+  return [...c.getElementsByTagName('time')].filter(
+    elem => elem.textContent === time
+  ) as HTMLElement[];
+}
+
+const [queryByTime, getAllByTime, getByTime, findAllByTime, findByTime] =
+  buildQueries(
+    queryAllByTime,
+    (c, time) => `Found multiple time elements: ${time}`,
+    (c, time) => `Unable to find a time element: ${time}`
+  );
+const queries = {
+  ...baseQueries,
+  queryAllByTime,
+  queryByTime,
+  getAllByTime,
+  getByTime,
+  findAllByTime,
+  findByTime,
+};
+export const within = (elem: HTMLElement) =>
+  baseWithin<typeof queries>(elem, queries);
+export const screen = { ...baseScreen, ...within(document.body) };
 
 function getQueryError(message: string) {
   const error = queryHelpers.getElementError(message, getContainerElem());
@@ -32,6 +60,9 @@ function getQueryError(message: string) {
 
 const getTextError = (text: string) =>
   getQueryError(`Unable to find element with text: ${text}`);
+
+const getTimeError = (time: string) =>
+  getQueryError(`Unable to find time element: ${displayTime(time)}`);
 
 const getContainerElem = () =>
   document.querySelector<HTMLElement>('article:not([hidden])') ?? document.body;
@@ -59,24 +90,33 @@ export const see = Object.assign(
     throw getTextError(text);
   },
   {
-    time(h24Time: string, role?: ByRoleMatcher, options?: ByRoleOptions) {
-      return see(displayTime(h24Time), role, options);
+    time(time: string) {
+      try {
+        return withinActive().getByTime(time);
+      } catch {
+        throw getTimeError(time);
+      }
+    },
+    times(time: string) {
+      try {
+        return withinActive().getAllByTime(time);
+      } catch {
+        throw getTimeError(time);
+      }
     },
     all(text: string) {
-      const c = within(getContainerElem());
+      const { queryAllByText, queryAllByTitle } = withinActive();
       try {
-        return [...c.queryAllByText(text), ...c.queryAllByTitle(text)];
+        return [...queryAllByText(text), ...queryAllByTitle(text)];
       } catch {
         throw getTextError(text);
       }
     },
     no(text: string, role?: ByRoleMatcher) {
-      const active = within(getContainerElem());
+      const { queryByRole, queryByText } = withinActive();
       try {
         return expect(
-          role
-            ? active.queryByRole(role, { name: text })
-            : active.queryByText(text)
+          role ? queryByRole(role, { name: text }) : queryByText(text)
         ).not.toBeInTheDocument();
       } catch {
         throw getQueryError(`Found element with text: ${text}`);

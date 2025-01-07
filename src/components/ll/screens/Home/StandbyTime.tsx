@@ -1,5 +1,5 @@
 import { Experience } from '@/api/ll';
-import { displayTime } from '@/datetime';
+import { Time } from '@/components/Time';
 
 import LabeledItem from './LabeledItem';
 
@@ -22,36 +22,57 @@ export default function StandbyTime({
   );
 }
 
-const AverageWait = ({
+function Minutes({
+  children: m,
+  rounded,
+}: {
+  children: number;
+  rounded?: boolean;
+}) {
+  if (rounded) m = Math.round(m / 5) * 5;
+  return (
+    <time dateTime={`PT${m}M`}>
+      {m} <span className="text-sm">min</span>
+    </time>
+  );
+}
+
+function AverageWait({
   time,
   virtualQueue,
 }: {
   time?: number;
   virtualQueue?: Experience['virtualQueue'];
-}) => (
-  <LabeledItem label="Standby">
-    <Available
-      time={
-        time !== undefined ? (
-          <>{Math.round(time / 5) * 5} min</>
-        ) : virtualQueue ? (
-          <abbr title="Virtual queue">VQ</abbr>
-        ) : (
-          <abbr title="Not applicable" className="px-1">
-            –
-          </abbr>
-        )
-      }
-    />
-  </LabeledItem>
-);
+}) {
+  return (
+    <LabeledItem label="Standby">
+      <Available
+        time={
+          time !== undefined ? (
+            <Minutes rounded>{time}</Minutes>
+          ) : virtualQueue ? (
+            <abbr title="Virtual queue">VQ</abbr>
+          ) : (
+            <abbr title="Not applicable" className="px-1">
+              –
+            </abbr>
+          )
+        }
+      />
+    </LabeledItem>
+  );
+}
 
 const WaitTime = ({ standby }: Pick<Experience, 'standby'>) => (
   <LabeledItem label="Standby">
     {standby.available ? (
       <Available
         time={
-          standby.waitTime !== undefined ? standby.waitTime + ' min' : 'now'
+          standby.waitTime !== undefined ? (
+            <Minutes>{standby.waitTime}</Minutes>
+          ) : (
+            'now'
+          )
         }
       />
     ) : (
@@ -69,7 +90,7 @@ const NextShowTime = ({ standby }: Pick<Experience, 'standby'>) => (
     }
   >
     {standby.nextShowTime ? (
-      <Available time={displayTime(standby.nextShowTime)} />
+      <Available time={<Time>{standby.nextShowTime}</Time>} />
     ) : (
       <Unavailable text="none" />
     )}
@@ -82,9 +103,11 @@ const VQStatus = ({
   <LabeledItem label={<abbr title="Virtual Queue">VQ</abbr>}>
     <Available
       time={
-        virtualQueue.nextAvailableTime
-          ? displayTime(virtualQueue.nextAvailableTime)
-          : 'closed'
+        virtualQueue.nextAvailableTime ? (
+          <Time>{virtualQueue.nextAvailableTime}</Time>
+        ) : (
+          'closed'
+        )
       }
     />
   </LabeledItem>

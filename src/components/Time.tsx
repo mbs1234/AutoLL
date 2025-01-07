@@ -1,18 +1,17 @@
-import { DisplayType, displayDate, displayTime } from '@/datetime';
+import { displayTime } from '@/datetime';
 
 export function Time({
-  date,
-  time,
-  type,
+  children: time,
   ...attrs
 }: React.HTMLProps<HTMLTimeElement> & {
-  date?: string;
-  time?: string;
-  type?: DisplayType;
+  children: string;
 }) {
+  const [hm, ampm] = displayTime(time).split(' ');
   return (
-    <time {...attrs} dateTime={date || time}>
-      {date ? displayDate(date, type) : time ? displayTime(time) : ''}
+    <time {...attrs} dateTime={time}>
+      <span className="whitespace-nowrap">
+        {hm} <span className="text-xs">{ampm}</span>
+      </span>
     </time>
   );
 }

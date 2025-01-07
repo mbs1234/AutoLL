@@ -63,6 +63,8 @@ describe('displayTime()', () => {
     expect(displayTime('08:14:42')).toBe('8:14 AM');
     expect(displayTime('08:14')).toBe('8:14 AM');
     expect(displayTime('8:00')).toBe('8:00 AM');
+    expect(displayTime('8')).toBe('8 AM');
+    expect(displayTime('8:14 PM')).toBe('8:14 PM');
   });
 });
 

@@ -21,7 +21,6 @@ import { OfferError } from '@/api/ll';
 import ParkContext from '@/contexts/ParkContext';
 import RebookingContext from '@/contexts/RebookingContext';
 import { DEFAULT_THEME } from '@/contexts/ThemeContext';
-import { displayTime } from '@/datetime';
 import { act, click, nav, screen, see, setTime, waitFor } from '@/testing';
 
 import BookingDetails from '../BookingDetails';
@@ -107,7 +106,7 @@ describe('BookingDetails', () => {
       DEFAULT_THEME.bg
     );
     see('Multiple Experiences');
-    see(`${displayTime(multiExp.start.time || '')}`);
+    see.time(multiExp.start.time as string);
     see('Park Close');
     expect(
       screen
