@@ -4,6 +4,8 @@ import { TODAY } from '@/testing';
 
 import { DasClient } from './das';
 
+jest.mock('@/ratelimit');
+
 const booking = {
   type: 'DAS',
   subtype: 'IN_PARK',

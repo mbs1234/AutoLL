@@ -5,6 +5,8 @@ import { guests, mtwr, queues, rotr, santa } from '@/__fixtures__/vq';
 import { RequestError } from './client';
 import { Guest, VQClient, sortGuests } from './vq';
 
+jest.mock('@/ratelimit');
+
 expectFetch.baseUrl =
   'https://vqguest-svc-wdw.wdprapps.disney.com/application/v1/guest/';
 

@@ -31,6 +31,7 @@ const diu = {
   disneyInternalUse03: '3',
 };
 jest.mock('./diu', () => ({ __esModule: true, default: () => diu }));
+jest.mock('@/ratelimit');
 const onUnauthorized = jest.fn();
 
 function apiGuest<T extends { name: string }>({
