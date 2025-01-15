@@ -1,6 +1,5 @@
 import { respond, response } from '@/__fixtures__/client';
 import {
-  ak,
   booking,
   bookings,
   hm,
@@ -81,7 +80,9 @@ describe('ItineraryClient', () => {
                       kind: 'PARK_PASS',
                       displayStartDate: b.start.date,
                       guests: b.guests.map(g => ({ id: xid(g) })),
-                      facility: entId({ id: 'ak_apr' }),
+                      facility: entId(
+                        b.id === mk.id ? { id: 'mk_resort_area' } : b
+                      ),
                     }
                   : {
                       type: 'DINING',
@@ -112,8 +113,8 @@ describe('ItineraryClient', () => {
           })),
         ],
         assets: {
-          [entId({ id: 'ak_apr' })]: {
-            location: entId(ak, 'theme-park'),
+          [entId({ id: 'mk_resort_area' })]: {
+            location: entId(mk, 'theme-park'),
           },
           '90e81c93-b84c-48e0-a98d-121094fa842e;type=virtual-queue': {
             name: 'Tron',
@@ -130,16 +131,14 @@ describe('ItineraryClient', () => {
             location: entId(mk, 'theme-park'),
           },
           ...Object.fromEntries(
-            [booking, ...bookings, ...bookings.map(b => b.choices || [])]
-              .flat()
-              .map(b => [
-                entId(b),
-                {
-                  id: entId(b),
-                  name: b.name,
-                  location: entId(b.park, 'theme-park'),
-                },
-              ])
+            bookings.map(b => [
+              entId(b),
+              {
+                id: entId(b),
+                name: b.name,
+                location: entId(b.park, 'theme-park'),
+              },
+            ])
           ),
           ...Object.fromEntries(
             guests.map(g => [

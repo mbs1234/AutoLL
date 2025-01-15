@@ -157,7 +157,7 @@ interface Profile {
 
 interface ItineraryResponse {
   loggedInGuestId: string;
-  assets: { [id: string]: Asset };
+  assets: { [id: string]: Asset | undefined };
   items: (
     | FastPassItem
     | ReservationItem
@@ -226,10 +226,15 @@ export class ItineraryClient extends ApiClient {
 
     const getReservation = (item: ReservationItem) => {
       const activityAsset = assets[item.asset];
+      if (!activityAsset) return;
       const facilityAsset = assets[activityAsset.facility];
+      if (!facilityAsset) return;
       const parkIdStr = facilityAsset.location ?? '';
       const park = this.park(parkIdStr);
-      if (park.name === '' && parkIdStr) park.name = assets[parkIdStr].name;
+      const parkAsset = assets[parkIdStr];
+      if (park.name === '' && parkIdStr && parkAsset) {
+        park.name = parkAsset.name;
+      }
       const start = new Date(item.startDateTime);
       if (start < earliestRes) return;
       const res: Reservation = {
@@ -258,8 +263,8 @@ export class ItineraryClient extends ApiClient {
       return {
         ...this.experienceData(
           item.facility,
-          (expAsset as Required<Asset>).location,
-          expAsset.name
+          expAsset?.location,
+          expAsset?.name
         ),
         start:
           (item.displayStartDate ?? today) < parkDay
@@ -314,14 +319,14 @@ export class ItineraryClient extends ApiClient {
           ...(origAsset
             ? this.experienceData(
                 origAsset.content,
-                (assets[origAsset.content] as Required<Asset>).location
+                assets[origAsset.content]?.location
               )
             : { id: '', name: '' }),
         };
         booking.choices = item.assets
           .filter(a => !a.excluded && !a.original)
           .map(({ content }) => {
-            const { name, location } = assets[content] as Required<Asset>;
+            const { name, location } = assets[content] ?? {};
             return this.experienceData(content, location, name);
           })
           .sort((a, b) => a.name.localeCompare(b.name));
@@ -343,12 +348,16 @@ export class ItineraryClient extends ApiClient {
       };
     };
 
-    const getBoardingGroup = (item: BoardingGroupItem): BoardingGroup => {
+    const getBoardingGroup = (
+      item: BoardingGroupItem
+    ): BoardingGroup | undefined => {
       const vqAsset = assets[item.asset];
+      if (!vqAsset) return;
       const facilityAsset = assets[vqAsset.facility];
+      if (!facilityAsset) return;
       const exp = this.experienceData(
         vqAsset.facility,
-        (facilityAsset as Required<Asset>).location,
+        facilityAsset.location,
         vqAsset.name
       );
       if (exp.park.name === '') exp.park.name = facilityAsset.name;
@@ -364,9 +373,7 @@ export class ItineraryClient extends ApiClient {
     };
 
     const getParkPass = (item: FastPassItem): ParkPass | undefined => {
-      const park = this.park(
-        (assets[item.facility] as Required<Asset>).location
-      );
+      const park = this.park(assets[item.facility]?.location ?? item.facility);
       if (!park) return;
       return {
         type: 'APR',

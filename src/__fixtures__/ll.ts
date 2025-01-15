@@ -212,6 +212,16 @@ export const lttRes: Reservation = {
   bookingId: '38943;type=DINING',
 };
 
+export const mkApr: ParkPass = {
+  type: 'APR',
+  id: mk.id,
+  name: mk.name,
+  park: mk,
+  start: { date: TODAY, time: '06:00:00' },
+  guests: [mickey, minnie, pluto].map(omitOrderDetails),
+  bookingId: 'mk20211001',
+};
+
 export const akApr: ParkPass = {
   type: 'APR',
   id: ak.id,
@@ -240,6 +250,7 @@ export const expiredLL: LightningLane = {
 };
 
 export const bookings: Booking[] = [
+  mkApr,
   bg,
   allDayExp,
   booking,
