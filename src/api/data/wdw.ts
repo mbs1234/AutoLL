@@ -1050,7 +1050,7 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.3592779, -81.5921478],
     avgWait: 53,
     highlight: true,
-    dropTimes: ['08:47', '12:47'],
+    dropTimes: ['09:47', '12:47'],
   },
   18435910: {
     name: 'Kora Tinga Tinga',
