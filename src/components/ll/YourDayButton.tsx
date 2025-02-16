@@ -9,7 +9,7 @@ import YourDay from './screens/YourDay';
 
 export default function YourDayButton({
   date,
-  unmodifiable: changes,
+  unmodifiable,
   ...buttonProps
 }: Omit<Parameters<typeof Button>[0], 'onClick' | 'title'> & {
   date?: string;
@@ -22,7 +22,9 @@ export default function YourDayButton({
       <Button
         {...buttonProps}
         onClick={() =>
-          goTo(<YourDay date={date ?? bookingDate} unmodifiable={changes} />)
+          goTo(
+            <YourDay date={date ?? bookingDate} unmodifiable={unmodifiable} />
+          )
         }
         title="Your Day"
       >
