@@ -65,11 +65,10 @@ export class Resort {
     this.expsById = data.experiences as Resort['expsById'];
     this.dropExpsByPark = new Map(this.parks.map(p => [p, [] as Experience[]]));
     for (const [id, exp] of Object.entries(this.expsById)) {
-      if (exp) {
-        exp.id = id;
-        exp.park = exp.land.park;
-      }
-      if (exp?.dropTimes) this.dropExpsByPark.get(exp.land.park)?.push(exp);
+      if (!exp) continue;
+      exp.id = id;
+      exp.park = exp.land.park;
+      if (exp.dropTimes) this.dropExpsByPark.get(exp.land.park)?.push(exp);
     }
     for (const park of this.parks) {
       park.dropTimes = [
