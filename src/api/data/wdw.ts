@@ -891,10 +891,6 @@ export const experiences: ResortData['experiences'] = {
     land: echoLake,
     geo: [28.3566155, -81.5594812],
   },
-  19276204: {
-    name: "Lightning McQueen's Racing Academy",
-    land: hollywood,
-  },
   411926516: {
     name: 'Ariel (Walt Disney Presents)',
     land: animation,
@@ -1131,10 +1127,6 @@ export const experiences: ResortData['experiences'] = {
     name: 'Tree of Life Awakenings',
     land: discIsland,
     type: 'HOLIDAY',
-  },
-  80010228: {
-    name: 'Triceratop Spin',
-    land: dinoland,
   },
   16629705: {
     name: 'Viva Gaia Street Band',
