@@ -4,24 +4,24 @@ import { fetchJson } from '@/fetch';
 import { Experience } from './ll';
 import { InvalidId, Park, Resort } from './resort';
 
-interface ShowtimesByParkId {
+interface ShowTimesByParkId {
   [parkId: string]: { [expId: string]: string[] };
 }
 
 export class LiveDataClient {
-  protected cachedShowtimes: ShowtimesByParkId = {};
+  protected cachedShowTimes: ShowTimesByParkId = {};
 
   constructor(protected resort: Resort) {}
 
   async shows(park: Park): Promise<{ [id: string]: Experience }> {
-    if (Object.keys(this.cachedShowtimes).length === 0) {
-      this.cachedShowtimes = (await this.request('showtimes')).data;
+    if (Object.keys(this.cachedShowTimes).length === 0) {
+      this.cachedShowTimes = (await this.request('showtimes')).data;
     }
-    const showtimesByExpId = this.cachedShowtimes[park.id] ?? {};
+    const showTimesByExpId = this.cachedShowTimes[park.id] ?? {};
     const { time: now } = new DateTime();
     return Object.fromEntries(
-      Object.entries(showtimesByExpId).flatMap(([id, showtimes]) => {
-        const upcomingTimes = showtimes.filter(t => t >= now);
+      Object.entries(showTimesByExpId).flatMap(([id, showTimes]) => {
+        const upcomingTimes = showTimes.filter(t => t >= now);
         const nextShowTime = upcomingTimes[0];
         const additionalShowTimes = upcomingTimes.slice(1);
         const available = nextShowTime !== undefined;
@@ -48,7 +48,7 @@ export class LiveDataClient {
   }
 
   protected async request(resource: string) {
-    const response = await fetchJson<ShowtimesByParkId>(
+    const response = await fetchJson<ShowTimesByParkId>(
       `https://bg1.joelface.com/livedata/${this.resort.id.toLowerCase()}/${resource}.json`
     );
     if (!response.ok) throw new Error('Fetch failed');
