@@ -22,9 +22,7 @@ export class LiveDataClient {
     return Object.fromEntries(
       Object.entries(showTimesByExpId).flatMap(([id, showTimes]) => {
         const upcomingTimes = showTimes.filter(t => t >= now);
-        const nextShowTime = upcomingTimes[0];
-        const additionalShowTimes = upcomingTimes.slice(1);
-        const available = nextShowTime !== undefined;
+        const available = upcomingTimes.length > 0;
         const unavailableReason = available ? undefined : 'NO_MORE_SHOWS';
         try {
           return [
@@ -34,8 +32,8 @@ export class LiveDataClient {
                 type: 'ENTERTAINMENT',
                 ...this.resort.experience(id),
                 park,
-                standby: { available, unavailableReason, nextShowTime },
-                additionalShowTimes,
+                standby: { available, unavailableReason },
+                showTimes: upcomingTimes,
               },
             ],
           ];

@@ -157,21 +157,19 @@ function ExperienceList({
             <tr className="group" key={exp.id}>
               <td
                 className={`${
-                  exp.standby.nextShowTime
-                    ? 'min-w-[5.625rem]'
-                    : 'min-w-[2.75rem]'
+                  exp.showTimes ? 'min-w-[5.625rem]' : 'min-w-[2.75rem]'
                 } px-2 py-0.5 group-first:pt-1 group-last:pb-1 bg-white/80 font-bold text-center uppercase whitespace-nowrap`}
               >
-                {exp.standby.nextShowTime ? (
-                  (exp.additionalShowTimes?.length ?? 0) > 0 ? (
+                {exp.showTimes?.[0] ? (
+                  exp.showTimes.length > 1 ? (
                     <button
                       onClick={() => onInfoClick(exp)}
                       className="underline"
                     >
-                      <Time>{exp.standby.nextShowTime}</Time>
+                      <Time>{exp.showTimes[0]}</Time>
                     </button>
                   ) : (
-                    <Time>{exp.standby.nextShowTime}</Time>
+                    <Time>{exp.showTimes[0]}</Time>
                   )
                 ) : exp.standby.available ? (
                   (exp.standby.waitTime ?? '–')
@@ -222,12 +220,7 @@ const ExperienceInfo = ({ exp }: { exp: Experience }) => (
     <div>{exp.park.name}</div>
     <h3>Upcoming {exp.type === 'CHARACTER' ? 'Appearances' : 'Shows'}</h3>
     <ul className="list-disc mt-2 pl-6">
-      {!!exp.standby.nextShowTime && (
-        <li>
-          <Time>{exp.standby.nextShowTime}</Time>
-        </li>
-      )}
-      {exp.additionalShowTimes?.map(time => (
+      {exp.showTimes?.map(time => (
         <li key={time}>
           <Time>{time}</Time>
         </li>

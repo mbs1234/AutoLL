@@ -22,8 +22,8 @@ function expectTimes(def: { [key: string]: { [key: string]: Experience[] } }) {
         exps.flatMap(exp => [
           String(
             exp.standby.waitTime ??
-              (exp.standby.nextShowTime
-                ? displayTime(exp.standby.nextShowTime)
+              (exp.showTimes
+                ? displayTime(exp.showTimes[0])
                 : exp.standby.available
                   ? '–'
                   : '❌')
@@ -58,10 +58,9 @@ function exp(
     standby: {
       available: !args.down,
       waitTime: args.waitTime,
-      nextShowTime: args.showTimes?.[0],
       unavailableReason: args.down && 'TEMPORARILY_DOWN',
     },
-    additionalShowTimes: args.showTimes?.slice(1),
+    showTimes: args.showTimes,
     individual: args.individual
       ? { available: true, displayPrice: '$12', ...args.individual }
       : undefined,

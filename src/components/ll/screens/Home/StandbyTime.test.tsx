@@ -7,7 +7,6 @@ describe('StandbyTime', () => {
     render(
       <StandbyTime
         experience={{
-          type: 'ATTRACTION',
           standby: { available: true, waitTime: 45 },
         }}
       />
@@ -16,20 +15,12 @@ describe('StandbyTime', () => {
   });
 
   it('shows no wait', () => {
-    render(
-      <StandbyTime
-        experience={{ type: 'ATTRACTION', standby: { available: true } }}
-      />
-    );
+    render(<StandbyTime experience={{ standby: { available: true } }} />);
     see('now');
   });
 
   it('shows ride down', () => {
-    render(
-      <StandbyTime
-        experience={{ type: 'ATTRACTION', standby: { available: false } }}
-      />
-    );
+    render(<StandbyTime experience={{ standby: { available: false } }} />);
     see('down');
   });
 
@@ -37,24 +28,14 @@ describe('StandbyTime', () => {
     const nextShowTime = '15:00:00';
     render(
       <StandbyTime
-        experience={{
-          type: 'ENTERTAINMENT',
-          standby: { available: true, nextShowTime },
-        }}
+        experience={{ standby: { available: true }, showTimes: [nextShowTime] }}
       />
     );
     see.time(nextShowTime);
   });
 
   it('shows no next show', () => {
-    render(
-      <StandbyTime
-        experience={{
-          type: 'ENTERTAINMENT',
-          standby: { available: false },
-        }}
-      />
-    );
+    render(<StandbyTime experience={{ standby: {}, showTimes: [] }} />);
     see('none');
   });
 
@@ -63,7 +44,6 @@ describe('StandbyTime', () => {
     render(
       <StandbyTime
         experience={{
-          type: 'ATTRACTION',
           standby: { available: true },
           virtualQueue: {
             available: true,
@@ -80,7 +60,6 @@ describe('StandbyTime', () => {
     render(
       <StandbyTime
         experience={{
-          type: 'ATTRACTION',
           standby: { available: true },
           virtualQueue: { available: true },
         }}

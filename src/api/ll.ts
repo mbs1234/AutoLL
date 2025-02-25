@@ -15,19 +15,20 @@ import {
 
 export type { LightningLane };
 
+interface Standby {
+  available?: boolean;
+  unavailableReason?:
+    | 'TEMPORARILY_DOWN'
+    | 'NOT_STANDBY_ENABLED'
+    | 'NO_MORE_SHOWS'
+    | 'CLOSED';
+  waitTime?: number;
+}
+
 interface ApiExperience {
   id: string;
   type: ExperienceType;
-  standby: {
-    available?: boolean;
-    unavailableReason?:
-      | 'TEMPORARILY_DOWN'
-      | 'NOT_STANDBY_ENABLED'
-      | 'NO_MORE_SHOWS'
-      | 'CLOSED';
-    waitTime?: number;
-    nextShowTime?: string;
-  };
+  standby: Standby & { nextShowTime?: string };
   additionalShowTimes?: string[];
   flex?: {
     available?: boolean;
@@ -45,7 +46,12 @@ interface ApiExperience {
   };
 }
 
-export type Experience = ExpData & ApiExperience & { experienced?: boolean };
+export type Experience = ExpData &
+  Omit<ApiExperience, 'standby' | 'additionalShowTimes'> & {
+    standby: Standby;
+    experienced?: boolean;
+    showTimes?: string[];
+  };
 export type FlexExperience = Experience & Required<Pick<Experience, 'flex'>>;
 
 interface ExperiencesResponse {
@@ -212,14 +218,15 @@ export abstract class LLClient extends ApiClient {
 
     return data.availableExperiences.flatMap(exp => {
       try {
-        return [
-          {
-            ...exp,
-            ...this.resort.experience(exp.id),
-            park,
-            experienced: this.tracker.experienced(exp),
-          },
-        ];
+        return {
+          ...exp,
+          ...this.resort.experience(exp.id),
+          park,
+          showTimes: exp.standby?.nextShowTime
+            ? [exp.standby.nextShowTime, ...(exp.additionalShowTimes ?? [])]
+            : undefined,
+          experienced: this.tracker.experienced(exp),
+        };
       } catch (error) {
         if (error instanceof InvalidId) return [];
         throw error;

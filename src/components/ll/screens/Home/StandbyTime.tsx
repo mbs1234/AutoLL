@@ -4,17 +4,19 @@ import { Time } from '@/components/Time';
 import LabeledItem from './LabeledItem';
 
 export default function StandbyTime({
-  experience: { type, standby, virtualQueue, avgWait },
+  experience: { standby, showTimes, virtualQueue, avgWait },
   average,
 }: {
-  experience: Pick<Experience, 'type' | 'standby' | 'virtualQueue' | 'avgWait'>;
+  experience: Pick<
+    Experience,
+    'standby' | 'showTimes' | 'virtualQueue' | 'avgWait'
+  >;
   average?: boolean;
 }) {
   return average ? (
     <AverageWait time={avgWait} virtualQueue={virtualQueue} />
-  ) : standby.nextShowTime ||
-    (type === 'ENTERTAINMENT' && !standby.waitTime) ? (
-    <NextShowTime standby={standby} />
+  ) : showTimes ? (
+    <NextShowTime showTimes={showTimes} />
   ) : virtualQueue ? (
     <VQStatus virtualQueue={virtualQueue} />
   ) : (
@@ -81,7 +83,9 @@ const WaitTime = ({ standby }: Pick<Experience, 'standby'>) => (
   </LabeledItem>
 );
 
-const NextShowTime = ({ standby }: Pick<Experience, 'standby'>) => (
+const NextShowTime = ({
+  showTimes,
+}: Required<Pick<Experience, 'showTimes'>>) => (
   <LabeledItem
     label={
       <>
@@ -89,8 +93,8 @@ const NextShowTime = ({ standby }: Pick<Experience, 'standby'>) => (
       </>
     }
   >
-    {standby.nextShowTime ? (
-      <Available time={<Time>{standby.nextShowTime}</Time>} />
+    {showTimes[0] ? (
+      <Available time={<Time>{showTimes[0]}</Time>} />
     ) : (
       <Unavailable text="none" />
     )}
