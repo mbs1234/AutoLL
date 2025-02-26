@@ -2,6 +2,7 @@ import { use, useEffect, useState } from 'react';
 
 import { LightningLane, Offer } from '@/api/ll';
 import Button from '@/components/Button';
+import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
@@ -26,7 +27,7 @@ export default function ChangeBookingTime({
 
   useEffect(() => {
     loadData(async () => {
-      setOffer(await ll.offer(booking, booking.guests, { booking }));
+      setOffer(await ll.offer(booking.experience, booking.guests, { booking }));
     });
   }, [booking, ll, loadData]);
 
@@ -50,7 +51,7 @@ export default function ChangeBookingTime({
       }
     >
       <h2>{booking.name}</h2>
-      <div>{booking.park.name}</div>
+      <LandLine land={booking.land} />
       <ReturnTime {...booking} button={<Button type="small">Keep</Button>} />
       {loaderElem}
     </Screen>

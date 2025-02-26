@@ -4,7 +4,7 @@ import { DateTime, parkDate } from '@/datetime';
 import { authStore } from './auth';
 import { avatarUrl } from './avatar';
 import { ApiClient } from './client';
-import { Experience, InvalidId, Park } from './resort';
+import { Experience, InvalidId, Land, Park } from './resort';
 
 const RES_EXPIRATION_MINUTES = 60;
 
@@ -31,6 +31,8 @@ interface BaseBooking {
   subtype?: string;
   id: string;
   name: string;
+  park: Park;
+  land?: Land;
   start: { date: string; time?: string };
   end?: Partial<DateTime>;
   cancellable?: boolean;
@@ -43,7 +45,6 @@ interface BaseBooking {
 export interface ParkPass extends BaseBooking {
   type: 'APR';
   subtype?: undefined;
-  park: Park;
   start: DateTime;
   cancellable?: undefined;
   modifiable?: undefined;
@@ -52,7 +53,8 @@ export interface ParkPass extends BaseBooking {
 export interface LightningLane extends BaseBooking {
   type: 'LL';
   subtype: 'MP' | 'SP' | 'OTHER';
-  park: Park;
+  experience: Experience;
+  land: Land;
   end: Partial<DateTime>;
   guests: EntitledGuest[];
 }
@@ -60,7 +62,8 @@ export interface LightningLane extends BaseBooking {
 export interface DasBooking extends BaseBooking {
   type: 'DAS';
   subtype: 'IN_PARK' | 'ADVANCE';
-  park: Park;
+  experience: Experience;
+  land: Land;
   start: DateTime;
   modifiable?: undefined;
   guests: EntitledGuest[];
@@ -69,7 +72,7 @@ export interface DasBooking extends BaseBooking {
 export interface Reservation extends BaseBooking {
   type: 'RES';
   subtype: 'DINING' | 'ACTIVITY';
-  park: Park;
+  land: Land;
   start: DateTime;
   end?: undefined;
   cancellable?: undefined;
@@ -79,7 +82,8 @@ export interface Reservation extends BaseBooking {
 export interface BoardingGroup extends BaseBooking {
   type: 'BG';
   subtype?: undefined;
-  park: Park;
+  experience: Experience;
+  land: Land;
   boardingGroup: number;
   status: BoardingGroupItem['status'];
   start: DateTime;
@@ -105,6 +109,7 @@ interface Asset {
     };
   };
   facility: string;
+  land?: string;
   location?: string;
 }
 
@@ -231,6 +236,12 @@ export class ItineraryClient extends ApiClient {
       if (!facilityAsset) return;
       const parkIdStr = facilityAsset.location ?? '';
       const park = this.park(parkIdStr);
+      const land = {
+        name: (assets[facilityAsset.land ?? ''] ?? {}).name ?? '',
+        park,
+        sort: 0,
+        theme: { bg: '', text: '' },
+      };
       const parkAsset = assets[parkIdStr];
       if (park.name === '' && parkIdStr && parkAsset) {
         park.name = parkAsset.name;
@@ -241,6 +252,7 @@ export class ItineraryClient extends ApiClient {
         type: 'RES',
         subtype: item.type,
         id: idNum(item.asset),
+        land,
         park,
         name: activityAsset.name,
         start: new DateTime(start),
@@ -327,7 +339,8 @@ export class ItineraryClient extends ApiClient {
           .filter(a => !a.excluded && !a.original)
           .map(({ content }) => {
             const { name, location } = assets[content] ?? {};
-            return this.experienceData(content, location, name);
+            const { experience } = this.experienceData(content, location, name);
+            return experience;
           })
           .sort((a, b) => a.name.localeCompare(b.name));
       }
@@ -422,17 +435,26 @@ export class ItineraryClient extends ApiClient {
     id: string,
     parkId?: string,
     name: string = 'Experience'
-  ): Pick<Experience, 'id' | 'name' | 'park'> {
+  ): Pick<Experience, 'id' | 'name' | 'land' | 'park'> & {
+    experience: Experience;
+  } {
     id = idNum(id);
+    let exp: Experience;
     try {
-      const exp = this.resort.experience(id);
-      return { id, name: exp.name, park: exp.park };
+      exp = this.resort.experience(id);
     } catch (error) {
-      if (error instanceof InvalidId && parkId) {
-        return { id, name, park: this.park(parkId) };
-      }
-      throw error;
+      if (!(error instanceof InvalidId && parkId)) throw error;
+      const park = this.park(parkId);
+      const land = { name: '', sort: 0, theme: { bg: '', text: '' }, park };
+      exp = { id, name, park, land, type: 'A' };
     }
+    return {
+      id: exp.id,
+      name: exp.name,
+      land: exp.land,
+      park: exp.park,
+      experience: exp,
+    };
   }
 
   protected park(id: string): Park {

@@ -68,7 +68,6 @@ describe('DasSelection', () => {
     );
     click(bookBtn);
     expect(das.book).toHaveBeenLastCalledWith({
-      park: mk,
       experience: hm,
       primaryGuest: mickey,
       guests: [mickey, minnie],
@@ -83,7 +82,6 @@ describe('DasSelection', () => {
 
     click(bookBtn);
     expect(das.book).toHaveBeenLastCalledWith({
-      park: mk,
       experience: jc,
       primaryGuest: mickey,
       guests: [mickey, minnie],

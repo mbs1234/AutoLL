@@ -129,6 +129,10 @@ describe('ItineraryClient', () => {
           },
           '90001819;entityType=restaurant': {
             location: entId(mk, 'theme-park'),
+            land: '80007945;entityType=land',
+          },
+          '80007945;entityType=land': {
+            name: 'Liberty Square',
           },
           ...Object.fromEntries(
             bookings.map(b => [
@@ -182,12 +186,17 @@ describe('ItineraryClient', () => {
     });
 
     it('includes park data', async () => {
+      const id = '16491297';
+      const experience = wdw.experience(id);
+      const { land, park } = experience;
       const bs: LightningLane = {
         type: 'LL',
         subtype: 'MP',
-        id: '16491297',
+        id,
         name: 'The Barnstormer',
-        park: mk,
+        experience,
+        land,
+        park,
         start: { date: TODAY, time: undefined },
         end: { date: undefined, time: undefined },
         cancellable: false,

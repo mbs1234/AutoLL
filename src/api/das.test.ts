@@ -9,8 +9,10 @@ jest.mock('@/ratelimit');
 const booking = {
   type: 'DAS',
   subtype: 'IN_PARK',
+  experience: jc,
   id: jc.id,
   name: jc.name,
+  land: jc.land,
   park: mk,
   guests: [
     {
@@ -136,7 +138,6 @@ describe('DasClient', () => {
       respond(eligRes, availRes, bookRes);
       expect(
         await client.book({
-          park: mk,
           experience: jc,
           primaryGuest: mickey,
           guests: [mickey, minnie],

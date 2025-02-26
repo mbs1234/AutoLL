@@ -322,7 +322,7 @@ export class LLClientWDW extends LLClient {
           })),
       },
     });
-    return this.createLLFromResponse(data);
+    return this.createLLFromResponse(offer.experience, data);
   }
 
   protected async modify(
@@ -352,21 +352,26 @@ export class LLClientWDW extends LLClient {
           })),
       },
     });
-    return this.createLLFromResponse({
+    return this.createLLFromResponse(offer.experience, {
       entitlementExperiences: [data.booking],
       party: data.party,
     });
   }
 
-  protected createLLFromResponse(response: NewBookingResponse): LightningLane {
+  protected createLLFromResponse(
+    experience: OfferExperience,
+    response: NewBookingResponse
+  ): LightningLane {
     const booking = response.entitlementExperiences[0];
     const entIdsByGuestId = Object.fromEntries(
       booking.guests.map(g => [g.guestId, g.entitlementId])
     );
-    const { id, name, park } = this.resort.experience(booking.experienceId);
+    const { id, name, land, park } = experience;
     return {
       id,
       name,
+      experience,
+      land,
       park,
       type: 'LL',
       subtype: 'MP',

@@ -49,7 +49,6 @@ export default function DasSelection({
       async () => {
         try {
           const booking = await das.book({
-            park,
             experience,
             primaryGuest: party.primaryGuest,
             guests: [...selected],

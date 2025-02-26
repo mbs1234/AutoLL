@@ -3,6 +3,7 @@ import { memo, use } from 'react';
 import { Experience } from '@/api/ll';
 import { Land } from '@/api/resort';
 import Button from '@/components/Button';
+import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
 import Tab from '@/components/Tab';
 import { Time } from '@/components/Time';
@@ -217,7 +218,7 @@ function ExperienceList({
 const ExperienceInfo = ({ exp }: { exp: Experience }) => (
   <Screen title="Experience Info">
     <h2>{exp.name}</h2>
-    <div>{exp.park.name}</div>
+    <LandLine land={exp.land} />
     <h3>Upcoming {exp.type === 'C' ? 'Appearances' : 'Shows'}</h3>
     <ul className="list-disc mt-2 pl-6">
       {exp.showTimes?.map(time => (

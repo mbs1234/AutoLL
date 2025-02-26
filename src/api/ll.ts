@@ -122,7 +122,7 @@ export interface GuestsResponse {
   ineligibleGuests: ApiGuest[];
 }
 
-export type OfferExperience = Pick<Experience, 'id' | 'name' | 'park' | 'flex'>;
+export type OfferExperience = Omit<Experience, 'standby'>;
 
 export interface Offer<B = LightningLane | undefined> {
   id: string;

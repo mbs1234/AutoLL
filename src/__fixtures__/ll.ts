@@ -124,7 +124,11 @@ export function createBooking(
     date = TODAY,
     guests = [mickey, minnie, pluto],
     properties,
-  }: { date?: string; guests?: Guest[]; properties?: any } = {}
+  }: {
+    date?: string;
+    guests?: Guest[];
+    properties?: Partial<LightningLane>;
+  } = {}
 ): LightningLane {
   const bookingGuests = guests
     .map(omitOrderDetails)
@@ -134,7 +138,9 @@ export function createBooking(
     subtype: 'MP',
     id: experience.id,
     name: experience.name,
+    experience: wdw.experience(experience.id),
     park: experience.park,
+    land: experience.land,
     start: { date, time: '11:00:00' },
     end: { date, time: '12:00:00' },
     cancellable: true,
@@ -152,6 +158,8 @@ export const multiExp: LightningLane = {
   subtype: 'OTHER',
   id: sdd.id,
   name: sdd.name,
+  experience: wdw.experience(sdd.id),
+  land: sdd.land,
   park: sdd.park,
   start: { date: TODAY, time: '15:15:00' },
   end: { date: TODAY, time: undefined },
@@ -162,7 +170,7 @@ export const multiExp: LightningLane = {
     { ...minnie, entitlementId: 're1515_02', redemptions: 1 },
     { ...pluto, entitlementId: 're1515_03', redemptions: 1 },
   ].map(omitOrderDetails),
-  choices: [hm, jc, sdd, sm].map(({ id, name, park }) => ({ id, name, park })),
+  choices: [hm, jc, sdd, sm].map(({ id }) => wdw.experience(id)),
   bookingId: 're1515_01',
 };
 
@@ -171,6 +179,8 @@ export const allDayExp: LightningLane = {
   subtype: 'OTHER',
   id: sm.id,
   name: sm.name,
+  experience: wdw.experience(sm.id),
+  land: sm.land,
   park: sm.park,
   start: { date: TODAY, time: undefined },
   end: { date: undefined, time: undefined },
@@ -188,6 +198,8 @@ export const bg: BoardingGroup = {
   type: 'BG',
   id: tron.id,
   name: tron.name,
+  experience: tron,
+  land: tron.land,
   park: mk,
   boardingGroup: 42,
   status: 'IN_PROGRESS',
@@ -201,6 +213,12 @@ export const lttRes: Reservation = {
   subtype: 'DINING',
   id: '90006947',
   name: 'Liberty Tree Tavern Lunch',
+  land: {
+    name: 'Liberty Square',
+    park: mk,
+    sort: 0,
+    theme: { bg: '', text: '' },
+  },
   park: mk,
   start: { date: TODAY, time: '11:15:00' },
   end: undefined,
@@ -233,6 +251,8 @@ export const expiredLL: LightningLane = {
   subtype: 'MP',
   id: jc.id,
   name: jc.name,
+  experience: wdw.experience(jc.id),
+  land: jc.land,
   park: jc.park,
   start: { date: TODAY, time: '14:00:00' },
   end: { date: TODAY, time: '15:00:00' },

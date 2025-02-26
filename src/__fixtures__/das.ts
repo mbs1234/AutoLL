@@ -43,8 +43,10 @@ export const sm: Experience = {
 export const booking: DasBooking = {
   type: 'DAS',
   subtype: 'IN_PARK',
+  experience: hm,
   id: hm.id,
   name: hm.name,
+  land: hm.land,
   park: mk,
   guests: [
     { ...mickey, entitlementId: 'ent1' },

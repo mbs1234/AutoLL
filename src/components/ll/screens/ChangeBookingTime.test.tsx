@@ -16,7 +16,9 @@ describe('ChangeBookingTime', () => {
       </NavProvider>
     );
     await see.screen('Select Return Time');
-    expect(ll.offer).toHaveBeenCalledWith(booking, booking.guests, { booking });
+    expect(ll.offer).toHaveBeenCalledWith(booking.experience, booking.guests, {
+      booking,
+    });
     expect(ll.offer).toHaveBeenCalledTimes(1);
     await loading();
     const newOffer = { ...modOffer, id: 'new-offer' };

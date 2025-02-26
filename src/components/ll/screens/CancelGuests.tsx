@@ -3,6 +3,7 @@ import { use, useState } from 'react';
 import { DasBooking, LightningLane } from '@/api/itinerary';
 import FloatingButton from '@/components/FloatingButton';
 import GuestList from '@/components/GuestList';
+import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
@@ -46,7 +47,7 @@ export default function CancelGuests<B extends LightningLane | DasBooking>({
   return (
     <Screen title="Cancel Guests" theme={park.theme}>
       <h2>{name}</h2>
-      <div>{park.name}</div>
+      <LandLine land={booking.land} />
       <ReturnTime {...booking} />
       <div className="ml-3">
         <label className="flex items-center py-4">

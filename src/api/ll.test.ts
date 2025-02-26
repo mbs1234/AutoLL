@@ -574,7 +574,10 @@ describe('LLClientWDW', () => {
           },
         })
       );
-      expect(await client.book(offer)).toEqual(booking);
+      expect(await client.book(offer)).toEqual({
+        ...booking,
+        experience: offer.experience,
+      });
       expectFetch('/ea-vas/planning/api/v1/experiences/entitlements/book', {
         data: {
           offerSetId: offer.offerSetId,
@@ -614,6 +617,7 @@ describe('LLClientWDW', () => {
       );
       expect(await client.book(modOffer, modGuests)).toEqual({
         ...booking,
+        experience: modOffer.experience,
         guests: modGuests,
       });
       expectFetch('/ea-vas/planning/api/v1/experiences/mod/entitlements/book', {
@@ -807,7 +811,7 @@ describe('LLClientDLR', () => {
             ineligible: [],
           },
         })
-      ).toEqual(booking);
+      ).toEqual({ ...booking, experience: offer.experience });
       expectFetch('/ea-vas/api/v2/products/flex/bookings', {
         data: { offerId: offer.id, ...diu },
       });

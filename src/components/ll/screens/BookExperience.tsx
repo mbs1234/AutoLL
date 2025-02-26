@@ -3,6 +3,7 @@ import { use, useCallback, useEffect, useState } from 'react';
 import { LightningLane, isType } from '@/api/itinerary';
 import { Guest, Offer, OfferError, OfferExperience } from '@/api/ll';
 import FloatingButton from '@/components/FloatingButton';
+import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
 import Spinner from '@/components/Spinner';
 import BookingDateContext from '@/contexts/BookingDateContext';
@@ -212,7 +213,7 @@ export default function BookExperience({
       }
     >
       <h2>{experience.name}</h2>
-      <div>{experience.park.name}</div>
+      <LandLine land={experience.land} />
       {party ? (
         <PartyContext value={party}>
           {noGuestsFound ? (

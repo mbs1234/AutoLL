@@ -4,6 +4,7 @@ import { LightningLane, Offer } from '@/api/ll';
 import Button from '@/components/Button';
 import FloatingButton from '@/components/FloatingButton';
 import GuestList from '@/components/GuestList';
+import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
@@ -63,7 +64,7 @@ export default function BookNewReturnTime({
       buttons={<YourDayButton />}
     >
       <h2>{offer.experience.name}</h2>
-      <div>{offer.experience.park.name}</div>
+      <LandLine land={offer.experience.land} />
       <ReturnTime
         {...offer}
         button={

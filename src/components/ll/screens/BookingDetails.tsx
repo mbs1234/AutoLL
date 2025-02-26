@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import { Day } from '@/components/Day';
 import FloatingButton from '@/components/FloatingButton';
 import GuestList from '@/components/GuestList';
+import LandLine from '@/components/LandLine';
 import Notice from '@/components/Notice';
 import Screen from '@/components/Screen';
 import ClientsContext from '@/contexts/ClientsContext';
@@ -35,7 +36,7 @@ export default function BookingDetails({
   const { parks } = use(ResortContext);
   const { ll } = use(ClientsContext);
   const dasParties = use(DasPartiesContext);
-  const { name, park, choices, type, subtype, start } = booking;
+  const { name, land, park, choices, type, subtype, start } = booking;
   const dasGuest =
     type === 'DAS' && subtype === 'IN_PARK'
       ? booking.guests.find(g =>
@@ -82,7 +83,7 @@ export default function BookingDetails({
       ) : (
         <>
           <h2>{name}</h2>
-          {park.name && <div>{park.name}</div>}
+          {land && <LandLine land={land} />}
         </>
       )}
       {type === 'BG' ? (

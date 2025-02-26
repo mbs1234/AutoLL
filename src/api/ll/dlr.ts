@@ -170,6 +170,8 @@ export class LLClientDLR extends LLClient {
     return {
       id,
       name,
+      experience: offer.experience,
+      land: offer.experience.land,
       park,
       type: 'LL',
       subtype: 'MP',

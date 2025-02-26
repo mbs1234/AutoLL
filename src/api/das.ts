@@ -4,14 +4,11 @@ import { authStore } from './auth';
 import { avatarUrl } from './avatar';
 import { ApiClient } from './client';
 import { DasBooking } from './itinerary';
-import { ExperienceType, Park } from './resort';
+import { Experience as ExpData, InvalidId, Park } from './resort';
 
 export type { DasBooking };
 
-export interface Experience {
-  id: string;
-  name: string;
-  type: ExperienceType;
+export interface Experience extends ExpData {
   available: boolean;
   time: string;
 }
@@ -123,12 +120,13 @@ export class DasClient extends ApiClient {
         (exp): exp is Required<ApiExperience> =>
           exp.available && !!exp.nextAvailableStartDateTime
       )
-      .map(({ id, name, type, available, nextAvailableStartDateTime }) => {
-        const { time } = splitDateTime(nextAvailableStartDateTime);
+      .flatMap(({ id, available, nextAvailableStartDateTime }) => {
         try {
+          const { time } = splitDateTime(nextAvailableStartDateTime);
           return { ...this.resort.experience(id), available, time };
-        } catch {
-          return { id, name, type: type[0] as 'A' | 'E', available, time };
+        } catch (error) {
+          if (error instanceof InvalidId) return [];
+          throw error;
         }
       })
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -154,18 +152,15 @@ export class DasClient extends ApiClient {
   }
 
   async book({
-    park,
     experience,
     primaryGuest,
     guests,
   }: {
-    park: Park;
-    experience: Pick<Experience, 'id' | 'name'>;
+    experience: Experience;
     primaryGuest: Guest;
     guests: Guest[];
   }): Promise<DasBooking> {
     const eligibility = await this.eligibility({
-      park,
       experience,
       primaryGuest,
       guests,
@@ -197,9 +192,11 @@ export class DasClient extends ApiClient {
     return {
       type: 'DAS',
       subtype: 'IN_PARK',
+      experience,
       id: experience.id,
       name: experience.name,
-      park,
+      land: experience.land,
+      park: experience.park,
       guests: booking.entitlements.map(e => {
         const g = guestsById.get(e.guestId);
         return {
@@ -225,13 +222,11 @@ export class DasClient extends ApiClient {
   }
 
   protected async eligibility({
-    park,
     experience,
     primaryGuest,
     guests,
   }: {
-    park: Park;
-    experience: Pick<Experience, 'id'>;
+    experience: Experience;
     primaryGuest: Guest;
     guests: Guest[];
   }): Promise<EligibilityResponse> {
@@ -239,7 +234,7 @@ export class DasClient extends ApiClient {
       path: path('eligibility', 1),
       params: {
         experienceId: experience.id,
-        parkId: park.id,
+        parkId: experience.park.id,
         ...guestIdParams(primaryGuest, guests),
       },
       key: 'eligibility',
@@ -252,7 +247,7 @@ export class DasClient extends ApiClient {
     primaryGuest,
     guests,
   }: {
-    experience: Pick<Experience, 'id'>;
+    experience: Experience;
     primaryGuest: Guest;
     guests: Guest[];
   }): Promise<{

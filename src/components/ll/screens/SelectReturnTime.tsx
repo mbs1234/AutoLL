@@ -2,6 +2,7 @@ import { use, useCallback, useEffect, useState } from 'react';
 
 import { HourlySlots, Offer } from '@/api/ll';
 import Button from '@/components/Button';
+import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
 import { Time } from '@/components/Time';
 import ClientsContext from '@/contexts/ClientsContext';
@@ -84,7 +85,7 @@ export default function SelectReturnTime<B extends Offer['booking']>({
       theme={offer.experience.park.theme}
     >
       <h2>{offer.experience.name}</h2>
-      <div>{offer.experience.park.name}</div>
+      <LandLine land={offer.experience.land} />
       {offer && (
         <ReturnTime
           {...(bookingTimeChange ? booking : offer)}
