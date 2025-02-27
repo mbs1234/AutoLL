@@ -1,6 +1,6 @@
 import { use, useCallback } from 'react';
 
-import { Booking, isType } from '@/api/itinerary';
+import { Booking, isLLMP } from '@/api/itinerary';
 import { Park } from '@/api/resort';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
@@ -17,7 +17,6 @@ export default function useUpdateParkFromPlans() {
       const isToday = date === today;
       const parkIds = new Set(resort.parks.map(p => p.id));
       const isInPark = (b: Booking) => parkIds.has(b.park.id);
-      const isLLMP = (b: Booking) => isType(b, 'LL', 'MP');
       let park: Park | undefined = undefined;
       for (const b of plans) {
         const bookingParkDay = parkDate(b.start);

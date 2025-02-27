@@ -1,6 +1,6 @@
 import { use, useCallback, useEffect, useState } from 'react';
 
-import { LightningLane, isType } from '@/api/itinerary';
+import { isLLMP } from '@/api/itinerary';
 import { Guest, Offer, OfferError, OfferExperience } from '@/api/ll';
 import FloatingButton from '@/components/FloatingButton';
 import LandLine from '@/components/LandLine';
@@ -94,13 +94,14 @@ export default function BookExperience({
           g => g.ineligibleReason === 'EXPERIENCE_LIMIT_REACHED'
         )
       ) {
-        const sameExpLLs = plans.filter(
-          (b): b is LightningLane =>
-            b.id === experience.id &&
-            !!b.modifiable &&
-            isType(b, 'LL', 'MP') &&
-            parkDate(b.start) === bookingDate
-        );
+        const sameExpLLs = plans
+          .filter(isLLMP)
+          .filter(
+            b =>
+              b.experience.id === experience.id &&
+              !!b.modifiable &&
+              parkDate(b.start) === bookingDate
+          );
         if (sameExpLLs.length === 1) {
           return rebooking.begin(sameExpLLs[0], true);
         }

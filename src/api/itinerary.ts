@@ -172,12 +172,12 @@ interface ItineraryResponse {
   profiles: { [id: string]: Profile };
 }
 
-export function isType<T extends Booking['type'], S extends Booking['subtype']>(
-  booking: Booking,
-  type: T,
-  subtype: S
-) {
-  return booking.type === type && booking.subtype === subtype;
+export function isLLMP(booking: Booking): booking is LightningLane {
+  return booking.type === 'LL' && booking.subtype === 'MP';
+}
+
+export function isDAS(booking: Booking): booking is DasBooking {
+  return booking.type === 'DAS' && booking.subtype === 'IN_PARK';
 }
 
 export const FALLBACK_EXPS = {

@@ -1,6 +1,6 @@
 import { use } from 'react';
 
-import { Booking, isType } from '@/api/itinerary';
+import { Booking, isLLMP } from '@/api/itinerary';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext, { NavError } from '@/contexts/NavContext';
@@ -25,9 +25,7 @@ export default function ModifyButton({ booking, ...buttonProps }: Props) {
 
   const goHome = () => goBack({ screen: Home, props: { tabName: 'LL' } });
 
-  return booking.modifiable &&
-    !rebooking.auto &&
-    isType(booking, 'LL', 'MP') ? (
+  return booking.modifiable && !rebooking.auto && isLLMP(booking) ? (
     <Button
       {...buttonProps}
       onClick={async () => {

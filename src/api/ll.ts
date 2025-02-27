@@ -4,7 +4,7 @@ import kvdb from '@/kvdb';
 import { authStore } from './auth';
 import { avatarUrl } from './avatar';
 import { ApiClient } from './client';
-import { Booking, LightningLane, isType } from './itinerary';
+import { Booking, LightningLane, isLLMP } from './itinerary';
 import { Experience as ExpData, InvalidId, Park, Resort } from './resort';
 
 export type { LightningLane };
@@ -350,12 +350,9 @@ export class LLTracker {
   async update(bookings: Booking[], client: LLClient) {
     this.load();
     const parkDay = parkDate();
-    const cancellableLLs = bookings.filter(
-      (b: Booking) =>
-        isType(b, 'LL', 'MP') &&
-        !!b.cancellable &&
-        parkDate(b.start) === parkDay
-    );
+    const cancellableLLs = bookings
+      .filter(isLLMP)
+      .filter(b => !!b.cancellable && parkDate(b.start) === parkDay);
     for (const b of cancellableLLs) {
       this.experiencedIds[b.modifiable ? 'delete' : 'add'](b.id);
     }
