@@ -183,7 +183,7 @@ export class LLClientWDW extends LLClient {
         ...(booking
           ? {
               experienceId: experience.id,
-              originalExperienceId: booking.id,
+              originalExperienceId: booking.experience.id,
               originalEntitlementIds: booking.guests.map(g => g.entitlementId),
             }
           : {
@@ -368,14 +368,14 @@ export class LLClientWDW extends LLClient {
     );
     const { id, name, land, park } = experience;
     return {
-      id,
+      facilityId: id,
       name,
       experience,
       land,
       park,
       type: 'LL',
       subtype: 'MP',
-      bookingId: booking.guests[0]?.entitlementId,
+      id: booking.guests[0]?.entitlementId,
       start: splitDateTime(booking.startDateTime),
       end: splitDateTime(booking.endDateTime),
       cancellable: true,

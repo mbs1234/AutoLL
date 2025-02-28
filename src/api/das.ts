@@ -193,7 +193,7 @@ export class DasClient extends ApiClient {
       type: 'DAS',
       subtype: 'IN_PARK',
       experience,
-      id: experience.id,
+      facilityId: experience.id,
       name: experience.name,
       land: experience.land,
       park: experience.park,
@@ -208,7 +208,7 @@ export class DasClient extends ApiClient {
       }),
       start: splitDateTime(booking.startDateTime),
       end: {},
-      bookingId: booking.id,
+      id: booking.id,
     };
   }
 

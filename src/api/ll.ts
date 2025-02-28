@@ -354,10 +354,10 @@ export class LLTracker {
       .filter(isLLMP)
       .filter(b => !!b.cancellable && parkDate(b.start) === parkDay);
     for (const b of cancellableLLs) {
-      this.experiencedIds[b.modifiable ? 'delete' : 'add'](b.id);
+      this.experiencedIds[b.modifiable ? 'delete' : 'add'](b.experience.id);
     }
     const prevBookedIds = this.bookedIds;
-    this.bookedIds = new Set(cancellableLLs.map(b => b.id));
+    this.bookedIds = new Set(cancellableLLs.map(b => b.experience.id));
     for (const id of prevBookedIds) {
       if (this.bookedIds.has(id)) continue;
       const { ineligible } = await client.guests({ id });

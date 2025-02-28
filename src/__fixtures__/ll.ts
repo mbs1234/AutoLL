@@ -136,7 +136,7 @@ export function createBooking(
   return {
     type: 'LL',
     subtype: 'MP',
-    id: experience.id,
+    facilityId: experience.id,
     name: experience.name,
     experience: wdw.experience(experience.id),
     park: experience.park,
@@ -146,7 +146,7 @@ export function createBooking(
     cancellable: true,
     modifiable: true,
     guests: bookingGuests,
-    bookingId: bookingGuests[0].entitlementId,
+    id: bookingGuests[0].entitlementId,
     ...properties,
   };
 }
@@ -156,7 +156,7 @@ export const booking = createBooking(hm);
 export const multiExp: LightningLane = {
   type: 'LL',
   subtype: 'OTHER',
-  id: sdd.id,
+  facilityId: sdd.id,
   name: sdd.name,
   experience: wdw.experience(sdd.id),
   land: sdd.land,
@@ -171,13 +171,13 @@ export const multiExp: LightningLane = {
     { ...pluto, entitlementId: 're1515_03', redemptions: 1 },
   ].map(omitOrderDetails),
   choices: [hm, jc, sdd, sm].map(({ id }) => wdw.experience(id)),
-  bookingId: 're1515_01',
+  id: 're1515_01',
 };
 
 export const allDayExp: LightningLane = {
   type: 'LL',
   subtype: 'OTHER',
-  id: sm.id,
+  facilityId: sm.id,
   name: sm.name,
   experience: wdw.experience(sm.id),
   land: sm.land,
@@ -189,14 +189,14 @@ export const allDayExp: LightningLane = {
   guests: [{ ...pluto, entitlementId: 'sm_01', redemptions: 2 }].map(
     omitOrderDetails
   ),
-  bookingId: 'sm_01',
+  id: 'sm_01',
 };
 
 const tron = wdw.experience('411504498');
 
 export const bg: BoardingGroup = {
   type: 'BG',
-  id: tron.id,
+  facilityId: tron.id,
   name: tron.name,
   experience: tron,
   land: tron.land,
@@ -205,13 +205,13 @@ export const bg: BoardingGroup = {
   status: 'IN_PROGRESS',
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
   start: { date: TODAY, time: '07:00:00' },
-  bookingId: 'tron_01',
+  id: 'tron_01',
 };
 
 export const lttRes: Reservation = {
   type: 'RES',
   subtype: 'DINING',
-  id: '90006947',
+  facilityId: '90001819',
   name: 'Liberty Tree Tavern Lunch',
   land: {
     name: 'Liberty Square',
@@ -223,33 +223,33 @@ export const lttRes: Reservation = {
   start: { date: TODAY, time: '11:15:00' },
   end: undefined,
   guests: [mickey, minnie].map(omitOrderDetails),
-  bookingId: '38943;type=DINING',
+  id: '38943;type=DINING',
 };
 
 export const mkApr: ParkPass = {
   type: 'APR',
-  id: mk.id,
+  facilityId: mk.id,
   name: mk.name,
   park: mk,
   start: { date: TODAY, time: '06:00:00' },
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
-  bookingId: 'mk20211001',
+  id: 'mk20211001',
 };
 
 export const akApr: ParkPass = {
   type: 'APR',
-  id: ak.id,
+  facilityId: ak.id,
   name: ak.name,
   park: ak,
   start: { date: TOMORROW, time: '06:00:00' },
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
-  bookingId: 'ak20211002',
+  id: 'ak20211002',
 };
 
 export const expiredLL: LightningLane = {
   type: 'LL',
   subtype: 'MP',
-  id: jc.id,
+  facilityId: jc.id,
   name: jc.name,
   experience: wdw.experience(jc.id),
   land: jc.land,
@@ -262,7 +262,7 @@ export const expiredLL: LightningLane = {
     { ...mickey, entitlementId: 'jc1400_01' },
     { ...minnie, entitlementId: 'jc1400_02' },
   ].map(omitOrderDetails),
-  bookingId: 'jc1400_01',
+  id: 'jc1400_01',
 };
 
 export const bookings: Booking[] = [

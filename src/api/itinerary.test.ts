@@ -30,6 +30,7 @@ describe('ItineraryClient', () => {
   describe('plans()', () => {
     const entId = ({ id }: { id: string }, type = 'Attraction') =>
       `${id};entityType=${type}`;
+    const facilityId = (booking: Booking) => entId({ id: booking.facilityId });
     const xid = (guest: { id: string }) => guest.id + ';type=xid';
 
     function bookingsResponse(bookings: Booking[]) {
@@ -44,12 +45,12 @@ describe('ItineraryClient', () => {
         loggedInGuestId: xid(mickey),
         items: [
           ...bookings.map(b => ({
-            id: b.bookingId,
+            id: b.id,
             ...(b.type === 'LL'
               ? {
                   type: 'FASTPASS',
                   kind: subtypeToKind[b.subtype],
-                  facility: entId(b.choices ? hm : b),
+                  facility: b.choices ? entId(hm) : facilityId(b),
                   displayStartDate: b.start.date,
                   displayStartTime: b.start.time,
                   displayEndDate: b.end.date,
@@ -80,9 +81,10 @@ describe('ItineraryClient', () => {
                       kind: 'PARK_PASS',
                       displayStartDate: b.start.date,
                       guests: b.guests.map(g => ({ id: xid(g) })),
-                      facility: entId(
-                        b.id === mk.id ? { id: 'mk_resort_area' } : b
-                      ),
+                      facility:
+                        b.facilityId === mk.id
+                          ? entId({ id: 'mk_resort_area' })
+                          : facilityId(b),
                     }
                   : {
                       type: 'DINING',
@@ -97,7 +99,7 @@ describe('ItineraryClient', () => {
               assets: b.choices
                 ? [
                     {
-                      content: entId(b),
+                      content: facilityId(b),
                       excluded: false,
                       original: true,
                     },
@@ -136,9 +138,9 @@ describe('ItineraryClient', () => {
           },
           ...Object.fromEntries(
             bookings.map(b => [
-              entId(b),
+              facilityId(b),
               {
-                id: entId(b),
+                id: facilityId(b),
                 name: b.name,
                 location: entId(b.park, 'theme-park'),
               },
@@ -186,13 +188,12 @@ describe('ItineraryClient', () => {
     });
 
     it('includes park data', async () => {
-      const id = '16491297';
-      const experience = wdw.experience(id);
+      const experience = wdw.experience('16491297');
       const { land, park } = experience;
       const bs: LightningLane = {
         type: 'LL',
         subtype: 'MP',
-        id,
+        facilityId: experience.id,
         name: 'The Barnstormer',
         experience,
         land,
@@ -209,7 +210,7 @@ describe('ItineraryClient', () => {
             redemptions: 1,
           },
         ],
-        bookingId: 'bs_01',
+        id: 'bs_01',
       };
       const bookings = [bs];
       respond(bookingsResponse(bookings));

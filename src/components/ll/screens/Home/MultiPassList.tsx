@@ -208,7 +208,7 @@ const Experiences = memo(function Experiences({
     plans
       .filter(isLLMP)
       .filter(b => b.start.date === bookingDate)
-      .map(b => b.id)
+      .map(b => b.experience.id)
   );
   const flexExps: ExtFlexExp[] = experiences
     .filter((exp): exp is FlexExperience => !!exp.flex)

@@ -129,7 +129,11 @@ describe('BookingDetails', () => {
   });
 
   it('omits "temporarily unavailable" message if unknown original experience', async () => {
-    const { container } = renderComponent({ ...multiExp, id: '', name: '' });
+    const { container } = renderComponent({
+      ...multiExp,
+      facilityId: '',
+      name: '',
+    });
     see('Multiple Experiences');
     expect(container).not.toHaveTextContent('was temporarily unavailable');
   });

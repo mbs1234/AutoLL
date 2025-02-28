@@ -32,7 +32,7 @@ export default function YourDay({
           {nonAprPlans.map(b => (
             <li
               className="py-3 first:border-0 border-t-4 border-gray-300"
-              key={b.bookingId}
+              key={b.id}
             >
               <BookingListing
                 details

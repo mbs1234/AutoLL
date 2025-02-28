@@ -74,7 +74,7 @@ const PlansList = memo(function PlansList({ plans }: { plans: Booking[] }) {
                 {plans.map(booking => (
                   <li
                     className="py-3 first:border-0 border-t-4 border-gray-300"
-                    key={booking.bookingId}
+                    key={booking.id}
                   >
                     <BookingListing details booking={booking} />
                   </li>

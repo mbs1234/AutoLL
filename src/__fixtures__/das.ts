@@ -44,7 +44,7 @@ export const booking: DasBooking = {
   type: 'DAS',
   subtype: 'IN_PARK',
   experience: hm,
-  id: hm.id,
+  facilityId: hm.id,
   name: hm.name,
   land: hm.land,
   park: mk,
@@ -54,5 +54,5 @@ export const booking: DasBooking = {
   ],
   start: { date: TODAY, time: '10:30:00' },
   end: {},
-  bookingId: 'hm1030',
+  id: 'hm1030',
 };

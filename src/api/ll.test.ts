@@ -49,7 +49,7 @@ const guests = [mickey, minnie, pluto];
 const ineligibleGuests = [donald];
 
 const tracker = {
-  experienced: (exp: { id: string }) => exp.id === booking.id,
+  experienced: (exp: { id: string }) => exp.id === booking.facilityId,
   update: jest.fn(),
 };
 
@@ -559,7 +559,7 @@ describe('LLClientWDW', () => {
         response({
           entitlementExperiences: [
             {
-              experienceId: booking.id,
+              experienceId: booking.facilityId,
               startDateTime: `${booking.start.date}T${booking.start.time}`,
               endDateTime: `${booking.end.date}T${booking.end.time}`,
               guests: booking.guests.map(g => ({
@@ -601,7 +601,7 @@ describe('LLClientWDW', () => {
       respond(
         response({
           booking: {
-            experienceId: booking.id,
+            experienceId: booking.facilityId,
             startDateTime: `${booking.start.date}T${booking.start.time}`,
             endDateTime: `${booking.end.date}T${booking.end.time}`,
             guests: modGuests.map(g => ({
@@ -795,7 +795,7 @@ describe('LLClientDLR', () => {
               startDateTime: `${booking.start.date}T${booking.start.time}`,
               endDateTime: `${booking.end.date}T${booking.end.time}`,
               singleExperienceDetails: {
-                experienceId: booking.id,
+                experienceId: booking.facilityId,
                 parkId: booking.park.id,
               },
             },
@@ -832,9 +832,8 @@ describe('LLTracker', () => {
     it('updates tracking data', async () => {
       await tracker.update([expiredLL], ll);
       await tracker.update(bookings, ll);
-      expect(tracker.experienced(booking)).toBe(false);
-      expect(tracker.experienced(expiredLL)).toBe(true);
-
+      expect(tracker.experienced(booking.experience)).toBe(false);
+      expect(tracker.experienced(expiredLL.experience)).toBe(true);
       ll.guests.mockResolvedValueOnce({
         eligible: [],
         ineligible: [
@@ -842,8 +841,8 @@ describe('LLTracker', () => {
         ],
       });
       await tracker.update([expiredLL], ll);
-      expect(tracker.experienced(booking)).toBe(true);
-      expect(tracker.experienced(expiredLL)).toBe(true);
+      expect(tracker.experienced(booking.experience)).toBe(true);
+      expect(tracker.experienced(expiredLL.experience)).toBe(true);
     });
   });
 });

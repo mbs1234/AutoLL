@@ -2,15 +2,15 @@ import { expectFetch, respond, response, swid } from '@/__fixtures__/client';
 import { hm, jc, mickey, minnie, mk, sm, wdw } from '@/__fixtures__/das';
 import { TODAY } from '@/testing';
 
-import { DasClient } from './das';
+import { DasBooking, DasClient } from './das';
 
 jest.mock('@/ratelimit');
 
-const booking = {
+const booking: DasBooking = {
   type: 'DAS',
   subtype: 'IN_PARK',
   experience: jc,
-  id: jc.id,
+  facilityId: jc.id,
   name: jc.name,
   land: jc.land,
   park: mk,
@@ -28,7 +28,7 @@ const booking = {
   ],
   start: { date: TODAY, time: '10:30:00' },
   end: {},
-  bookingId: 'jc1030',
+  id: 'jc1030',
 };
 
 describe('DasClient', () => {

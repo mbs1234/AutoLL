@@ -93,7 +93,7 @@ export class LLClientDLR extends LLClient {
           ? {
               date: new DateTime().date,
               modificationType:
-                experience.id === booking.id ? 'TIME' : 'EXPERIENCE',
+                experience.id === booking.experience.id ? 'TIME' : 'EXPERIENCE',
             }
           : {}),
       },
@@ -143,7 +143,7 @@ export class LLClientDLR extends LLClient {
           ? {
               date: new DateTime().date,
               modificationType:
-                offer.booking.id === offer.experience.id
+                offer.booking.experience.id === offer.experience.id
                   ? 'TIME'
                   : 'EXPERIENCE',
               existingEntitlements: offer.booking.guests
@@ -168,14 +168,14 @@ export class LLClientDLR extends LLClient {
     }: BookingResponse = data;
     const { id, name, park } = this.resort.experience(experienceId);
     return {
-      id,
+      facilityId: id,
       name,
       experience: offer.experience,
       land: offer.experience.land,
       park,
       type: 'LL',
       subtype: 'MP',
-      bookingId: entitlements[0]?.id,
+      id: entitlements[0]?.id,
       start: splitDateTime(startDateTime),
       end: splitDateTime(endDateTime),
       cancellable: true,

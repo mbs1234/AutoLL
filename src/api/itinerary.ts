@@ -30,6 +30,7 @@ interface BaseBooking {
   type: string;
   subtype?: string;
   id: string;
+  facilityId: string;
   name: string;
   park: Park;
   land?: Land;
@@ -39,7 +40,6 @@ interface BaseBooking {
   modifiable?: boolean;
   guests: Guest[];
   choices?: Pick<Experience, 'id' | 'name' | 'park'>[];
-  bookingId: string;
 }
 
 export interface ParkPass extends BaseBooking {
@@ -251,7 +251,7 @@ export class ItineraryClient extends ApiClient {
       const res: Reservation = {
         type: 'RES',
         subtype: item.type,
-        id: idNum(item.asset),
+        facilityId: idNum(activityAsset.facility),
         land,
         park,
         name: activityAsset.name,
@@ -264,7 +264,7 @@ export class ItineraryClient extends ApiClient {
               +!b.transactional - +!a.transactional ||
               a.name.localeCompare(b.name)
           ),
-        bookingId: item.id,
+        id: item.id,
       };
       return res;
     };
@@ -307,7 +307,7 @@ export class ItineraryClient extends ApiClient {
               ),
             }),
           })),
-        bookingId: item.id,
+        id: item.id,
       };
     };
 
@@ -322,7 +322,7 @@ export class ItineraryClient extends ApiClient {
         ...getFastPass(item),
         cancellable: item.cancellable && isMP,
         modifiable: item.modifiable && isMP,
-        bookingId: item.id,
+        id: item.id,
       };
       if (item.multipleExperiences) {
         const origAsset = item.assets.find(a => a.original);
@@ -333,7 +333,7 @@ export class ItineraryClient extends ApiClient {
                 origAsset.content,
                 assets[origAsset.content]?.location
               )
-            : { id: '', name: '' }),
+            : { facilityId: '', name: '' }),
         };
         booking.choices = item.assets
           .filter(a => !a.excluded && !a.original)
@@ -381,7 +381,7 @@ export class ItineraryClient extends ApiClient {
         status: item.status,
         start: new DateTime(new Date(item.startDateTime)),
         guests: item.guests.map(getGuest),
-        bookingId: item.id,
+        id: item.id,
       };
     };
 
@@ -390,7 +390,7 @@ export class ItineraryClient extends ApiClient {
       if (!park) return;
       return {
         type: 'APR',
-        id: park.id,
+        facilityId: park.id,
         name: park.name,
         park,
         start: {
@@ -398,7 +398,7 @@ export class ItineraryClient extends ApiClient {
           time: '06:00:00',
         },
         guests: item.guests.map(getGuest),
-        bookingId: item.id,
+        id: item.id,
       };
     };
 
@@ -435,9 +435,7 @@ export class ItineraryClient extends ApiClient {
     id: string,
     parkId?: string,
     name: string = 'Experience'
-  ): Pick<Experience, 'id' | 'name' | 'land' | 'park'> & {
-    experience: Experience;
-  } {
+  ) {
     id = idNum(id);
     let exp: Experience;
     try {
@@ -449,7 +447,7 @@ export class ItineraryClient extends ApiClient {
       exp = { id, name, park, land, type: 'A' };
     }
     return {
-      id: exp.id,
+      facilityId: id,
       name: exp.name,
       land: exp.land,
       park: exp.park,
