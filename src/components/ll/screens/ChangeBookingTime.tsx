@@ -6,6 +6,7 @@ import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
+import RebookingContext from '@/contexts/RebookingContext';
 import useDataLoader from '@/hooks/useDataLoader';
 
 import BookingDate from '../BookingDate';
@@ -21,9 +22,15 @@ export default function ChangeBookingTime({
   booking: LightningLane;
 }) {
   const { goTo } = use(NavContext);
+  const rebooking = use(RebookingContext);
   const { ll } = use(ClientsContext);
   const { loadData, loaderElem } = useDataLoader();
   const [offer, setOffer] = useState<Offer<LightningLane>>();
+
+  useEffect(() => {
+    const end = rebooking.end;
+    end();
+  }, [rebooking.end]);
 
   useEffect(() => {
     loadData(async () => {

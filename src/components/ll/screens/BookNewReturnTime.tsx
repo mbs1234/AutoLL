@@ -27,19 +27,20 @@ export default function BookNewReturnTime({
 }: {
   offer: Offer<LightningLane>;
 }) {
-  const rebooking = use(RebookingContext);
   const { goTo, goBack } = use(NavContext);
+  const rebooking = use(RebookingContext);
   const resort = use(ResortContext);
   const { ll } = use(ClientsContext);
   const { loadData, loaderElem } = useDataLoader();
   const { refreshPlans } = use(PlansContext);
   const [offer, setOffer] = useState(initialOffer);
+  const { booking } = offer;
 
   useEffect(() => {
     const begin = rebooking.begin;
-    begin(initialOffer.booking);
+    begin(booking, true);
     return rebooking.end;
-  }, [initialOffer, rebooking.begin, rebooking.end]);
+  }, [booking, rebooking.begin, rebooking.end]);
 
   function book() {
     loadData(async () => {
@@ -56,8 +57,8 @@ export default function BookNewReturnTime({
       title="Lightning Lane"
       subhead={
         <>
-          <RebookingHeader />
-          <BookingDate booking={offer.booking} />
+          <RebookingHeader back={{ screen: BookingDetails }} />
+          <BookingDate booking={booking} />
         </>
       }
       theme={offer.experience.park.theme}

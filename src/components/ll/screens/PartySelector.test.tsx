@@ -23,6 +23,11 @@ async function renderComponent() {
   await loading();
 }
 
+async function save() {
+  click('Save');
+  await waitFor(() => expect(nav.goBack).toHaveBeenCalled());
+}
+
 describe('PartySelector', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,14 +52,13 @@ describe('PartySelector', () => {
     click(guests[0].name);
     see('Add to Your Party');
 
-    click('Save');
-    await waitFor(() => expect(nav.goBack).toHaveBeenCalled());
+    await save();
     const guestIds = guests.slice(1).map(g => g.id);
     expect(ll.setPartyIds).toHaveBeenLastCalledWith(guestIds);
     expect(getSavedPartyIds()).toEqual(guestIds);
 
     click('Book for all eligible guests');
-    click('Save');
+    await save();
     expect(ll.setPartyIds).toHaveBeenLastCalledWith([]);
     expect(getSavedPartyIds()).toEqual([]);
   });

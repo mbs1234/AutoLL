@@ -4,9 +4,10 @@ import RebookingContext from '@/contexts/RebookingContext';
 
 import Button from '../Button';
 import BookingListing from './BookingListing';
-import Home from './screens/Home';
 
-export default function RebookingHeader() {
+export type Back<P> = Parameters<typeof Button<P>>[0]['back'];
+
+export default function RebookingHeader<P>({ back }: { back?: Back<P> }) {
   const rebooking = use(RebookingContext);
   if (!rebooking.current) return null;
   return (
@@ -17,11 +18,7 @@ export default function RebookingHeader() {
           <BookingListing
             booking={rebooking.current}
             button={
-              <Button
-                type="small"
-                back={rebooking.auto && { screen: Home }}
-                onClick={rebooking.end}
-              >
+              <Button type="small" back={back} onClick={rebooking.end}>
                 Keep
               </Button>
             }

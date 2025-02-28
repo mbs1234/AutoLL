@@ -2,7 +2,7 @@ import { booking } from '@/__fixtures__/ll';
 import RebookingContext from '@/contexts/RebookingContext';
 import { click, nav, render, see, setTime, waitFor } from '@/testing';
 
-import RebookingHeader from './RebookingHeader';
+import RebookingHeader, { Back } from './RebookingHeader';
 import Home from './screens/Home';
 
 setTime('10:00');
@@ -14,11 +14,11 @@ const rebooking = {
   current: booking as typeof booking | undefined,
 };
 
-function Test({ auto }: { auto?: boolean }) {
+function Test<P>({ back }: { back?: Back<P> }) {
   return (
-    <RebookingContext value={{ ...rebooking, auto: !!auto }}>
+    <RebookingContext value={{ ...rebooking }}>
       <nav.Provider>
-        <RebookingHeader />
+        <RebookingHeader back={back} />
       </nav.Provider>
     </RebookingContext>
   );
@@ -45,8 +45,8 @@ describe('RebookingHeader', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('goes back to Home screen if auto rebooking', async () => {
-    render(<Test auto />);
+  it('goes back to specified screen when Keep clicked', async () => {
+    render(<Test back={{ screen: Home }} />);
     click('Keep');
     await waitFor(() => expect(nav.goBack).toHaveBeenCalledTimes(1));
     expect(nav.goBack).toHaveBeenLastCalledWith({ screen: Home });

@@ -12,7 +12,6 @@ import { displayTime, parkDate } from '@/datetime';
 import useDataLoader from '@/hooks/useDataLoader';
 
 import BookingDate from '../BookingDate';
-import RebookingHeader from '../RebookingHeader';
 import ReturnTime from '../ReturnTime';
 import YourDayButton from '../YourDayButton';
 import RefreshButton from './RefreshButton';
@@ -76,12 +75,7 @@ export default function SelectReturnTime<B extends Offer['booking']>({
           <RefreshButton name="Times" onClick={refreshTimes} />
         </>
       }
-      subhead={
-        <>
-          <RebookingHeader />
-          <BookingDate booking={offer} />
-        </>
-      }
+      subhead={<BookingDate booking={offer} />}
       theme={offer.experience.park.theme}
     >
       <h2>{offer.experience.name}</h2>

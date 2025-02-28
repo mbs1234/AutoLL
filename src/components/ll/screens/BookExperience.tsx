@@ -52,9 +52,7 @@ export default function BookExperience({
   useEffect(() => {
     setParty(undefined);
     setOffer(undefined);
-    return () => {
-      if (rebooking.auto) rebooking.end();
-    };
+    if (rebooking.auto) return rebooking.end;
   }, [rebooking]);
 
   async function book() {
@@ -207,7 +205,7 @@ export default function BookExperience({
       }
       subhead={
         <>
-          <RebookingHeader />
+          <RebookingHeader back={rebooking.auto} />
           <BookingDate booking={offer ?? undefined} />
         </>
       }
