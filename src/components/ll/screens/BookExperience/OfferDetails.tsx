@@ -44,7 +44,7 @@ export default function OfferDetails({
       </div>
       {offer.changed && (
         <div className="text-sm">
-          <strong>Note:</strong> Return time has been changed
+          <b>Note:</b> Return time has been changed
         </div>
       )}
       <PartyList />

@@ -50,8 +50,7 @@
     @apply select-none;
   }
 
-  b,
-  strong {
+  b {
     @apply font-semibold;
   }
 
