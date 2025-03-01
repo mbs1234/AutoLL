@@ -327,7 +327,7 @@ describe('BookExperience', () => {
     expect(ll.offer).toHaveBeenLastCalledWith(hm, [mickey, minnie], {
       date: parkDate(),
     });
-    see('Party size restricted');
+    see('Party Size Restricted');
 
     await clickModify();
     click(pluto.name);

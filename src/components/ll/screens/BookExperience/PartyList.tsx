@@ -18,7 +18,13 @@ export default function PartyList() {
   return (
     <>
       {eligible.length > maxPartySize && selected.length === maxPartySize && (
-        <Warning>Party size restricted</Warning>
+        <Warning title="Party Size Restricted">
+          <p>
+            Lightning Lane reservations are limited to 20 guests. If everyone in
+            your party wishes to experience this attraction, you will need to
+            book multiple reservations.
+          </p>
+        </Warning>
       )}
       {selected.length > 0 ? (
         <>
