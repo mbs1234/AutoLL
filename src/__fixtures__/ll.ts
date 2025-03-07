@@ -1,6 +1,7 @@
 import {
   BoardingGroup,
   Booking,
+  LLMP,
   LightningLane,
   ParkPass,
   Reservation,
@@ -127,9 +128,9 @@ export function createBooking(
   }: {
     date?: string;
     guests?: Guest[];
-    properties?: Partial<LightningLane>;
+    properties?: Partial<LLMP>;
   } = {}
-): LightningLane {
+): LLMP {
   const bookingGuests = guests
     .map(omitOrderDetails)
     .map(g => ({ ...g, entitlementId: `${experience.id}-${g.id}` }));
@@ -246,7 +247,7 @@ export const akApr: ParkPass = {
   id: 'ak20211002',
 };
 
-export const expiredLL: LightningLane = {
+export const expiredLL: LLMP = {
   type: 'LL',
   subtype: 'MP',
   facilityId: jc.id,
@@ -290,7 +291,7 @@ export const offer: Offer<undefined> = {
   booking: undefined,
 };
 
-export const modOffer: Offer<LightningLane> = { ...offer, booking };
+export const modOffer: Offer<LLMP> = { ...offer, booking };
 
 export const times: HourlySlots = [
   [

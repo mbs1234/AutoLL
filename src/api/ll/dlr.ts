@@ -1,12 +1,12 @@
 import { DateTime, parkDate, splitDateTime } from '@/datetime';
 
-import { LightningLane } from '../itinerary';
 import {
   ApiGuest,
   Guest,
   Guests,
   GuestsResponse,
   LLClient,
+  LLMP,
   Offer,
   OfferError,
   OfferExperience,
@@ -126,7 +126,7 @@ export class LLClientDLR extends LLClient {
   async book(
     offer: Offer,
     guestsToModify?: Pick<Guest, 'id'>[]
-  ): Promise<LightningLane> {
+  ): Promise<LLMP> {
     const diu = (await import('../diu')).default;
     const guestsById = new Map(offer.guests.eligible.map(g => [g.id, g]));
     const guestIdsToModify = new Set(

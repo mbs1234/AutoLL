@@ -1,6 +1,6 @@
 import { use, useState } from 'react';
 
-import { Booking } from '@/api/itinerary';
+import { Booking, isLLMP } from '@/api/itinerary';
 import { Park } from '@/api/resort';
 import Button from '@/components/Button';
 import { Day } from '@/components/Day';
@@ -104,6 +104,7 @@ export default function BookingDetails({
         <ReturnTime
           {...booking}
           button={
+            isLLMP(booking) &&
             !unmodifiable &&
             ll.rules.timeSelect &&
             booking.modifiable && (

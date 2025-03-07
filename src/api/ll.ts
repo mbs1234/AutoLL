@@ -4,10 +4,10 @@ import kvdb from '@/kvdb';
 import { authStore } from './auth';
 import { avatarUrl } from './avatar';
 import { ApiClient } from './client';
-import { Booking, LightningLane, isLLMP } from './itinerary';
+import { Booking, LLMP, isLLMP } from './itinerary';
 import { Experience as ExpData, InvalidId, Park, Resort } from './resort';
 
-export type { LightningLane };
+export type { LLMP };
 
 interface Standby {
   available?: boolean;
@@ -124,7 +124,7 @@ export interface GuestsResponse {
 
 export type OfferExperience = Omit<Experience, 'standby'>;
 
-export interface Offer<B = LightningLane | undefined> {
+export interface Offer<B = LLMP | undefined> {
   id: string;
   start: DateTime;
   end: DateTime;
@@ -250,9 +250,9 @@ export abstract class LLClient extends ApiClient {
   abstract book<B extends Offer['booking']>(
     offer: Offer<B>,
     guestsToModify?: Pick<Guest, 'id'>[]
-  ): Promise<LightningLane>;
+  ): Promise<LLMP>;
 
-  async cancelBooking(guests: LightningLane['guests']) {
+  async cancelBooking(guests: LLMP['guests']) {
     const ids = guests.map(g => g.entitlementId);
     const idParam = ids.map(encodeURIComponent).join(',');
     await this.request({

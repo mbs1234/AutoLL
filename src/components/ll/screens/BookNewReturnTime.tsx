@@ -1,6 +1,6 @@
 import { use, useEffect, useState } from 'react';
 
-import { LightningLane, Offer } from '@/api/ll';
+import { LLMP, Offer } from '@/api/ll';
 import Button from '@/components/Button';
 import FloatingButton from '@/components/FloatingButton';
 import GuestList from '@/components/GuestList';
@@ -25,7 +25,7 @@ import SelectReturnTime from './SelectReturnTime';
 export default function BookNewReturnTime({
   offer: initialOffer,
 }: {
-  offer: Offer<LightningLane>;
+  offer: Offer<LLMP>;
 }) {
   const { goTo, goBack } = use(NavContext);
   const rebooking = use(RebookingContext);

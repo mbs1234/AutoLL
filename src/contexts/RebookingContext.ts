@@ -1,11 +1,11 @@
 import { createContext } from 'react';
 
-import { LightningLane } from '@/api/ll';
+import { LLMP } from '@/api/itinerary';
 
 export interface Rebooking {
-  current: LightningLane | undefined;
+  current: LLMP | undefined;
   auto: boolean;
-  begin: (booking: LightningLane, auto?: boolean) => void;
+  begin: (booking: LLMP, auto?: boolean) => void;
   end: () => void;
 }
 

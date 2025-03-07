@@ -59,6 +59,13 @@ export interface LightningLane extends BaseBooking {
   guests: EntitledGuest[];
 }
 
+export interface LLMP extends LightningLane {
+  type: 'LL';
+  subtype: 'MP';
+  start: DateTime;
+  end: DateTime;
+}
+
 export interface DasBooking extends BaseBooking {
   type: 'DAS';
   subtype: 'IN_PARK' | 'ADVANCE';
@@ -172,7 +179,7 @@ interface ItineraryResponse {
   profiles: { [id: string]: Profile };
 }
 
-export function isLLMP(booking: Booking): booking is LightningLane {
+export function isLLMP(booking: Booking): booking is LLMP {
   return booking.type === 'LL' && booking.subtype === 'MP';
 }
 

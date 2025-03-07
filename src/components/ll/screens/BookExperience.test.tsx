@@ -16,8 +16,7 @@ import {
   renderResort,
 } from '@/__fixtures__/ll';
 import { RequestError } from '@/api/client';
-import { LightningLane } from '@/api/itinerary';
-import { OfferError } from '@/api/ll';
+import { LLMP, OfferError } from '@/api/ll';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
 import NavContext from '@/contexts/NavContext';
@@ -86,7 +85,7 @@ async function clickConfirm() {
   await see.screen('Lightning Lane');
 }
 
-function expectModifying(booking: LightningLane) {
+function expectModifying(booking: LLMP) {
   const rbHeader = see('Modifying Reservation').closest('div') as HTMLElement;
   expect(rbHeader).toHaveTextContent(booking.name);
   booking.guests.forEach(g => see(g.name));
@@ -101,7 +100,7 @@ async function goBack(screenTitle: string) {
 async function renderComponent({
   screen,
   rebook,
-}: { screen?: React.JSX.Element; rebook?: LightningLane } = {}) {
+}: { screen?: React.JSX.Element; rebook?: LLMP } = {}) {
   renderResort(
     <PlansProvider>
       <BookingDateProvider>

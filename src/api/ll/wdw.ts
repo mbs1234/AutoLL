@@ -8,7 +8,7 @@ import {
   HourlySlots,
   IneligibleReason,
   LLClient,
-  LightningLane,
+  LLMP,
   Offer,
   OfferError,
   OfferExperience,
@@ -304,9 +304,9 @@ export class LLClientWDW extends LLClient {
   async book<B extends Offer['booking']>(
     offer: Offer<B>,
     guestsToModify?: Pick<Guest, 'id'>[]
-  ): Promise<LightningLane> {
+  ): Promise<LLMP> {
     if (offer.booking) {
-      return this.modify(offer as Offer<LightningLane>, guestsToModify);
+      return this.modify(offer as Offer<LLMP>, guestsToModify);
     }
     const { data } = await this.request<NewBookingResponse>({
       path: '/ea-vas/planning/api/v1/experiences/entitlements/book',
@@ -326,9 +326,9 @@ export class LLClientWDW extends LLClient {
   }
 
   protected async modify(
-    offer: Offer<LightningLane>,
+    offer: Offer<LLMP>,
     guestsToModify?: Pick<Guest, 'id'>[]
-  ): Promise<LightningLane> {
+  ): Promise<LLMP> {
     const {
       offerSetId,
       guests: { eligible },
@@ -361,7 +361,7 @@ export class LLClientWDW extends LLClient {
   protected createLLFromResponse(
     experience: OfferExperience,
     response: NewBookingResponse
-  ): LightningLane {
+  ): LLMP {
     const booking = response.entitlementExperiences[0];
     const entIdsByGuestId = Object.fromEntries(
       booking.guests.map(g => [g.guestId, g.entitlementId])
