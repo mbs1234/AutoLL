@@ -32,6 +32,25 @@ export class DateTime {
 
   protected static format: DateFormat;
 
+  static now() {
+    return DateTime.from(Date.now());
+  }
+
+  static from(date: Dateable) {
+    if (
+      typeof date === 'string' &&
+      date.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)
+    ) {
+      const [d, t] = date.split('T');
+      return new DateTime(d, t);
+    }
+
+    const dt = DateTime.format.parts(dateObject(date));
+    const d = `${dt.year}-${dt.month}-${dt.day}`;
+    const t = `${dt.hour}:${dt.minute}:${dt.second}`;
+    return new DateTime(d, t);
+  }
+
   static setTimeZone(tz: string) {
     const d2 = '2-digit';
     DateTime.format = new DateFormat({
@@ -46,31 +65,32 @@ export class DateTime {
     });
   }
 
-  constructor(date?: Dateable) {
-    const dt = DateTime.format.parts(dateObject(date ?? Date.now()));
-    this.date = `${dt.year}-${dt.month}-${dt.day}`;
-    this.time = `${dt.hour}:${dt.minute}:${dt.second}`;
+  constructor(date: string, time: string) {
+    this.date = date;
+    this.time = time;
+  }
+
+  toString() {
+    return `${this.date}T${this.time}`;
+  }
+
+  toJSON() {
+    return this.toString();
   }
 }
 
 DateTime.setTimeZone('America/New_York');
 
-export function dateString(date: Dateable) {
-  date = dateObject(date);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
 export function modifyDate(date: Dateable, days: number) {
   date = dateObject(date);
-  if (days) date.setDate(date.getDate() + days);
-  return dateString(date);
+  date.setDate(date.getDate() + days);
+  return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map(v => `${v}`.padStart(2, '0'))
+    .join('-');
 }
 
-export function parkDate(dateTime: Partial<DateTime> = {}): string {
-  const now = new DateTime();
+export function parkDate(dateTime: { date?: string; time?: string } = {}) {
+  const now = DateTime.now();
   const { date = now.date, time = now.time } = dateTime;
   return (time ?? '1') > '03:00:00' ? date : modifyDate(date, -1);
 }
@@ -107,14 +127,6 @@ export function displayTime(time: string) {
 }
 
 /**
- * Splits ISO 8601 date/time string (YYYY-MM-DDTHH:mm:ss) into separate parts
- */
-export function splitDateTime(dateTime: string): DateTime {
-  const [date, time] = dateTime.slice(0, 19).split('T');
-  return { date, time };
-}
-
-/**
  * Converts time string to number of minutes since 7 AM
  */
 export function parkMinutes(time: string) {
@@ -127,7 +139,7 @@ export function parkMinutes(time: string) {
  */
 export function upcomingTimes(times: string[]) {
   if (!Array.isArray(times)) return [];
-  const now = new DateTime().time.slice(0, 5);
+  const now = DateTime.now().time.slice(0, 5);
   const nextIdx = times.findIndex(t => t >= now);
   return nextIdx >= 0 ? times.slice(nextIdx) : [];
 }

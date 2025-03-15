@@ -1,4 +1,4 @@
-import { DateTime, parkDate, parkMinutes, splitDateTime } from '@/datetime';
+import { DateTime, parkDate, parkMinutes } from '@/datetime';
 
 import {
   ApiGuest,
@@ -149,7 +149,7 @@ export class LLClientWDW extends LLClient {
     const { data } = await this.request<GuestsResponse>({
       path: '/ea-vas/planning/api/v1/experiences/guest/guests',
       data: {
-        date: date ?? new DateTime().date,
+        date: date ?? DateTime.now().date,
         facilityId: experience?.id ?? null,
         parkId: experience
           ? this.resort.experience(experience.id).park.id
@@ -201,8 +201,8 @@ export class LLClientWDW extends LLClient {
     let offer: Offer<B> = {
       offerSetId,
       id: offerId,
-      start: splitDateTime(startDateTime),
-      end: splitDateTime(endDateTime),
+      start: DateTime.from(startDateTime),
+      end: DateTime.from(endDateTime),
       experience,
       guests: {
         eligible: party.eligible.map(g => ({ ...guestsById[g.id], ...g })),
@@ -295,8 +295,8 @@ export class LLClientWDW extends LLClient {
       ...offer,
       id: newOffer.offerId,
       offerSetId: newOffer.offerSetId,
-      start: splitDateTime(newOffer.startDateTime),
-      end: splitDateTime(newOffer.endDateTime),
+      start: DateTime.from(newOffer.startDateTime),
+      end: DateTime.from(newOffer.endDateTime),
       changed: newOffer.conflict === 'ALTERNATIVE_TIME_FOUND',
     });
   }
@@ -376,8 +376,8 @@ export class LLClientWDW extends LLClient {
       type: 'LL',
       subtype: 'MP',
       id: booking.guests[0]?.entitlementId,
-      start: splitDateTime(booking.startDateTime),
-      end: splitDateTime(booking.endDateTime),
+      start: DateTime.from(booking.startDateTime),
+      end: DateTime.from(booking.endDateTime),
       cancellable: true,
       modifiable: true,
       guests: response.party.guests.map(g => ({

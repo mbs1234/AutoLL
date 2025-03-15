@@ -35,7 +35,7 @@ interface BaseBooking {
   park: Park;
   land?: Land;
   start: { date: string; time?: string };
-  end?: Partial<DateTime>;
+  end?: { date?: string; time?: string };
   cancellable?: boolean;
   modifiable?: boolean;
   guests: Guest[];
@@ -55,7 +55,7 @@ export interface LightningLane extends BaseBooking {
   subtype: 'MP' | 'SP' | 'OTHER';
   experience: Experience;
   land: Land;
-  end: Partial<DateTime>;
+  end: { date?: string; time?: string };
   guests: EntitledGuest[];
 }
 
@@ -202,7 +202,7 @@ export class ItineraryClient extends ApiClient {
 
   async plans(): Promise<Booking[]> {
     const { swid } = authStore.getData();
-    const today = new DateTime().date;
+    const today = DateTime.now().date;
     const parkDay = parkDate();
     const itineraryApiName = RESORT_TO_ITINERARY_API_NAME[this.resort.id];
     const {
@@ -262,7 +262,7 @@ export class ItineraryClient extends ApiClient {
         land,
         park,
         name: activityAsset.name,
-        start: new DateTime(start),
+        start: DateTime.from(start),
         guests: item.guests
           .map(getGuest)
           .sort(
@@ -386,7 +386,7 @@ export class ItineraryClient extends ApiClient {
         type: 'BG',
         boardingGroup: item.boardingGroup.id,
         status: item.status,
-        start: new DateTime(new Date(item.startDateTime)),
+        start: DateTime.from(new Date(item.startDateTime)),
         guests: item.guests.map(getGuest),
         id: item.id,
       };
@@ -400,10 +400,7 @@ export class ItineraryClient extends ApiClient {
         facilityId: park.id,
         name: park.name,
         park,
-        start: {
-          date: item.displayStartDate as string,
-          time: '06:00:00',
-        },
+        start: new DateTime(item.displayStartDate as string, '06:00:00'),
         guests: item.guests.map(getGuest),
         id: item.id,
       };

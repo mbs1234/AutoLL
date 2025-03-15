@@ -1,4 +1,4 @@
-import { splitDateTime } from '@/datetime';
+import { DateTime } from '@/datetime';
 
 import { authStore } from './auth';
 import { avatarUrl } from './avatar';
@@ -122,7 +122,7 @@ export class DasClient extends ApiClient {
       )
       .flatMap(({ id, available, nextAvailableStartDateTime }) => {
         try {
-          const { time } = splitDateTime(nextAvailableStartDateTime);
+          const { time } = DateTime.from(nextAvailableStartDateTime);
           return { ...this.resort.experience(id), available, time };
         } catch (error) {
           if (error instanceof InvalidId) return [];
@@ -206,7 +206,7 @@ export class DasClient extends ApiClient {
           entitlementId: e.id,
         };
       }),
-      start: splitDateTime(booking.startDateTime),
+      start: DateTime.from(booking.startDateTime),
       end: {},
       id: booking.id,
     };

@@ -10,7 +10,7 @@ export async function ping(
   resort: Pick<Resort, 'id'>,
   service: ServiceCode
 ): Promise<void> {
-  const { date } = new DateTime();
+  const { date } = DateTime.now();
   const pingDateKey = ['bg1', 'ping', resort.id, service];
   const pingDate = kvdb.get<string>(pingDateKey);
   if (pingDate === date) return;

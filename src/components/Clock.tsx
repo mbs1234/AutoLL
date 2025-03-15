@@ -23,5 +23,5 @@ export default function Clock({
       .catch(() => onSync(false));
   }, [onSync]);
 
-  return <time>{new DateTime(time).time}</time>;
+  return <time>{DateTime.from(time).time}</time>;
 }

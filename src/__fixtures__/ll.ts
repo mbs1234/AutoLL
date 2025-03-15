@@ -7,6 +7,7 @@ import {
   Reservation,
 } from '@/api/itinerary';
 import { FlexExperience, Guest, HourlySlots, Offer } from '@/api/ll';
+import { DateTime } from '@/datetime';
 import { TODAY, TOMORROW } from '@/testing';
 
 import { ak, hs, itinerary, ll, mk, wdw } from './resort';
@@ -142,8 +143,8 @@ export function createBooking(
     experience: wdw.experience(experience.id),
     park: experience.park,
     land: experience.land,
-    start: { date, time: '11:00:00' },
-    end: { date, time: '12:00:00' },
+    start: new DateTime(date, '11:00:00'),
+    end: new DateTime(date, '12:00:00'),
     cancellable: true,
     modifiable: true,
     guests: bookingGuests,
@@ -162,7 +163,7 @@ export const multiExp: LightningLane = {
   experience: wdw.experience(sdd.id),
   land: sdd.land,
   park: sdd.park,
-  start: { date: TODAY, time: '15:15:00' },
+  start: new DateTime(TODAY, '15:15:00'),
   end: { date: TODAY, time: undefined },
   cancellable: false,
   modifiable: false,
@@ -205,7 +206,7 @@ export const bg: BoardingGroup = {
   boardingGroup: 42,
   status: 'IN_PROGRESS',
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
-  start: { date: TODAY, time: '07:00:00' },
+  start: new DateTime(TODAY, '07:00:00'),
   id: 'tron_01',
 };
 
@@ -221,7 +222,7 @@ export const lttRes: Reservation = {
     theme: { bg: '', text: '' },
   },
   park: mk,
-  start: { date: TODAY, time: '11:15:00' },
+  start: new DateTime(TODAY, '11:15:00'),
   end: undefined,
   guests: [mickey, minnie].map(omitOrderDetails),
   id: '38943;type=DINING',
@@ -232,7 +233,7 @@ export const mkApr: ParkPass = {
   facilityId: mk.id,
   name: mk.name,
   park: mk,
-  start: { date: TODAY, time: '06:00:00' },
+  start: new DateTime(TODAY, '06:00:00'),
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
   id: 'mk20211001',
 };
@@ -242,7 +243,7 @@ export const akApr: ParkPass = {
   facilityId: ak.id,
   name: ak.name,
   park: ak,
-  start: { date: TOMORROW, time: '06:00:00' },
+  start: new DateTime(TOMORROW, '06:00:00'),
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
   id: 'ak20211002',
 };
@@ -255,8 +256,8 @@ export const expiredLL: LLMP = {
   experience: wdw.experience(jc.id),
   land: jc.land,
   park: jc.park,
-  start: { date: TODAY, time: '14:00:00' },
-  end: { date: TODAY, time: '15:00:00' },
+  start: new DateTime(TODAY, '14:00:00'),
+  end: new DateTime(TODAY, '15:00:00'),
   cancellable: true,
   modifiable: false,
   guests: [
@@ -280,8 +281,8 @@ export const bookings: Booking[] = [
 export const offer: Offer<undefined> = {
   id: '123',
   offerSetId: 'set123',
-  start: { date: TODAY, time: '11:10:00' },
-  end: { date: TODAY, time: '12:10:00' },
+  start: new DateTime(TODAY, '11:10:00'),
+  end: new DateTime(TODAY, '12:10:00'),
   changed: false,
   guests: {
     eligible: [mickey, minnie, pluto],

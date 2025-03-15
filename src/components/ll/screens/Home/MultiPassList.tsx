@@ -119,7 +119,7 @@ const Experiences = memo(function Experiences({
   const dropTime = isBookingToday
     ? upcomingTimes(park.dropTimes)[0]
     : park.dropTimes[0];
-  const nowMinutes = parkMinutes(new DateTime().time);
+  const nowMinutes = parkMinutes(DateTime.now().time);
 
   useEffect(() => {
     kvdb.set<string[]>(STARRED_KEY, [...starred]);

@@ -48,7 +48,7 @@
     "build": "rm -f src/api/diu.ts && vite build",
     "preview": "vite preview",
     "checkall": "npm test && npm run lint && npm run typecheck",
-    "test": "jest",
+    "test": "TZ=UTC jest",
     "coverage": "jest --coverage --coverageDirectory=.coverage",
     "lint": "eslint src",
     "lint:fix": "eslint --fix src",

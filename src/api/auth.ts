@@ -25,12 +25,9 @@ export class AuthStore {
       const data = kvdb.get<AuthData>(AUTH_KEY);
       if (data) {
         const { swid, accessToken, expires } = data;
-        const exp = new DateTime(expires);
-        const now = new DateTime();
-        if (
-          exp.date > now.date ||
-          (exp.date === now.date && exp.time > now.time && exp.time >= '17')
-        ) {
+        const exp = DateTime.from(expires);
+        const now = DateTime.now();
+        if (exp > now && (exp.date > now.date || exp.time >= '17')) {
           return { swid, accessToken };
         }
       }

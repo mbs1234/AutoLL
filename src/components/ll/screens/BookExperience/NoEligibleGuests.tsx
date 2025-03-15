@@ -24,7 +24,7 @@ export default function NoEligibleGuests() {
       ) : (
         <>
           {ll.nextBookTime &&
-            ll.nextBookTime.slice(0, 5) > new DateTime().time.slice(0, 5) && (
+            ll.nextBookTime.slice(0, 5) > DateTime.now().time.slice(0, 5) && (
               <Notice>
                 Eligible at <Time>{ll.nextBookTime}</Time>
               </Notice>

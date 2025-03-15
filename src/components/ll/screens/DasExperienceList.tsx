@@ -72,7 +72,7 @@ function Sublist({
   onSelect: (experience: Experience) => void;
 }) {
   if (experiences.length === 0) return null;
-  const now = parkMinutes(new DateTime().time);
+  const now = parkMinutes(DateTime.now().time);
   return (
     <div className={`mt-4 rounded-sm overflow-hidden ${park.theme.bg}`}>
       <h3 className="mt-0 py-1 text-white text-xs font-semibold text-center uppercase">

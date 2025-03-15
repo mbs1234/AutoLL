@@ -18,7 +18,7 @@ export class LiveDataClient {
       this.cachedShowTimes = (await this.request('showtimes')).data;
     }
     const showTimesByExpId = this.cachedShowTimes[park.id] ?? {};
-    const { time: now } = new DateTime();
+    const now = DateTime.now().time;
     return Object.fromEntries(
       Object.entries(showTimesByExpId).flatMap(([id, showTimes]) => {
         const upcomingTimes = showTimes.filter(t => t >= now);

@@ -1,5 +1,6 @@
 import { avatarUrl } from '@/api/avatar';
 import { DasBooking, Experience } from '@/api/das';
+import { DateTime } from '@/datetime';
 import { TODAY } from '@/testing';
 
 import { mk, wdw } from './resort';
@@ -52,7 +53,7 @@ export const booking: DasBooking = {
     { ...mickey, entitlementId: 'ent1' },
     { ...minnie, entitlementId: 'ent2' },
   ],
-  start: { date: TODAY, time: '10:30:00' },
+  start: new DateTime(TODAY, '10:30:00'),
   end: {},
   id: 'hm1030',
 };

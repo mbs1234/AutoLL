@@ -1,4 +1,4 @@
-import { DateTime, parkDate, splitDateTime } from '@/datetime';
+import { DateTime, parkDate } from '@/datetime';
 
 import {
   ApiGuest,
@@ -91,7 +91,7 @@ export class LLClientDLR extends LLClient {
         selectedTime: experience.flex?.nextAvailableTime ?? '08:00:00',
         ...(booking
           ? {
-              date: new DateTime().date,
+              date: DateTime.now().date,
               modificationType:
                 experience.id === booking.experience.id ? 'TIME' : 'EXPERIENCE',
             }
@@ -106,8 +106,8 @@ export class LLClientDLR extends LLClient {
     if (status !== 'ACTIVE') throw new OfferError(party);
     return this.updateLastOffer({
       id,
-      start: { date, time: startTime },
-      end: { date, time: endTime },
+      start: new DateTime(date, startTime),
+      end: new DateTime(date, endTime),
       changed: changeStatus !== 'NONE',
       booking: booking as B,
       guests: party,
@@ -141,7 +141,7 @@ export class LLClientDLR extends LLClient {
         ...(await diu(offer.id)),
         ...(offer.booking
           ? {
-              date: new DateTime().date,
+              date: DateTime.now().date,
               modificationType:
                 offer.booking.experience.id === offer.experience.id
                   ? 'TIME'
@@ -176,8 +176,8 @@ export class LLClientDLR extends LLClient {
       type: 'LL',
       subtype: 'MP',
       id: entitlements[0]?.id,
-      start: splitDateTime(startDateTime),
-      end: splitDateTime(endDateTime),
+      start: DateTime.from(startDateTime),
+      end: DateTime.from(endDateTime),
       cancellable: true,
       modifiable: true,
       guests: entitlements.map(e => ({

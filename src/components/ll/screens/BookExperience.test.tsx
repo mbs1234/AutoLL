@@ -20,7 +20,7 @@ import { LLMP, OfferError } from '@/api/ll';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
 import NavContext from '@/contexts/NavContext';
-import { parkDate } from '@/datetime';
+import { DateTime, parkDate } from '@/datetime';
 import { ping } from '@/ping';
 import BookingDateProvider from '@/providers/BookingDateProvider';
 import NavProvider from '@/providers/NavProvider';
@@ -201,8 +201,8 @@ describe('BookExperience', () => {
 
   const newOffer = {
     id: 'new_offer',
-    start: { date: TODAY, time: '10:05:00' },
-    end: { date: TODAY, time: '11:05:00' },
+    start: new DateTime(TODAY, '10:05:00'),
+    end: new DateTime(TODAY, '11:05:00'),
     active: true,
     changed: true,
     guests: {

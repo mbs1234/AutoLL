@@ -1,5 +1,6 @@
 import { expectFetch, respond, response, swid } from '@/__fixtures__/client';
 import { hm, jc, mickey, minnie, mk, sm, wdw } from '@/__fixtures__/das';
+import { DateTime } from '@/datetime';
 import { TODAY } from '@/testing';
 
 import { DasBooking, DasClient } from './das';
@@ -26,7 +27,7 @@ const booking: DasBooking = {
       entitlementId: 'jc1030_minnie',
     },
   ],
-  start: { date: TODAY, time: '10:30:00' },
+  start: new DateTime(TODAY, '10:30:00'),
   end: {},
   id: 'jc1030',
 };

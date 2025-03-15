@@ -22,7 +22,7 @@ export default function TimeBanner({
 function LabeledTime({ label, time }: { label?: string; time?: string }) {
   if (!time) return null;
   time = time.slice(0, 5);
-  const now = new DateTime().time.slice(0, 5);
+  const now = DateTime.now().time.slice(0, 5);
   return (
     <div>
       {label}:{' '}
