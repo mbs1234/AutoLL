@@ -5,6 +5,7 @@ import {
   formatDate,
   formatTime,
   parkDate,
+  parkMinutes,
   toDate,
   upcomingTimes,
 } from './datetime';
@@ -98,18 +99,27 @@ describe('formatTime()', () => {
 });
 
 describe('parkDate()', () => {
-  it(`returns today's date if after 3 AM`, () => {
-    setTime('23:59:59');
+  it(`returns today's date if 4 AM or later`, () => {
+    setTime('04:00:00');
     expect(parkDate()).toBe(TODAY);
-    setTime('03:00:01');
+    setTime('23:59:59');
     expect(parkDate()).toBe(TODAY);
   });
 
-  it(`returns yesterday's date if it's between midnight and 3 AM`, () => {
+  it(`returns yesterday's date if before 4 AM`, () => {
     setTime('00:00:00');
     expect(parkDate()).toBe(YESTERDAY);
-    setTime('03:00:00');
+    setTime('03:59:59');
     expect(parkDate()).toBe(YESTERDAY);
+  });
+});
+
+describe('parkMinutes()', () => {
+  it('returns minutes since 4 AM', () => {
+    expect(parkMinutes('04:00:00')).toBe(0);
+    expect(parkMinutes('04:01')).toBe(1);
+    expect(parkMinutes('12:00')).toBe(480);
+    expect(parkMinutes('03:59')).toBe(1439);
   });
 });
 

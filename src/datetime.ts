@@ -1,3 +1,5 @@
+export const DAY_START_TIME = '04:00:00';
+
 export type Dateable = Date | number | string;
 
 export function toDate(dt: Dateable): Date {
@@ -89,10 +91,21 @@ export function modifyDate(date: Dateable, days: number) {
     .join('-');
 }
 
+/**
+ * Returns specified date if time is 4 AM or later, else previous date
+ */
 export function parkDate(dateTime: { date?: string; time?: string } = {}) {
   const now = DateTime.now();
   const { date = now.date, time = now.time } = dateTime;
-  return (time ?? '1') > '03:00:00' ? date : modifyDate(date, -1);
+  return time >= DAY_START_TIME ? date : modifyDate(date, -1);
+}
+
+/**
+ * Converts time string to number of minutes since 7 AM
+ */
+export function parkMinutes(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  return (h * 60 + m + 1200) % 1440;
 }
 
 export type DateFormatType = 'short';
@@ -116,14 +129,6 @@ export function formatTime(time: string) {
   const m = time.match(/^([01]?\d|2[0-3])(:[0-5]\d)?(?::[0-5]\d)?$/);
   if (!m) throw new RangeError(`Invalid time string: ${time}`);
   return `${+m[1] % 12 || 12}${m[2] ?? ''} ${+m[1] < 12 ? 'AM' : 'PM'}`;
-}
-
-/**
- * Converts time string to number of minutes since 7 AM
- */
-export function parkMinutes(time: string) {
-  const [h, m] = time.split(':').map(Number);
-  return ((h + 17) % 24) * 60 + m;
 }
 
 /**
