@@ -1,9 +1,9 @@
 export type Dateable = Date | number | string;
 
-export function dateObject(dt: Dateable): Date {
-  return typeof dt === 'string' && !dt.includes('T')
-    ? new Date(dt + 'T00:00:00')
-    : new Date(dt);
+export function toDate(dt: Dateable): Date {
+  return new Date(
+    typeof dt === 'string' && !dt.includes('T') ? dt + 'T00:00:00' : dt
+  );
 }
 
 export class DateFormat {
@@ -14,14 +14,14 @@ export class DateFormat {
   }
 
   format(date: Dateable) {
-    return this.fmt.format(dateObject(date));
+    return this.fmt.format(toDate(date));
   }
 
   parts(date: Dateable): {
     [P in Intl.DateTimeFormatPartTypes]?: string;
   } {
     return Object.fromEntries(
-      this.fmt.formatToParts(dateObject(date)).map(p => [p.type, p.value])
+      this.fmt.formatToParts(toDate(date)).map(p => [p.type, p.value])
     );
   }
 }
@@ -45,7 +45,7 @@ export class DateTime {
       return new DateTime(d, t);
     }
 
-    const dt = DateTime.format.parts(dateObject(date));
+    const dt = DateTime.format.parts(toDate(date));
     const d = `${dt.year}-${dt.month}-${dt.day}`;
     const t = `${dt.hour}:${dt.minute}:${dt.second}`;
     return new DateTime(d, t);
@@ -82,7 +82,7 @@ export class DateTime {
 DateTime.setTimeZone('America/New_York');
 
 export function modifyDate(date: Dateable, days: number) {
-  date = dateObject(date);
+  date = toDate(date);
   date.setDate(date.getDate() + days);
   return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
     .map(v => `${v}`.padStart(2, '0'))
@@ -98,7 +98,7 @@ export function parkDate(dateTime: { date?: string; time?: string } = {}) {
 export type DisplayType = 'short';
 
 export function displayDate(date: string, type?: DisplayType) {
-  const dt = dateObject(date);
+  const dt = toDate(date);
   const monthDay = dt.toLocaleString('en-US', {
     month: 'long',
     day: 'numeric',

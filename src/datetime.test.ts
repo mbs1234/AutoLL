@@ -5,17 +5,19 @@ import {
   displayDate,
   displayTime,
   parkDate,
+  toDate,
   upcomingTimes,
 } from './datetime';
+
+const date = '1998-04-22';
+const time = '16:35:40';
+const dateTimeString = `${date}T${time}`;
 
 beforeEach(() => {
   setTime('08:00');
 });
 
 describe('DateTime', () => {
-  const date = '1998-04-22';
-  const time = '16:35:40';
-  const dateTimeString = `${date}T${time}`;
   const dt = DateTime.from(dateTimeString);
 
   it('can be used with comparison operators', () => {
@@ -107,6 +109,16 @@ describe('parkDate()', () => {
     expect(parkDate()).toBe(YESTERDAY);
     setTime('03:00:00');
     expect(parkDate()).toBe(YESTERDAY);
+  });
+});
+
+describe('toDate()', () => {
+  it('converts the supplied value to a Date object', () => {
+    const dateObj = new Date(dateTimeString);
+    expect(toDate(dateTimeString)).toEqual(dateObj);
+    expect(toDate(date)).toEqual(new Date(`${date}T00:00:00`));
+    expect(toDate(+dateObj)).toEqual(dateObj);
+    expect(toDate(dateObj)).toEqual(dateObj);
   });
 });
 

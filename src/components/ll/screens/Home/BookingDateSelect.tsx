@@ -3,7 +3,7 @@ import { use, useMemo } from 'react';
 import MenuButton, { MenuProps } from '@/components/MenuButton';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ThemeContext from '@/contexts/ThemeContext';
-import { DateFormat, dateObject, modifyDate, parkDate } from '@/datetime';
+import { DateFormat, modifyDate, parkDate, toDate } from '@/datetime';
 import useUpdateParkFromPlans from '@/hooks/useUpdateParkFromPlans';
 import { NUM_BOOKING_DAYS } from '@/providers/BookingDateProvider';
 
@@ -44,7 +44,7 @@ function CalendarMenu<K extends string, V>(props: MenuProps<K, V>) {
   const { bg } = use(ThemeContext);
   const { options, selected } = props;
   const dates = [...options.keys()];
-  const bookStart = dateObject(dates[0]);
+  const bookStart = toDate(dates[0]);
   const calStart = modifyDate(bookStart, -bookStart.getDay());
   const monthFmt = new DateFormat({ month: 'long' });
   const startMonth = monthFmt.format(bookStart);
