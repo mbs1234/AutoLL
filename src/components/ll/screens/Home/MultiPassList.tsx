@@ -14,7 +14,7 @@ import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
 import ResortContext from '@/contexts/ResortContext';
 import ThemeContext from '@/contexts/ThemeContext';
-import { DateTime, parkDate, timeToMinutes, upcomingTimes } from '@/datetime';
+import { DateTime, parkDate, parkMinutes, upcomingTimes } from '@/datetime';
 import useSavedParty from '@/hooks/useSavedParty';
 import CheckmarkIcon from '@/icons/CheckmarkIcon';
 import DropIcon from '@/icons/DropIcon';
@@ -119,7 +119,7 @@ const Experiences = memo(function Experiences({
   const dropTime = isBookingToday
     ? upcomingTimes(park.dropTimes)[0]
     : park.dropTimes[0];
-  const nowMinutes = timeToMinutes(new DateTime().time);
+  const nowMinutes = parkMinutes(new DateTime().time);
 
   useEffect(() => {
     kvdb.set<string[]>(STARRED_KEY, [...starred]);
@@ -224,7 +224,7 @@ const Experiences = memo(function Experiences({
           !!nextAvailableTime &&
           standby >= LP_MIN_STANDBY &&
           priorityLevel < 3 &&
-          timeToMinutes(nextAvailableTime) - nowMinutes <=
+          parkMinutes(nextAvailableTime) - nowMinutes <=
             Math.min(LP_MAX_LL_WAIT, ((4 - priorityLevel) / 3) * standby),
         starred: starred.has(exp.id),
       };

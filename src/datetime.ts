@@ -117,7 +117,7 @@ export function splitDateTime(dateTime: string): DateTime {
 /**
  * Converts time string to number of minutes since 7 AM
  */
-export function timeToMinutes(time: string) {
+export function parkMinutes(time: string) {
   const [h, m] = time.split(':').map(Number);
   return ((h + 17) % 24) * 60 + m;
 }

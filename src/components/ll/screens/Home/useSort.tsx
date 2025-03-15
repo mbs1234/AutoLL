@@ -6,7 +6,7 @@ import Select from '@/components/Select';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
-import { parkDate, timeToMinutes } from '@/datetime';
+import { parkDate, parkMinutes } from '@/datetime';
 import useCoords, { Coords } from '@/hooks/useCoords';
 import kvdb from '@/kvdb';
 
@@ -29,8 +29,8 @@ const sortByStandby: Sorter = (a, b, { isToday } = {}) =>
       (b.avgWait || -1) - (a.avgWait || -1);
 
 const sortBySoonest: Sorter = (a, b) =>
-  timeToMinutes(a?.flex?.nextAvailableTime || '00:00') -
-  timeToMinutes(b?.flex?.nextAvailableTime || '00:00');
+  parkMinutes(a?.flex?.nextAvailableTime || '00:00') -
+  parkMinutes(b?.flex?.nextAvailableTime || '00:00');
 
 const sortByName: Sorter = (a, b) =>
   a.name.toLowerCase().localeCompare(b.name.toLowerCase());

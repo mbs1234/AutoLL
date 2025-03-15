@@ -1,4 +1,4 @@
-import { DateTime, parkDate, splitDateTime, timeToMinutes } from '@/datetime';
+import { DateTime, parkDate, parkMinutes, splitDateTime } from '@/datetime';
 
 import {
   ApiGuest,
@@ -221,7 +221,7 @@ export class LLClientWDW extends LLClient {
     if (
       offer.changed &&
       nextAvailableTime &&
-      timeToMinutes(offer.start.time) - timeToMinutes(nextAvailableTime) > 10
+      parkMinutes(offer.start.time) - parkMinutes(nextAvailableTime) > 10
     ) {
       try {
         offer = await this.changeOfferTime(offer, {
