@@ -13,7 +13,7 @@ import {
 } from '@testing-library/react';
 
 import NavContext from './contexts/NavContext';
-import { displayTime } from './datetime';
+import { formatTime } from './datetime';
 
 /* eslint-disable-next-line react-refresh/only-export-components */
 export * from '@testing-library/react';
@@ -23,7 +23,7 @@ export const TODAY = '2021-10-01';
 export const TOMORROW = '2021-10-02';
 
 function queryAllByTime(c: HTMLElement, time: string) {
-  time = displayTime(time);
+  time = formatTime(time);
   return [...c.getElementsByTagName('time')].filter(
     elem => elem.textContent === time
   ) as HTMLElement[];
@@ -62,7 +62,7 @@ const getTextError = (text: string) =>
   getQueryError(`Unable to find element with text: ${text}`);
 
 const getTimeError = (time: string) =>
-  getQueryError(`Unable to find time element: ${displayTime(time)}`);
+  getQueryError(`Unable to find time element: ${formatTime(time)}`);
 
 const getContainerElem = () =>
   document.querySelector<HTMLElement>('article:not([hidden])') ?? document.body;

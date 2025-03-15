@@ -4,7 +4,7 @@ import BookingDateContext from '@/contexts/BookingDateContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
-import { displayTime } from '@/datetime';
+import { formatTime } from '@/datetime';
 import kvdb from '@/kvdb';
 import NavProvider from '@/providers/NavProvider';
 import { TODAY, click, loading, screen, see, setTime, within } from '@/testing';
@@ -123,7 +123,7 @@ describe('MultiPassList', () => {
     click(screen.getAllByTitle('Add to Favorites')[4]);
     expect(getExperiences()).toEqual(names([jc, sm, hm]));
 
-    click(displayTime(sm.flex.nextAvailableTime as string));
+    click(formatTime(sm.flex.nextAvailableTime as string));
     await see.screen('Lightning Lane');
     await loading();
     see(sm.name);

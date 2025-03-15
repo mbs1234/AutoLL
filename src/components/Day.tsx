@@ -1,4 +1,4 @@
-import { DisplayType, displayDate } from '@/datetime';
+import { DateFormatType, formatDate } from '@/datetime';
 
 export function Day({
   children: date,
@@ -6,11 +6,11 @@ export function Day({
   ...attrs
 }: React.HTMLProps<HTMLTimeElement> & {
   children: string;
-  type?: DisplayType;
+  type?: DateFormatType;
 }) {
   return (
     <time {...attrs} dateTime={date}>
-      {displayDate(date, type)}
+      {formatDate(date, type)}
     </time>
   );
 }

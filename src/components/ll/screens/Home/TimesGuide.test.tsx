@@ -6,7 +6,7 @@ import { Experience as ExpData, ExperienceType } from '@/api/resort';
 import DasPartiesContext from '@/contexts/DasPartiesContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
-import { displayTime } from '@/datetime';
+import { formatTime } from '@/datetime';
 import NavProvider from '@/providers/NavProvider';
 import { click, screen, see, within } from '@/testing';
 
@@ -23,7 +23,7 @@ function expectTimes(def: { [key: string]: { [key: string]: Experience[] } }) {
           String(
             exp.standby.waitTime ??
               (exp.showTimes
-                ? displayTime(exp.showTimes[0])
+                ? formatTime(exp.showTimes[0])
                 : exp.standby.available
                   ? '–'
                   : '❌')
@@ -130,14 +130,14 @@ describe('TimesGuide', () => {
       screen.queryByRole('heading', { name: fof.name, level: 2 })
     ).not.toBeInTheDocument();
 
-    click(displayTime(ddShowTimes[0]));
+    click(formatTime(ddShowTimes[0]));
     await see.screen('Experience Info');
     see(dd.name, 'heading', { level: 2 });
 
     see('Upcoming Shows');
     expect(
       screen.getAllByRole('listitem').map(elem => elem.textContent)
-    ).toEqual(ddShowTimes.map(t => displayTime(t)));
+    ).toEqual(ddShowTimes.map(formatTime));
   });
 
   it("doesn't show ILL after park close", async () => {

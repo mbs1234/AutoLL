@@ -8,7 +8,7 @@ import { Time } from '@/components/Time';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
 import RebookingContext from '@/contexts/RebookingContext';
-import { displayTime, parkDate } from '@/datetime';
+import { formatTime, parkDate } from '@/datetime';
 import useDataLoader from '@/hooks/useDataLoader';
 
 import BookingDate from '../BookingDate';
@@ -101,7 +101,7 @@ export default function SelectReturnTime<B extends Offer['booking']>({
                     scope="row"
                     className="pt-3 pr-2 text-gray-500 text-sm font-semibold text-right uppercase"
                   >
-                    {displayTime(slots[0].startTime.slice(0, 2))}
+                    {formatTime(slots[0].startTime.slice(0, 2))}
                   </th>
                   {slots.map(slot => (
                     <td className="pt-3 pr-3 text-center" key={slot.startTime}>

@@ -2,7 +2,7 @@ import { use } from 'react';
 
 import GuestList from '@/components/GuestList';
 import PartyContext from '@/contexts/PartyContext';
-import { displayTime } from '@/datetime';
+import { formatTime } from '@/datetime';
 
 export default function IneligibleGuestList() {
   const { ineligible } = use(PartyContext);
@@ -13,7 +13,7 @@ export default function IneligibleGuestList() {
         ineligible.map(g => [
           g.id,
           g.eligibleAfter
-            ? `TOO EARLY (${displayTime(g.eligibleAfter)})`
+            ? `TOO EARLY (${formatTime(g.eligibleAfter)})`
             : g.ineligibleReason || 'ELIGIBLE FOR NEW BOOKING',
         ])
       )}

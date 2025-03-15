@@ -1,4 +1,4 @@
-import { displayDate } from '@/datetime';
+import { formatDate } from '@/datetime';
 import { TODAY, TOMORROW, render, setTime } from '@/testing';
 
 import ReturnTime from './ReturnTime';
@@ -24,7 +24,7 @@ describe('ReturnTime', () => {
       />
     );
     expect(container).toHaveTextContent(
-      'Arrive by: 10:00 AM – ' + displayDate(TOMORROW, 'short')
+      'Arrive by: 10:00 AM – ' + formatDate(TOMORROW, 'short')
     );
   });
 

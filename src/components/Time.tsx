@@ -1,4 +1,4 @@
-import { displayTime } from '@/datetime';
+import { formatTime } from '@/datetime';
 
 export function Time({
   children: time,
@@ -6,7 +6,7 @@ export function Time({
 }: React.HTMLProps<HTMLTimeElement> & {
   children: string;
 }) {
-  const [hm, ampm] = displayTime(time).split(' ');
+  const [hm, ampm] = formatTime(time).split(' ');
   return (
     <time {...attrs} dateTime={time}>
       <span className="whitespace-nowrap">

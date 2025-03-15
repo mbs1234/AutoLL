@@ -95,9 +95,9 @@ export function parkDate(dateTime: { date?: string; time?: string } = {}) {
   return (time ?? '1') > '03:00:00' ? date : modifyDate(date, -1);
 }
 
-export type DisplayType = 'short';
+export type DateFormatType = 'short';
 
-export function displayDate(date: string, type?: DisplayType) {
+export function formatDate(date: string, type?: DateFormatType) {
   const dt = toDate(date);
   const monthDay = dt.toLocaleString('en-US', {
     month: 'long',
@@ -111,7 +111,7 @@ export function displayDate(date: string, type?: DisplayType) {
   return `${weekday}, ${monthDay}`;
 }
 
-export function displayTime(time: string) {
+export function formatTime(time: string) {
   if (!time.match(/^[\d:]+$/)) return time;
   const t = time.split(':').slice(0, 2).map(Number);
   const ampm = t[0] >= 12 ? 'PM' : 'AM';

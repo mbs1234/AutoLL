@@ -1,7 +1,7 @@
 import { booking, ll, renderResort } from '@/__fixtures__/ll';
 import IneligibleGuestList from '@/components/ll/IneligibleGuestList';
 import RebookingContext from '@/contexts/RebookingContext';
-import { displayTime } from '@/datetime';
+import { formatTime } from '@/datetime';
 import { see, setTime } from '@/testing';
 
 import NoEligibleGuests from './NoEligibleGuests';
@@ -35,7 +35,7 @@ describe('NoEligibleGuests', () => {
     renderComponent();
     see('No Eligible Guests');
     expect(see('Eligible at')).toHaveTextContent(
-      displayTime(ll.nextBookTime as string)
+      formatTime(ll.nextBookTime as string)
     );
     expect(IneligibleGuestList).toHaveBeenCalled();
   });

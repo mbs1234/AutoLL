@@ -2,8 +2,8 @@ import { TODAY, TOMORROW, YESTERDAY, setTime } from '@/testing';
 
 import {
   DateTime,
-  displayDate,
-  displayTime,
+  formatDate,
+  formatTime,
   parkDate,
   toDate,
   upcomingTimes,
@@ -78,21 +78,21 @@ describe('DateTime', () => {
   });
 });
 
-describe('displayDate()', () => {
+describe('formatDate()', () => {
   it('formats date for display', () => {
-    expect(displayDate(TODAY)).toBe('Today, October 1');
-    expect(displayDate(TODAY, 'short')).toBe('October 1');
-    expect(displayDate(TOMORROW)).toBe('Tomorrow, October 2');
+    expect(formatDate(TODAY)).toBe('Today, October 1');
+    expect(formatDate(TODAY, 'short')).toBe('October 1');
+    expect(formatDate(TOMORROW)).toBe('Tomorrow, October 2');
   });
 });
 
-describe('displayTime()', () => {
+describe('formatTime()', () => {
   it('formats time for display', () => {
-    expect(displayTime('08:14:42')).toBe('8:14 AM');
-    expect(displayTime('08:14')).toBe('8:14 AM');
-    expect(displayTime('8:00')).toBe('8:00 AM');
-    expect(displayTime('8')).toBe('8 AM');
-    expect(displayTime('8:14 PM')).toBe('8:14 PM');
+    expect(formatTime('08:14:42')).toBe('8:14 AM');
+    expect(formatTime('08:14')).toBe('8:14 AM');
+    expect(formatTime('8:00')).toBe('8:00 AM');
+    expect(formatTime('8')).toBe('8 AM');
+    expect(formatTime('8:14 PM')).toBe('8:14 PM');
   });
 });
 
