@@ -99,6 +99,7 @@ export type DateFormatType = 'short';
 
 export function formatDate(date: string, type?: DateFormatType) {
   const dt = toDate(date);
+  if (isNaN(+dt)) throw new RangeError(`Invalid date string: ${date}`);
   const monthDay = dt.toLocaleString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -112,18 +113,9 @@ export function formatDate(date: string, type?: DateFormatType) {
 }
 
 export function formatTime(time: string) {
-  if (!time.match(/^[\d:]+$/)) return time;
-  const t = time.split(':').slice(0, 2).map(Number);
-  const ampm = t[0] >= 12 ? 'PM' : 'AM';
-  t[0] = t[0] % 12 || 12;
-  return (
-    t
-      .map(v => String(v).padStart(2, '0'))
-      .join(':')
-      .replace(/^0/, '') +
-    ' ' +
-    ampm
-  );
+  const m = time.match(/^([01]?\d|2[0-3])(:[0-5]\d)?(?::[0-5]\d)?$/);
+  if (!m) throw new RangeError(`Invalid time string: ${time}`);
+  return `${+m[1] % 12 || 12}${m[2] ?? ''} ${+m[1] < 12 ? 'AM' : 'PM'}`;
 }
 
 /**

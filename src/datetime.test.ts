@@ -83,6 +83,7 @@ describe('formatDate()', () => {
     expect(formatDate(TODAY)).toBe('Today, October 1');
     expect(formatDate(TODAY, 'short')).toBe('October 1');
     expect(formatDate(TOMORROW)).toBe('Tomorrow, October 2');
+    expect(() => formatDate('10/1/2021')).toThrow(RangeError);
   });
 });
 
@@ -92,7 +93,7 @@ describe('formatTime()', () => {
     expect(formatTime('08:14')).toBe('8:14 AM');
     expect(formatTime('8:00')).toBe('8:00 AM');
     expect(formatTime('8')).toBe('8 AM');
-    expect(formatTime('8:14 PM')).toBe('8:14 PM');
+    expect(() => formatTime('8:14 PM')).toThrow(RangeError);
   });
 });
 

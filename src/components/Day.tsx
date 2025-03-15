@@ -8,9 +8,14 @@ export function Day({
   children: string;
   type?: DateFormatType;
 }) {
-  return (
-    <time {...attrs} dateTime={date}>
-      {formatDate(date, type)}
-    </time>
-  );
+  try {
+    return (
+      <time {...attrs} dateTime={date}>
+        {formatDate(date, type)}
+      </time>
+    );
+  } catch (error) {
+    console.error(error);
+    return date;
+  }
 }

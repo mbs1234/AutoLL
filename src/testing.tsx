@@ -23,7 +23,11 @@ export const TODAY = '2021-10-01';
 export const TOMORROW = '2021-10-02';
 
 function queryAllByTime(c: HTMLElement, time: string) {
-  time = formatTime(time);
+  try {
+    time = formatTime(time);
+  } catch {
+    // pass through
+  }
   return [...c.getElementsByTagName('time')].filter(
     elem => elem.textContent === time
   ) as HTMLElement[];
@@ -61,8 +65,14 @@ function getQueryError(message: string) {
 const getTextError = (text: string) =>
   getQueryError(`Unable to find element with text: ${text}`);
 
-const getTimeError = (time: string) =>
-  getQueryError(`Unable to find time element: ${formatTime(time)}`);
+const getTimeError = (time: string) => {
+  try {
+    time = formatTime(time);
+  } catch {
+    // pass through
+  }
+  return getQueryError(`Unable to find time element: ${time}`);
+};
 
 const getContainerElem = () =>
   document.querySelector<HTMLElement>('article:not([hidden])') ?? document.body;
