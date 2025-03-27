@@ -23,7 +23,10 @@ export class DateFormat {
     [P in Intl.DateTimeFormatPartTypes]?: string;
   } {
     return Object.fromEntries(
-      this.fmt.formatToParts(toDate(date)).map(p => [p.type, p.value])
+      this.fmt
+        .formatToParts(toDate(date))
+        .filter(p => p.type !== 'literal')
+        .map(p => [p.type, p.value])
     );
   }
 }
@@ -135,7 +138,6 @@ export function formatTime(time: string) {
  * Returns an array of non-past times from a sorted array of time strings
  */
 export function upcomingTimes(times: string[]) {
-  if (!Array.isArray(times)) return [];
   const now = DateTime.now().time.slice(0, 5);
   const nextIdx = times.findIndex(t => t >= now);
   return nextIdx >= 0 ? times.slice(nextIdx) : [];

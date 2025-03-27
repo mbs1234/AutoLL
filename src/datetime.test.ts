@@ -1,6 +1,7 @@
 import { TODAY, TOMORROW, YESTERDAY, setTime } from '@/testing';
 
 import {
+  DateFormat,
   DateTime,
   formatDate,
   formatTime,
@@ -79,11 +80,28 @@ describe('DateTime', () => {
   });
 });
 
+describe('DateFormat', () => {
+  const fmt = new DateFormat({ month: 'long', day: 'numeric' });
+
+  describe('format()', () => {
+    it('formats date', () => {
+      expect(fmt.format(TODAY)).toBe('October 1');
+    });
+  });
+
+  describe('parts()', () => {
+    it('returns parts', () => {
+      expect(fmt.parts(TODAY)).toEqual({ month: 'October', day: '1' });
+    });
+  });
+});
+
 describe('formatDate()', () => {
   it('formats date for display', () => {
     expect(formatDate(TODAY)).toBe('Today, October 1');
     expect(formatDate(TODAY, 'short')).toBe('October 1');
     expect(formatDate(TOMORROW)).toBe('Tomorrow, October 2');
+    expect(formatDate('2021-10-03')).toBe('Sunday, October 3');
     expect(() => formatDate('10/1/2021')).toThrow(RangeError);
   });
 });
@@ -95,6 +113,7 @@ describe('formatTime()', () => {
     expect(formatTime('8:00')).toBe('8:00 AM');
     expect(formatTime('8')).toBe('8 AM');
     expect(() => formatTime('8:14 PM')).toThrow(RangeError);
+    expect(formatTime('12:45')).toBe('12:45 PM');
   });
 });
 
