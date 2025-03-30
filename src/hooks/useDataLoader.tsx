@@ -20,7 +20,6 @@ export type DataLoader = (
 export default function useDataLoader(): {
   loaderElem: React.ReactNode;
   loadData: DataLoader;
-  flash: typeof flash;
 } {
   const [isPending, startTransition] = useTransition();
   const [flashElem, flash] = useFlash();
@@ -71,5 +70,5 @@ export default function useDataLoader(): {
         {flashElem}
       </>
     ) : null;
-  return { loadData, loaderElem, flash };
+  return { loadData, loaderElem };
 }
