@@ -39,24 +39,28 @@ export default function useDataLoader(): {
         flashArgs = args;
       }
 
-      startTransition(async () => {
-        const awaken = sleep(minLoadTime);
-        try {
-          await callback(setFlashArgs);
-        } catch (error: any) {
-          const status = error?.response?.status;
-          if (error instanceof Error && msgs[error.name]) {
-            setFlashArgs(msgs[error.name], 'error');
-          } else if (Number.isInteger(status)) {
-            setFlashArgs(status in msgs ? msgs[status] : msgs.request, 'error');
-          } else {
-            console.error(error);
-            setFlashArgs(msgs.error, 'error');
+      return new Promise(resolve => {
+        startTransition(async () => {
+          const awaken = sleep(minLoadTime);
+          try {
+            await callback(setFlashArgs);
+          } catch (error: any) {
+            const status = error?.response?.status;
+            if (error instanceof Error && msgs[error.name]) {
+              setFlashArgs(msgs[error.name], 'error');
+            } else if (Number.isInteger(status)) {
+              setFlashArgs(
+                status in msgs ? msgs[status] : msgs.request,
+                'error'
+              );
+            } else {
+              console.error(error);
+              setFlashArgs(msgs.error, 'error');
+            }
           }
-        }
-        await awaken;
-        startTransition(() => {
-          flash(...flashArgs);
+          await awaken;
+          startTransition(() => flash(...flashArgs));
+          resolve();
         });
       });
     },
