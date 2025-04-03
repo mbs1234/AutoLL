@@ -23,7 +23,6 @@ interface OfferResponse {
     date: string;
     startTime: string;
     endTime: string;
-    changeStatus: 'NONE' | 'CHANGED' | 'PARK_HOPPING';
     status: 'ACTIVE' | 'DELETED';
   };
   eligibleGuests: ApiGuest[];
@@ -70,9 +69,10 @@ export class LLClientDLR extends LLClient {
     { booking }: { booking?: B } = {}
   ): Promise<Offer<B>> {
     throwOnNotModifiable(booking);
+    const { nextAvailableTime } = experience.flex ?? {};
     const {
       data: {
-        offer: { id, date, startTime, endTime, status, changeStatus },
+        offer: { id, date, startTime, endTime, status },
         eligibleGuests,
         ineligibleGuests,
       },
@@ -88,7 +88,7 @@ export class LLClientDLR extends LLClient {
           .sort((a, b) => a.localeCompare(b))[0],
         parkId: experience.park.id,
         experienceId: experience.id,
-        selectedTime: experience.flex?.nextAvailableTime ?? '08:00:00',
+        selectedTime: nextAvailableTime ?? '08:00:00',
         ...(booking
           ? {
               date: DateTime.now().date,
@@ -104,15 +104,17 @@ export class LLClientDLR extends LLClient {
       ineligible: (ineligibleGuests || []).map(this.convertGuest),
     };
     if (status !== 'ACTIVE') throw new OfferError(party);
-    return this.updateLastOffer({
-      id,
-      start: new DateTime(date, startTime),
-      end: new DateTime(date, endTime),
-      changed: changeStatus !== 'NONE',
-      booking: booking as B,
-      guests: party,
-      experience,
-    });
+    return this.updateLastOffer(
+      {
+        id,
+        start: new DateTime(date, startTime),
+        end: new DateTime(date, endTime),
+        booking: booking as B,
+        guests: party,
+        experience,
+      },
+      nextAvailableTime
+    );
   }
 
   async times() {

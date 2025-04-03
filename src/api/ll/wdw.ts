@@ -193,7 +193,7 @@ export class LLClientWDW extends LLClient {
     if (!offerItem) throw new OfferError(party);
     const { offerSetId, offerId, startDateTime, endDateTime } = offerItem;
     const guestsById = Object.fromEntries(guests.map(g => [g.id, g]));
-    let offer: Offer<B> = {
+    const offer: Offer<B> = {
       offerSetId,
       id: offerId,
       start: DateTime.from(startDateTime),
@@ -203,9 +203,6 @@ export class LLClientWDW extends LLClient {
         eligible: party.eligible.map(g => ({ ...guestsById[g.id], ...g })),
         ineligible: party.ineligible,
       },
-      changed:
-        offerItem.conflict === 'ALTERNATIVE_TIME_FOUND' &&
-        nextAvailableTime !== undefined,
       booking: booking as B,
     };
     // When you already have two LLs booked, the system tries to place your
@@ -214,19 +211,18 @@ export class LLClientWDW extends LLClient {
     // want, so we correct for this behavior by trying to change the offer time
     // when it's significantly later than expected.
     if (
-      offer.changed &&
       nextAvailableTime &&
+      offer.start.time !== nextAvailableTime &&
       parkMinutes(offer.start.time) - parkMinutes(nextAvailableTime) > 10
     ) {
       try {
-        offer = await this.changeOfferTime(offer, nextAvailableTime);
-        offer.changed = offer.start.time !== nextAvailableTime;
+        return await this.changeOfferTime(offer, nextAvailableTime);
       } catch (error) {
         // Keep original offer
         console.error(error);
       }
     }
-    return this.updateLastOffer(offer);
+    return this.updateLastOffer(offer, nextAvailableTime);
   }
 
   async times(offer: Offer): Promise<HourlyTimes> {
@@ -280,14 +276,16 @@ export class LLClientWDW extends LLClient {
         experienceIdsToIgnore: [],
       },
     });
-    return this.updateLastOffer({
-      ...offer,
-      id: newOffer.offerId,
-      offerSetId: newOffer.offerSetId,
-      start: DateTime.from(newOffer.startDateTime),
-      end: DateTime.from(newOffer.endDateTime),
-      changed: newOffer.conflict === 'ALTERNATIVE_TIME_FOUND',
-    });
+    return this.updateLastOffer(
+      {
+        ...offer,
+        id: newOffer.offerId,
+        offerSetId: newOffer.offerSetId,
+        start: DateTime.from(newOffer.startDateTime),
+        end: DateTime.from(newOffer.endDateTime),
+      },
+      time
+    );
   }
 
   async book<B extends Offer['booking']>(

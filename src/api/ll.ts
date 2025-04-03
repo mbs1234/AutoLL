@@ -128,7 +128,7 @@ export interface Offer<B = LLMP | undefined> {
   id: string;
   start: DateTime;
   end: DateTime;
-  changed: boolean;
+  changed?: boolean;
   guests: {
     eligible: Guest[];
     ineligible: Guest[];
@@ -317,7 +317,11 @@ export abstract class LLClient extends ApiClient {
     return { eligible, ineligible };
   }
 
-  protected updateLastOffer<O extends Offer>(offer: O): O {
+  protected updateLastOffer<O extends Offer>(
+    offer: O,
+    expectedTime: string | undefined
+  ): O {
+    offer.changed = offer.start.time !== (expectedTime ?? offer.start.time);
     this.#lastOffer = offer;
     return offer;
   }

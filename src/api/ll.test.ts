@@ -24,7 +24,14 @@ import kvdb from '@/kvdb';
 import { TODAY, TOMORROW, setTime } from '@/testing';
 
 import { RequestError } from './client';
-import { LLTracker, ModifyNotAllowed, OfferError } from './ll';
+import {
+  Experience,
+  Guest,
+  LLTracker,
+  ModifyNotAllowed,
+  Offer,
+  OfferError,
+} from './ll';
 import { LLClientDLR } from './ll/dlr';
 import { LLClientWDW } from './ll/wdw';
 
@@ -294,16 +301,15 @@ describe('LLClientWDW', () => {
   });
 
   describe('offer()', () => {
-    function offerSetResponse(times?: [string, string]) {
+    function offerResponse(offer: Offer) {
       const offerItem = {
         facilityId: offer.experience.id,
         type: 'OFFER_ITEM',
         offerId: offer.id,
         offerSetId: offer.offerSetId as string,
         offerType: 'FLEX',
-        startDateTime: `${offer.start.date}T${times?.[0] ?? offer.start.time}`,
-        endDateTime: `${offer.end.date}T${times?.[1] ?? offer.end.time}`,
-        conflict: times ? 'ALTERNATIVE_TIME_FOUND' : undefined,
+        startDateTime: `${offer.start}`,
+        endDateTime: `${offer.end}`,
       };
       const offerSet = {
         itinerary: {
@@ -333,6 +339,21 @@ describe('LLClientWDW', () => {
       return response(offerSet);
     }
 
+    const respondOffer = (offer: Offer) => respond(offerResponse(offer));
+
+    async function expectOffer(
+      experience: Experience,
+      guests: Guest[],
+      options: any,
+      expectedOffer: Offer
+    ) {
+      respondOffer(expectedOffer);
+      const offer = await client.offer(experience, guests, options);
+      expect(offer).toEqual(expectedOffer);
+      expect(client.lastOffer).toBe(offer);
+      return offer;
+    }
+
     let changeOfferTime: jest.SpyInstance;
 
     beforeEach(() => {
@@ -345,10 +366,7 @@ describe('LLClientWDW', () => {
     });
 
     it('obtains Lightning Lane offer', async () => {
-      respond(offerSetResponse());
-      const newOffer = await client.offer(hm, guests, { date: TOMORROW });
-      expect(newOffer).toEqual(offer);
-      expect(client.lastOffer).toBe(newOffer);
+      await expectOffer(hm, guests, { date: TOMORROW }, offer);
       expectFetch('/ea-vas/planning/api/v1/experiences/offerset/generate', {
         data: {
           date: TOMORROW,
@@ -362,12 +380,18 @@ describe('LLClientWDW', () => {
     });
 
     it('obtains offer to modify existing booking', async () => {
-      respond(offerSetResponse());
-      expect(await client.offer(sm, guests, { booking })).toEqual({
-        ...offer,
-        experience: sm,
-        booking,
-      });
+      await expectOffer(
+        sm,
+        guests,
+        { booking },
+        {
+          ...offer,
+          experience: sm,
+          start: new DateTime(TODAY, '10:40:00'),
+          end: new DateTime(TODAY, '11:40:00'),
+          booking,
+        }
+      );
       expectFetch('/ea-vas/planning/api/v1/experiences/mod/offerset/generate', {
         data: {
           date: booking.start.date,
@@ -383,7 +407,7 @@ describe('LLClientWDW', () => {
     });
 
     it('throws OfferError if no offer in response', async () => {
-      const response = offerSetResponse();
+      const response = offerResponse(offer);
       response.data.itinerary.items = [];
       response.data.party = {
         guests: [],
@@ -408,22 +432,27 @@ describe('LLClientWDW', () => {
       );
     });
 
-    it('reports change', async () => {
-      const slot: [string, string] = ['11:20:00', '12:20:00'];
-      respond(offerSetResponse(slot));
-      expect(
-        await client.offer(hm, offer.guests.eligible, { date: TODAY })
-      ).toEqual({
-        ...offer,
-        start: { date: TODAY, time: slot[0] },
-        end: { date: TODAY, time: slot[1] },
-        changed: true,
-      });
+    it('reports changed return time', async () => {
+      await expectOffer(
+        hm,
+        offer.guests.eligible,
+        { date: TODAY },
+        {
+          ...offer,
+          start: new DateTime(TODAY, '11:20:00'),
+          end: new DateTime(TODAY, '12:20:00'),
+          changed: true,
+        }
+      );
       expect(client.changeOfferTime).toHaveBeenCalledTimes(0);
     });
 
     it('checks for earlier time if later than expected', async () => {
-      respond(offerSetResponse(['11:25:00', '12:25:00']));
+      respondOffer({
+        ...offer,
+        start: new DateTime(TODAY, '11:25:00'),
+        end: new DateTime(TODAY, '12:25:00'),
+      });
       expect(
         await client.offer(hm, offer.guests.eligible, { date: TODAY })
       ).toEqual(offer);
@@ -431,20 +460,21 @@ describe('LLClientWDW', () => {
     });
 
     it('returns original offer if changeOfferTime() fails', async () => {
-      const error = jest.spyOn(console, 'error');
-      error.mockImplementationOnce(() => {});
+      jest.spyOn(console, 'error').mockImplementationOnce(() => {});
       changeOfferTime.mockReset().mockRejectedValueOnce('oops');
-      respond(offerSetResponse(['11:25:00', '12:25:00']));
-      expect(
-        await client.offer(hm, offer.guests.eligible, { date: TODAY })
-      ).toEqual({
-        ...offer,
-        start: { date: TODAY, time: '11:25:00' },
-        end: { date: TODAY, time: '12:25:00' },
-        changed: true,
-      });
+      await expectOffer(
+        hm,
+        offer.guests.eligible,
+        { date: TODAY },
+        {
+          ...offer,
+          start: new DateTime(TODAY, '11:25:00'),
+          end: new DateTime(TODAY, '12:25:00'),
+          changed: true,
+        }
+      );
       expect(client.changeOfferTime).toHaveBeenCalled();
-      expect(error).toHaveBeenCalledWith('oops');
+      expect(console.error).toHaveBeenCalledWith('oops');
     });
 
     it('throws ModifyNotAllowed when not allowed to modify', async () => {
@@ -526,11 +556,25 @@ describe('LLClientWDW', () => {
     });
 
     it('specifies if time was changed', async () => {
+      const { updatedPlanningOfferDisplayItem: item } = changeRes.data;
+      const start = new DateTime(TODAY, '15:25:00');
+      const end = new DateTime(TODAY, '16:25:00');
       respond({
         ...changeRes,
-        data: { ...changeRes.data, conflict: 'ALTERNATIVE_TIME_FOUND' },
+        data: {
+          updatedPlanningOfferDisplayItem: {
+            ...item,
+            startDateTime: `${start}`,
+            endDateTime: `${end}`,
+          },
+        },
       });
-      expect(await client.changeOfferTime(offer, time)).toEqual(newOffer);
+      expect(await client.changeOfferTime(offer, time)).toEqual({
+        ...newOffer,
+        start,
+        end,
+        changed: true,
+      });
     });
 
     it('uses mod endpoint when modifying', async () => {
@@ -714,7 +758,6 @@ describe('LLClientDLR', () => {
       startTime: offer.start.time,
       endTime: offer.end.time,
       status: 'ACTIVE',
-      changeStatus: 'NONE',
     };
 
     it('obtains Lightning Lane offer', async () => {
@@ -740,6 +783,25 @@ describe('LLClientDLR', () => {
           experienceId: hm.id,
           selectedTime: hm.flex.nextAvailableTime,
         },
+      });
+    });
+
+    it('reports changed return time', async () => {
+      respond(
+        response(
+          {
+            offer: { ...offerData, startTime: '11:15:00', endTime: '12:15:00' },
+            eligibleGuests: offer.guests.eligible.map(apiGuest),
+            ineligibleGuests: [],
+          },
+          201
+        )
+      );
+      expect(await client.offer(hm, offer.guests.eligible)).toEqual({
+        ...dlrOffer,
+        start: new DateTime(TODAY, '11:15:00'),
+        end: new DateTime(TODAY, '12:15:00'),
+        changed: true,
       });
     });
 
