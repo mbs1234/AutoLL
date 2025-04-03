@@ -84,6 +84,7 @@ export default [
       'jest/expect-expect': 'off',
       'jest/no-standalone-expect': 'off',
       'object-shorthand': ['error', 'always'],
+      'no-useless-rename': 'error',
       'react/no-unescaped-entities': [
         'error',
         {

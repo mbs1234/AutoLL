@@ -164,11 +164,7 @@ export class LLClientWDW extends LLClient {
     options?: { date: string } | { booking?: B }
   ): Promise<Offer<B>> {
     const today = parkDate();
-    const { date, booking: booking } = {
-      date: today,
-      booking: undefined,
-      ...options,
-    };
+    const { date, booking } = { date: today, booking: undefined, ...options };
     throwOnNotModifiable(booking);
     const { nextAvailableTime } = experience.flex ?? {};
     const { data } = await this.request<OfferSetResponse>({
