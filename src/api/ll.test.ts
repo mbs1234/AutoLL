@@ -21,7 +21,7 @@ import {
 } from '@/__fixtures__/ll';
 import { DateTime, modifyDate } from '@/datetime';
 import kvdb from '@/kvdb';
-import { TODAY, TOMORROW, caught, setTime } from '@/testing';
+import { TODAY, TOMORROW, setTime } from '@/testing';
 
 import { RequestError } from './client';
 import { LLTracker, ModifyNotAllowed, OfferError } from './ll';
@@ -397,7 +397,7 @@ describe('LLClientWDW', () => {
         ),
       };
       respond(response);
-      expect(await caught(() => client.offer(hm, booking.guests))).toEqual(
+      await expect(client.offer(hm, booking.guests)).rejects.toThrow(
         new OfferError({
           eligible: [],
           ineligible: booking.guests.map(g => ({
@@ -755,7 +755,7 @@ describe('LLClientDLR', () => {
           ineligibleGuests: ineligible.map(apiGuest),
         })
       );
-      expect(await caught(() => client.offer(hm, booking.guests))).toEqual(
+      await expect(client.offer(hm, booking.guests)).rejects.toThrow(
         new OfferError({ eligible: [], ineligible })
       );
     });
