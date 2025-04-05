@@ -3,10 +3,10 @@ interface Props extends React.HTMLProps<HTMLDivElement> {
 }
 
 export default function Overlay(props: Props) {
-  const { children, color = 'bg-black', className = '', ...attrs } = props;
+  const { children, color = 'bg-black/75', className = '', ...attrs } = props;
   return (
     <div
-      className={`fixed inset-0 z-10 flex items-center justify-center p-2 ${color} bg-opacity-75 ${className}`}
+      className={`fixed inset-0 z-10 flex items-center justify-center p-2 ${color} ${className}`}
       {...attrs}
     >
       {children}

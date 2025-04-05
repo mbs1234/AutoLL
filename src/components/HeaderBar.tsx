@@ -26,7 +26,7 @@ export default function HeaderBar({
     ) : (
       <n.type
         {...n.props}
-        className={`min-h-[36px] bg-white bg-opacity-90 ${theme.text} ${n.props.className || ''}`}
+        className={`min-h-[36px] bg-white/90 ${theme.text} ${n.props.className || ''}`}
       />
     );
   }

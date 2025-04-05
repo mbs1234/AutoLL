@@ -85,7 +85,7 @@ function CalendarMenu<K extends string, V>(props: MenuProps<K, V>) {
                   <td className="p-0" key={dayIdx}>
                     <label className={`block p-2 ${bg} text-white`}>
                       <span
-                        className={`flex items-center justify-center border-y-4 border-transparent has-[:checked]:border-white py-0.5`}
+                        className={`flex items-center justify-center border-y-4 border-transparent has-checked:border-white py-0.5`}
                       >
                         <input
                           type="radio"

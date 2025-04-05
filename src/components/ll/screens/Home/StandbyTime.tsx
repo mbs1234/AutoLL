@@ -113,7 +113,8 @@ const VQStatus = ({
   </LabeledItem>
 );
 
-const className = 'inline-block border-2 rounded px-1.5 py-0.5 font-semibold';
+const className =
+  'inline-block border-2 rounded-sm px-1.5 py-0.5 font-semibold';
 
 const Available = ({ time }: { time: React.ReactNode }) => (
   <span className={`${className} border-gray-500 text-gray-500 bg-gray-100`}>

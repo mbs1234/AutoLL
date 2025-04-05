@@ -62,7 +62,7 @@ export default function DasPartyList({ parties }: { parties: DasParty[] }) {
                     className="flex items-center gap-x-3 pl-3 py-1"
                   >
                     <span
-                      className="flex-shrink-0 w-[48px] h-[48px] leading-[48px] rounded-full text-3xl font-bold text-center bg-gray-400 text-white"
+                      className="shrink-0 w-[48px] h-[48px] leading-[48px] rounded-full text-3xl font-bold text-center bg-gray-400 text-white"
                       aria-hidden="true"
                     >
                       {p.primaryGuest.avatarImageUrl ? (
@@ -105,7 +105,7 @@ export default function DasPartyList({ parties }: { parties: DasParty[] }) {
                       className="flex items-center gap-x-3 pl-3 py-1"
                     >
                       <span
-                        className="flex-shrink-0 w-[48px] h-[48px] leading-[48px] rounded-full text-3xl font-bold text-center bg-gray-400 text-white"
+                        className="shrink-0 w-[48px] h-[48px] leading-[48px] rounded-full text-3xl font-bold text-center bg-gray-400 text-white"
                         aria-hidden="true"
                       >
                         {p.primaryGuest.avatarImageUrl ? (

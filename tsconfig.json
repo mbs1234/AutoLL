@@ -1,19 +1,14 @@
 {
-  "exclude": [
-    "node_modules",
-    "**/.*/"
-  ],
+  "exclude": ["node_modules", "**/.*/"],
   "compilerOptions": {
     "baseUrl": "src",
     "paths": {
-      "@/*": [
-        "*"
-      ]
+      "@/*": ["*"]
     },
     "incremental": true,
     "target": "es2022",
-    "module": "es2022",
-    "moduleResolution": "node",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "isolatedModules": true,
     "strict": true,

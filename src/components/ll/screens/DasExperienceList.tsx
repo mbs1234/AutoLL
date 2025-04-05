@@ -74,11 +74,11 @@ function Sublist({
   if (experiences.length === 0) return null;
   const now = timeToMinutes(new DateTime().time);
   return (
-    <div className={`mt-4 rounded overflow-hidden ${park.theme.bg}`}>
+    <div className={`mt-4 rounded-sm overflow-hidden ${park.theme.bg}`}>
       <h3 className="mt-0 py-1 text-white text-xs font-semibold text-center uppercase">
         {heading}
       </h3>
-      <ul className="bg-white bg-opacity-90 leading-snug">
+      <ul className="bg-white/90 leading-snug">
         {experiences.map(exp => (
           <li className="flex items-center pt-3 last:pb-3" key={exp.id}>
             <div className="flex-1 px-2">{exp.name}</div>

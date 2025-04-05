@@ -48,7 +48,7 @@ export default function SelectQueue() {
       footer={
         <div className="p-2 text-right">
           <Button
-            className={`bg-opacity-90 bg-white ${theme.text}`}
+            className={`bg-white/90 ${theme.text}`}
             onClick={() => authStore.deleteData()}
           >
             Log Out

@@ -87,7 +87,7 @@ const Experiences = memo(function Experiences({
           >
             {land.name}
           </h2>
-          <div className="rounded overflow-hidden">
+          <div className="rounded-sm overflow-hidden">
             <ExperienceList
               title="Attractions"
               land={land}
@@ -160,7 +160,7 @@ function ExperienceList({
                   exp.standby.nextShowTime
                     ? 'min-w-[5.625rem]'
                     : 'min-w-[2.75rem]'
-                } px-2 py-0.5 group-first:pt-1 group-last:pb-1 bg-white bg-opacity-80 font-bold text-center uppercase whitespace-nowrap`}
+                } px-2 py-0.5 group-first:pt-1 group-last:pb-1 bg-white/80 font-bold text-center uppercase whitespace-nowrap`}
               >
                 {exp.standby.nextShowTime ? (
                   (exp.additionalShowTimes?.length ?? 0) > 0 ? (
@@ -182,7 +182,7 @@ function ExperienceList({
                   '❌'
                 )}
               </td>
-              <td className="w-full px-1 pl-2 py-0.5 group-first:pt-1 group-last:pb-1 bg-white bg-opacity-90">
+              <td className="w-full px-1 pl-2 py-0.5 group-first:pt-1 group-last:pb-1 bg-white/90">
                 <div className="flex items-center gap-x-2">
                   <div
                     className={`flex-1 ${

@@ -7,7 +7,7 @@ export default function Legend({ children }: { children: React.ReactNode }) {
         <h2 className="mt-0 pl-1 text-gray-500 text-sm leading-tight uppercase">
           Symbols
         </h2>
-        <div className="border-2 border-gray-500 rounded px-2 py-0.5 bg-gray-100">
+        <div className="border-2 border-gray-500 rounded-sm px-2 py-0.5 bg-gray-100">
           <table>
             <tbody>{children}</tbody>
           </table>

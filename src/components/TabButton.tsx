@@ -9,7 +9,7 @@ export default function TabButton<N extends string>({ name, icon }: TabDef<N>) {
   const theme = use(ThemeContext);
   const isActive = active?.name === name;
   const iconStyles = isActive
-    ? `bg-white bg-opacity-90 ${theme.text}`
+    ? `bg-white/90 ${theme.text}`
     : `${theme.bg} text-white`;
   return (
     <button className={`px-4 py-2`} onClick={() => changeTab(name)}>

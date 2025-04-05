@@ -382,7 +382,7 @@ function DropTimeDesc({
         const [nextDropTime] = upcomingTimes(park.dropTimes);
         return (
           <div
-            className={`mt-5 rounded overflow-hidden ${park.theme.bg}`}
+            className={`mt-5 rounded-sm overflow-hidden ${park.theme.bg}`}
             key={park.id}
           >
             <h2
@@ -390,7 +390,7 @@ function DropTimeDesc({
             >
               {park.name}
             </h2>
-            <div className="flex flex-col px-2 pb-3 bg-white bg-opacity-90">
+            <div className="flex flex-col px-2 pb-3 bg-white/90">
               {resort.dropExperiences(park).map(exp => {
                 const upcoming = new Set(upcomingTimes(exp.dropTimes ?? []));
                 return (
@@ -409,7 +409,7 @@ function DropTimeDesc({
                             </div>
                             {isNextDrop ? (
                               <div
-                                className={`rounded-sm ${park.theme.bg} text-white text-opacity-90 text-xs font-semibold text-center uppercase`}
+                                className={`rounded-xs ${park.theme.bg} text-white/90 text-xs font-semibold text-center uppercase`}
                               >
                                 next
                               </div>
