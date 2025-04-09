@@ -1,6 +1,6 @@
 import { use } from 'react';
 
-import Notice from '@/components/Notice';
+import Alert from '@/components/Alert';
 import { Time } from '@/components/Time';
 import ClientsContext from '@/contexts/ClientsContext';
 import RebookingContext from '@/contexts/RebookingContext';
@@ -25,9 +25,13 @@ export default function NoEligibleGuests() {
         <>
           {ll.nextBookTime &&
             ll.nextBookTime.slice(0, 5) > DateTime.now().time.slice(0, 5) && (
-              <Notice>
-                Eligible at <Time>{ll.nextBookTime}</Time>
-              </Notice>
+              <Alert
+                title={
+                  <>
+                    Eligible at <Time>{ll.nextBookTime}</Time>
+                  </>
+                }
+              />
             )}
           <h3>No Eligible Guests</h3>
           <p>

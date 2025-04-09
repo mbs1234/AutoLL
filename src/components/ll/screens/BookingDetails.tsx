@@ -2,12 +2,12 @@ import { use, useState } from 'react';
 
 import { Booking, isLLMP } from '@/api/itinerary';
 import { Park } from '@/api/resort';
+import Alert from '@/components/Alert';
 import Button from '@/components/Button';
 import { Day } from '@/components/Day';
 import FloatingButton from '@/components/FloatingButton';
 import GuestList from '@/components/GuestList';
 import LandLine from '@/components/LandLine';
-import Notice from '@/components/Notice';
 import Screen from '@/components/Screen';
 import ClientsContext from '@/contexts/ClientsContext';
 import DasPartiesContext from '@/contexts/DasPartiesContext';
@@ -89,7 +89,7 @@ export default function BookingDetails({
       {type === 'BG' ? (
         <>
           {booking.status === 'SUMMONED' && (
-            <Notice>Your boarding group has been called</Notice>
+            <Alert title="Boarding Group Called" />
           )}
           <h3>
             Boarding Group:{' '}

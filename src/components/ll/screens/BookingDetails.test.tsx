@@ -170,7 +170,7 @@ describe('BookingDetails', () => {
 
   it('shows when boarding group is called', async () => {
     renderComponent({ ...bg, status: 'SUMMONED' });
-    see('Your boarding group has been called');
+    see('Boarding Group Called');
   });
 
   it('specifies DAS in heading', async () => {

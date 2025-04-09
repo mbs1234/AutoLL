@@ -1,6 +1,7 @@
 import { use } from 'react';
 
 import { Offer } from '@/api/ll';
+import Alert from '@/components/Alert';
 import Button from '@/components/Button';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
@@ -42,11 +43,7 @@ export default function OfferDetails({
           }
         />
       </div>
-      {offer.changed && (
-        <div className="text-sm">
-          <b>Note:</b> Return time has been changed
-        </div>
-      )}
+      {offer.changed && <Alert title="Return Time Changed" />}
       <PartyList />
     </>
   );

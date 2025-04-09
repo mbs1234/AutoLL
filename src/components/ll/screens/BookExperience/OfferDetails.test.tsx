@@ -29,6 +29,6 @@ describe('OfferDetails', () => {
 
   it('tells if offer has been changed', async () => {
     renderComponent({ ...offer, changed: true });
-    see('Return time has been changed');
+    see('Return Time Changed');
   });
 });
