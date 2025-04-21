@@ -583,6 +583,11 @@ export const experiences: ResortData['experiences'] = {
     land: showcase,
     type: 'HOLIDAY',
   },
+  412120305: {
+    name: 'Forces of Nature by AntiGravity',
+    land: celebration,
+    type: 'ENTERTAINMENT',
+  },
   18375495: {
     name: 'Frozen Ever After',
     land: showcase,
@@ -732,6 +737,11 @@ export const experiences: ResortData['experiences'] = {
     name: 'Père Noël (France)',
     land: showcase,
     type: 'HOLIDAY',
+  },
+  18416876: {
+    name: 'Pluto (Main Entrance)',
+    land: celebration,
+    type: 'CHARACTER',
   },
   18780200: {
     name: 'Raffy',
@@ -883,6 +893,11 @@ export const experiences: ResortData['experiences'] = {
     land: otherStudios,
     type: 'CHARACTER',
   },
+  411908664: {
+    name: 'Joy (Pixar Plaza)',
+    land: otherStudios,
+    type: 'CHARACTER',
+  },
   18368386: {
     name: 'Mickey & Minnie (Red Carpet Dreams)',
     land: otherStudios,
@@ -989,6 +1004,16 @@ export const experiences: ResortData['experiences'] = {
     land: pandora,
     geo: [28.3555698, -81.592292],
     highlight: true,
+  },
+  412226163: {
+    name: 'Beats and Strings',
+    land: asia,
+    type: 'ENTERTAINMENT',
+  },
+  16235871: {
+    name: 'Burudika',
+    land: africa,
+    type: 'ENTERTAINMENT',
   },
   19581371: {
     name: 'Discovery Island Drummers Flotilla',
