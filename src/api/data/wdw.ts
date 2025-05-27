@@ -847,6 +847,11 @@ export const experiences: ResortData['experiences'] = {
     land: otherStudios,
     geo: [28.3579409, -81.5607914],
   },
+  412328859: {
+    name: 'Disney Villains: Unfairly Ever After',
+    land: hollywood,
+    type: 'ENTERTAINMENT',
+  },
   18693119: {
     name: 'Disney Movie Magic',
     land: hollywood,
@@ -882,6 +887,11 @@ export const experiences: ResortData['experiences'] = {
     name: 'Ariel (Walt Disney Presents)',
     land: otherStudios,
     type: 'CHARACTER',
+  },
+  412328858: {
+    name: 'Little Mermaid - A Musical Adventure',
+    land: otherStudios,
+    type: 'ATTRACTION',
   },
   18189394: {
     name: 'Chewbacca (Launch Bay)',
