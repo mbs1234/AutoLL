@@ -122,28 +122,40 @@ const hollywood = {
   theme: { bg: 'bg-orange-600', text: 'text-orange-700' },
   park: hs,
 };
+const animation = {
+  name: 'Animation Courtyard',
+  sort: 2,
+  theme: { bg: 'bg-fuchsia-600', text: 'text-fuchsia-700' },
+  park: hs,
+};
+const pixar = {
+  name: 'Pixar Plaza',
+  sort: 3,
+  theme: { bg: 'bg-yellow-600', text: 'text-yellow-700' },
+  park: hs,
+};
 const toyStory = {
   name: 'Toy Story Land',
-  sort: 2,
+  sort: 4,
   theme: { bg: 'bg-green-600', text: 'text-green-700' },
   park: hs,
 };
 const starWars = {
   name: "Star Wars: Galaxy's Edge",
-  sort: 3,
+  sort: 5,
   theme: { bg: 'bg-gray-600', text: 'text-gray-700' },
+  park: hs,
+};
+const grand = {
+  name: 'Grand Avenue & Commissary Lane',
+  sort: 6,
+  theme: { bg: 'bg-red-600', text: 'text-red-700' },
   park: hs,
 };
 const echoLake = {
   name: 'Echo Lake',
-  sort: 4,
+  sort: 7,
   theme: { bg: 'bg-indigo-600', text: 'text-indigo-700' },
-  park: hs,
-};
-const otherStudios = {
-  name: 'Miscellaneous',
-  sort: 5,
-  theme: { bg: 'bg-red-600', text: 'text-red-700' },
   park: hs,
 };
 
@@ -844,7 +856,7 @@ export const experiences: ResortData['experiences'] = {
   },
   19583373: {
     name: 'Disney Junior Play and Dance',
-    land: otherStudios,
+    land: animation,
     geo: [28.3579409, -81.5607914],
   },
   412328859: {
@@ -885,38 +897,38 @@ export const experiences: ResortData['experiences'] = {
   },
   411926516: {
     name: 'Ariel (Walt Disney Presents)',
-    land: otherStudios,
+    land: animation,
     type: 'CHARACTER',
   },
   412328858: {
     name: 'Little Mermaid - A Musical Adventure',
-    land: otherStudios,
+    land: animation,
     type: 'ATTRACTION',
   },
   18189394: {
     name: 'Chewbacca (Launch Bay)',
-    land: otherStudios,
+    land: animation,
     type: 'CHARACTER',
   },
   224093: {
-    name: 'Disney Junior Pals (Animation Courtyard)',
-    land: otherStudios,
+    name: 'Disney Junior Pals',
+    land: animation,
     type: 'CHARACTER',
   },
   411908664: {
-    name: 'Joy (Pixar Plaza)',
-    land: otherStudios,
+    name: 'Joy',
+    land: pixar,
     type: 'CHARACTER',
   },
   18368386: {
     name: 'Mickey & Minnie (Red Carpet Dreams)',
-    land: otherStudios,
+    land: grand,
     geo: [28.3560952, -81.5594433],
     type: 'CHARACTER',
   },
   19205017: {
-    name: 'Edna Mode (Edna Mode Experience)',
-    land: otherStudios,
+    name: 'Edna Mode',
+    land: pixar,
     type: 'CHARACTER',
   },
   18368385: {
@@ -946,7 +958,7 @@ export const experiences: ResortData['experiences'] = {
   },
   80010151: {
     name: 'Muppet*Vision 3D',
-    land: otherStudios,
+    land: grand,
     geo: [28.3550576, -81.5595],
     avgWait: 10,
   },
