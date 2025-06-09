@@ -146,8 +146,8 @@ const starWars = {
   theme: { bg: 'bg-gray-600', text: 'text-gray-700' },
   park: hs,
 };
-const grand = {
-  name: 'Grand Avenue & Commissary Lane',
+const commissary = {
+  name: 'Commissary Lane',
   sort: 6,
   theme: { bg: 'bg-red-600', text: 'text-red-700' },
   park: hs,
@@ -346,11 +346,6 @@ export const experiences: ResortData['experiences'] = {
     land: mainStreet,
     type: 'E',
   },
-  80010160: {
-    name: 'Liberty Square Riverboat',
-    land: libertySquare,
-    type: 'A',
-  },
   80010162: {
     name: 'Mad Tea Party',
     land: fantasyland,
@@ -536,11 +531,6 @@ export const experiences: ResortData['experiences'] = {
       '19:47',
       '20:47',
     ],
-  },
-  80010220: {
-    name: "Tom Sawyer's Island",
-    land: frontierland,
-    type: 'A',
   },
   80010222: {
     name: 'Tomorrowland Speedway',
@@ -1014,7 +1004,7 @@ export const experiences: ResortData['experiences'] = {
   },
   18368386: {
     name: 'Mickey & Minnie (Red Carpet Dreams)',
-    land: grand,
+    land: commissary,
     geo: [28.3560952, -81.5594433],
     type: 'C',
   },
@@ -1048,13 +1038,6 @@ export const experiences: ResortData['experiences'] = {
     avgWait: 48,
     highlight: true,
     dropTimes: ['10:47', '15:47'],
-  },
-  80010151: {
-    name: 'Muppet*Vision 3D',
-    land: grand,
-    type: 'A',
-    geo: [28.3550576, -81.5595],
-    avgWait: 10,
   },
   80010182: {
     name: "Rock 'n' Roller Coaster",
