@@ -28,7 +28,7 @@ describe('kvdb', () => {
       setItem('k', 'v');
       expect(kvdb.get<string>('k')).toBe('v');
       setItem('a.b', { v: 1 });
-      expect(kvdb.get<{ v: number }>(['a', 'b'])).toEqual({ v: 1 });
+      expect(kvdb.get<{ v: number }>('a.b')).toEqual({ v: 1 });
       expect(kvdb.get('z')).toBe(undefined);
     });
   });
@@ -37,7 +37,7 @@ describe('kvdb', () => {
     it('stores value in localStorage', () => {
       kvdb.set<string>('k', 'v');
       expect(getItem('k')).toBe('v');
-      kvdb.set<{ v: number }>(['a', 'b'], { v: 1 });
+      kvdb.set<{ v: number }>('a.b', { v: 1 });
       expect(getItem('a.b')).toEqual({ v: 1 });
     });
   });
@@ -47,10 +47,6 @@ describe('kvdb', () => {
       setItem('k', 'v');
       kvdb.delete('k');
       expect(getItem('k')).toBe(undefined);
-
-      setItem('a.b', 'v');
-      kvdb.delete(['a', 'b']);
-      expect(getItem('a.b')).toBe(undefined);
     });
   });
 
@@ -66,22 +62,22 @@ describe('kvdb', () => {
   describe('getDaily()', () => {
     it('gets daily value from localStorage', () => {
       setItem('a.b', { date: parkDate(), value: { v: 1 } });
-      expect(kvdb.getDaily<{ v: number }>(['a', 'b'])).toEqual({ v: 1 });
+      expect(kvdb.getDaily<{ v: number }>('a.b')).toEqual({ v: 1 });
     });
 
     it('returns undefined if value nonexistent or set before today', () => {
       expect(kvdb.getDaily('a.b')).toBe(undefined);
       setItem('a.b', { date: modifyDate(parkDate(), -1), value: { v: 1 } });
-      expect(kvdb.getDaily<{ v: number }>(['a', 'b'])).toBe(undefined);
+      expect(kvdb.getDaily<{ v: number }>('a.b')).toBe(undefined);
     });
   });
 
   describe('setDaily()', () => {
     it('stores daily value', () => {
-      kvdb.setDaily<{ v: number }>(['a', 'b'], { v: 1 });
-      expect(kvdb.getDaily(['a', 'b'])).toEqual({ v: 1 });
+      kvdb.setDaily<{ v: number }>('a.b', { v: 1 });
+      expect(kvdb.getDaily('a.b')).toEqual({ v: 1 });
       setTime('12:00', 24 * 60);
-      expect(kvdb.getDaily(['a', 'b'])).toBe(undefined);
+      expect(kvdb.getDaily('a.b')).toBe(undefined);
     });
   });
 });

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Disclaimer from '@/components/screens/Disclaimer';
 import kvdb from '@/kvdb';
 
-export const DISCLAIMER_ACCEPTED_KEY = ['bg1', 'disclaimer', 'accepted'];
+export const DISCLAIMER_ACCEPTED_KEY = 'bg1.disclaimer.accepted';
 
 export default function useDisclaimer() {
   const [accepted, setAccepted] = useState(

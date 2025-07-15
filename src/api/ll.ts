@@ -327,7 +327,7 @@ export abstract class LLClient extends ApiClient {
   }
 }
 
-export const BOOKINGS_KEY = ['bg1', 'll', 'bookings'];
+export const BOOKINGS_KEY = 'bg1.ll.bookings';
 
 interface LLTrackerData {
   booked: Experience['id'][];

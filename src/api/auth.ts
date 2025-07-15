@@ -1,7 +1,7 @@
 import { DateTime } from '@/datetime';
 import kvdb from '@/kvdb';
 
-export const AUTH_KEY = ['bg1', 'auth'];
+export const AUTH_KEY = 'bg1.auth';
 
 export interface AuthData {
   swid: string;

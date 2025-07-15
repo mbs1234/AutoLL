@@ -11,7 +11,7 @@ export async function ping(
   service: ServiceCode
 ): Promise<void> {
   const { date } = DateTime.now();
-  const pingDateKey = ['bg1', 'ping', resort.id, service];
+  const pingDateKey = `bg1.ping.${resort.id}.${service}`;
   const pingDate = kvdb.get<string>(pingDateKey);
   if (pingDate === date) return;
   const { ok } = await fetch(PING_URL, {
