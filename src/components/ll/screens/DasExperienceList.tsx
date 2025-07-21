@@ -33,9 +33,9 @@ export default function DasExperienceList({
   }, [park, das, loadData]);
 
   const sublists = [
-    { heading: 'Attractions', type: 'ATTRACTION' },
-    { heading: 'Characters', type: 'CHARACTER' },
-    { heading: 'Entertainment', type: 'ENTERTAINMENT' },
+    { heading: 'Attractions', type: 'A' },
+    { heading: 'Characters', type: 'C' },
+    { heading: 'Entertainment', type: 'E' },
   ];
 
   return (

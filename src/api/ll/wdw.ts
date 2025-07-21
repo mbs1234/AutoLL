@@ -132,7 +132,6 @@ export class LLClientWDW extends LLClient {
         if (expIds.has(id)) continue;
         try {
           exps.push({
-            type: 'ATTRACTION',
             ...this.resort.experience(id),
             flex: { available: false },
             standby: { available: false, unavailableReason: 'CLOSED' },

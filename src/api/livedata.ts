@@ -29,7 +29,6 @@ export class LiveDataClient {
             [
               id,
               {
-                type: 'ENTERTAINMENT',
                 ...this.resort.experience(id),
                 park,
                 standby: { available, unavailableReason },

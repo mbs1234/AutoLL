@@ -26,19 +26,16 @@ export const party = {
 
 export const hm: Experience = {
   ...wdw.experience('80010208'),
-  type: 'ATTRACTION',
   available: true,
   time: '10:30:00',
 };
 export const jc: Experience = {
   ...wdw.experience('80010153'),
-  type: 'ATTRACTION',
   available: true,
   time: '10:45:00',
 };
 export const sm: Experience = {
   ...wdw.experience('80010190'),
-  type: 'ATTRACTION',
   available: true,
   time: '10:40:00',
 };

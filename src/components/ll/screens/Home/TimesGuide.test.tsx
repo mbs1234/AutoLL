@@ -54,7 +54,6 @@ function exp(
     ...(wdw.experience(id) as ExpData),
     id,
     park: mk,
-    type: args.type || 'ATTRACTION',
     standby: {
       available: !args.down,
       waitTime: args.waitTime,
@@ -69,12 +68,10 @@ function exp(
 
 const ddShowTimes = ['14:30:00', '15:30:00'];
 const dd = exp('8075', {
-  type: 'ENTERTAINMENT',
   showTimes: ddShowTimes,
 });
 const fofShowTime = '15:00:00';
 const fof = exp('17718925', {
-  type: 'ENTERTAINMENT',
   showTimes: [fofShowTime],
 });
 const potc = exp('80010177', { waitTime: 30 });
@@ -82,7 +79,7 @@ const tiki = exp('16124144');
 const btmr = exp('80010110', { waitTime: 60 });
 const sdmt = exp('16767284', { waitTime: 85, individual: {} });
 const uts = exp('16767263', { down: true });
-const tiana = exp('17505397', { type: 'CHARACTER', waitTime: 45 });
+const tiana = exp('17505397', { waitTime: 45 });
 const refreshExperiences = jest.fn();
 
 function renderComponent({

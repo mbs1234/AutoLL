@@ -84,7 +84,6 @@ export function omitOrderDetails<T extends { orderDetails?: unknown }>(
 export const hm: FlexExperience = {
   ...wdw.experience('80010208'),
   park: mk,
-  type: 'ATTRACTION',
   standby: { available: true, waitTime: 30 },
   flex: { available: true, nextAvailableTime: '11:10:00' },
   priority: 2.3,
@@ -94,7 +93,6 @@ wdw.experience(hm.id).priority = hm.priority;
 export const jc: FlexExperience = {
   ...wdw.experience('80010153'),
   park: mk,
-  type: 'ATTRACTION',
   standby: { available: true, waitTime: 45 },
   flex: {
     available: true,
@@ -107,7 +105,6 @@ wdw.experience(jc.id).priority = jc.priority;
 export const sm: FlexExperience = {
   ...wdw.experience('80010190'),
   park: mk,
-  type: 'ATTRACTION',
   standby: { available: true, waitTime: 60 },
   flex: { available: true, nextAvailableTime: '10:40:00' },
   priority: 2.0,
@@ -117,7 +114,6 @@ wdw.experience(sm.id).priority = sm.priority;
 export const sdd: FlexExperience = {
   ...wdw.experience('18904138'),
   park: hs,
-  type: 'ATTRACTION',
   standby: { available: true, waitTime: 75 },
   flex: { available: false },
 };

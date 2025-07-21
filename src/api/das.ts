@@ -16,7 +16,11 @@ export interface Experience {
   time: string;
 }
 
-interface ApiExperience extends Omit<Experience, 'time'> {
+interface ApiExperience {
+  id: string;
+  name: string;
+  type: 'ATTRACTION' | 'ENTERTAINMENT';
+  available: boolean;
   nextAvailableStartDateTime?: string;
   nextAvailableEndDateTime?: string;
 }
@@ -122,9 +126,9 @@ export class DasClient extends ApiClient {
       .map(({ id, name, type, available, nextAvailableStartDateTime }) => {
         const { time } = splitDateTime(nextAvailableStartDateTime);
         try {
-          return { type, ...this.resort.experience(id), available, time };
+          return { ...this.resort.experience(id), available, time };
         } catch {
-          return { id, name, type, available, time };
+          return { id, name, type: type[0] as 'A' | 'E', available, time };
         }
       })
       .sort((a, b) => a.name.localeCompare(b.name));

@@ -29,7 +29,6 @@ const names = (exps: { name: string }[]) => exps.map(({ name }) => name);
 const bz: FlexExperience = {
   ...wdw.experience('80010114'),
   park: mk,
-  type: 'ATTRACTION',
   standby: { available: false },
   flex: { available: false },
 };
@@ -37,7 +36,6 @@ const bz: FlexExperience = {
 const db: FlexExperience = {
   ...wdw.experience('80010129'),
   park: mk,
-  type: 'ATTRACTION',
   standby: { available: true, waitTime: 25 },
   flex: { available: true, nextAvailableTime: '10:05:00' },
 };

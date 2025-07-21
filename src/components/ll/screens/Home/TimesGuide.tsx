@@ -69,10 +69,10 @@ const Experiences = memo(function Experiences({
     .forEach(exp => {
       if (!expsByLand.has(exp.land)) {
         expsByLand.set(exp.land, {
-          ATTRACTION: [],
-          ENTERTAINMENT: [],
-          CHARACTER: [],
-          HOLIDAY: [],
+          A: [],
+          E: [],
+          C: [],
+          H: [],
         });
       }
       expsByLand.get(exp.land)?.[exp.type]?.push(exp);
@@ -91,25 +91,25 @@ const Experiences = memo(function Experiences({
             <ExperienceList
               title="Attractions"
               land={land}
-              experiences={expsByType.ATTRACTION}
+              experiences={expsByType.A}
               onInfoClick={showExpInfo}
             />
             <ExperienceList
               title="Entertainment"
               land={land}
-              experiences={expsByType.ENTERTAINMENT}
+              experiences={expsByType.E}
               onInfoClick={showExpInfo}
             />
             <ExperienceList
               title="Holiday Entertainment"
               land={land}
-              experiences={expsByType.HOLIDAY}
+              experiences={expsByType.H}
               onInfoClick={showExpInfo}
             />
             <ExperienceList
               title="Characters"
               land={land}
-              experiences={expsByType.CHARACTER}
+              experiences={expsByType.C}
               onInfoClick={showExpInfo}
             />
           </div>
@@ -218,7 +218,7 @@ const ExperienceInfo = ({ exp }: { exp: Experience }) => (
   <Screen title="Experience Info">
     <h2>{exp.name}</h2>
     <div>{exp.park.name}</div>
-    <h3>Upcoming {exp.type === 'CHARACTER' ? 'Appearances' : 'Shows'}</h3>
+    <h3>Upcoming {exp.type === 'C' ? 'Appearances' : 'Shows'}</h3>
     <ul className="list-disc mt-2 pl-6">
       {exp.showTimes?.map(time => (
         <li key={time}>

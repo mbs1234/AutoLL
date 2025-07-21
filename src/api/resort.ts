@@ -14,11 +14,7 @@ export interface Land {
   park: Park;
 }
 
-export type ExperienceType =
-  | 'ATTRACTION'
-  | 'ENTERTAINMENT'
-  | 'CHARACTER'
-  | 'HOLIDAY';
+export type ExperienceType = 'A' | 'E' | 'C' | 'H';
 
 export interface Experience {
   id: string;
@@ -26,7 +22,7 @@ export interface Experience {
   land: Land;
   park: Park;
   geo?: readonly [number, number];
-  type?: ExperienceType;
+  type: ExperienceType;
   avgWait?: number;
   tier?: number;
   priority?: number;

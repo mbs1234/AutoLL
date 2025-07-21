@@ -5,13 +5,7 @@ import { authStore } from './auth';
 import { avatarUrl } from './avatar';
 import { ApiClient } from './client';
 import { Booking, LightningLane, isType } from './itinerary';
-import {
-  Experience as ExpData,
-  ExperienceType,
-  InvalidId,
-  Park,
-  Resort,
-} from './resort';
+import { Experience as ExpData, InvalidId, Park, Resort } from './resort';
 
 export type { LightningLane };
 
@@ -27,7 +21,7 @@ interface Standby {
 
 interface ApiExperience {
   id: string;
-  type: ExperienceType;
+  type: 'ATTRACTION' | 'ENTERTAINMENT';
   standby: Standby & { nextShowTime?: string };
   additionalShowTimes?: string[];
   flex?: {
@@ -47,7 +41,7 @@ interface ApiExperience {
 }
 
 export type Experience = ExpData &
-  Omit<ApiExperience, 'standby' | 'additionalShowTimes'> & {
+  Omit<ApiExperience, 'type' | 'standby' | 'additionalShowTimes'> & {
     standby: Standby;
     experienced?: boolean;
     showTimes?: string[];
