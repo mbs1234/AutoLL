@@ -5,6 +5,7 @@ import {
   donald,
   expiredLL,
   hm,
+  hs,
   ll,
   mickey,
   minnie,
@@ -13,10 +14,12 @@ import {
   offer,
   omitOrderDetails,
   pluto,
+  sdd,
   sm,
   times,
   wdw,
 } from '@/__fixtures__/ll';
+import { modifyDate } from '@/datetime';
 import kvdb from '@/kvdb';
 import { TODAY, TOMORROW, caught, setTime } from '@/testing';
 
@@ -56,8 +59,6 @@ beforeEach(() => {
 });
 
 describe('LLClientWDW', () => {
-  const client = new LLClientWDW(wdw, tracker);
-  client.onUnauthorized = onUnauthorized;
   const guestsUrl = '/ea-vas/planning/api/v1/experiences/guest/guests';
   const guestsRes = response({
     guests: guests.map(apiGuest),
@@ -68,33 +69,108 @@ describe('LLClientWDW', () => {
       })
     ),
   });
+  let client: LLClientWDW;
+
+  beforeEach(() => {
+    client = new LLClientWDW(wdw, tracker);
+    client.onUnauthorized = onUnauthorized;
+  });
 
   describe('experiences()', () => {
-    it('returns experience info', async () => {
+    const closed = {
+      standby: { available: false, unavailableReason: 'CLOSED' },
+      flex: { available: false },
+    };
+
+    beforeEach(() => {
+      respond(guestsRes);
+    });
+
+    it('returns experiences', async () => {
       const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
       jest.spyOn(client, 'guests');
       const res = response({
         availableExperiences: [hm, sm, { id: 'not_a_real_id' }],
       });
-      const getExpData = () => client.experiences(mk, TOMORROW);
-      respond(guestsRes, res);
-      expect(await getExpData()).toEqual([
+      const exps = [
         { ...hm, experienced: true },
         { ...sm, experienced: false },
-      ]);
-      expect(client.guests).toHaveBeenCalledTimes(1);
+      ];
+      respond(res);
+      expect(await client.experiences(mk, TODAY)).toEqual(exps);
       expectFetch(
         `/tipboard-vas/planning/v1/parks/${encodeURIComponent(mk.id)}/experiences`,
-        { params: { date: TOMORROW, eligibilityGuestIds: mickey.id } },
+        { params: { date: TODAY, eligibilityGuestIds: mickey.id } },
         true,
         2
       );
-
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn).toHaveBeenLastCalledWith(
         'Missing experience: not_a_real_id'
       );
+
+      respond(res);
+      expect(await client.experiences(mk, TODAY)).toEqual(exps);
+
+      expect(client.guests).toHaveBeenCalledTimes(1);
       warn.mockRestore();
+    });
+
+    it('uses fallback when no experiences reported by tipboard', async () => {
+      const noExpsRes = response({ availableExperiences: [] });
+      const availabilityRes = response({
+        tiers: [
+          { experiences: [{ facilityId: sm.id }] },
+          { experiences: [{ facilityId: hm.id }] },
+        ],
+      });
+      respond(noExpsRes, availabilityRes);
+      const exps = [sm, hm].map(exp => ({ ...exp, ...closed }));
+      expect(await client.experiences(mk, TODAY)).toEqual(exps);
+      expectFetch(
+        '/ea-vas/planning/api/v1/experiences/availability/bundles/experiences',
+        {
+          data: {
+            parkId: mk.id,
+            date: TODAY,
+            guestIds: [mickey.id],
+            existingOfferIds: [],
+            orderId: null,
+          },
+        },
+        false,
+        3
+      );
+
+      respond(noExpsRes);
+      expect(await client.experiences(mk, TODAY)).toEqual(exps);
+    });
+
+    it('checks for new/re-opening experiences on future dates', async () => {
+      const noExpsRes = response({ availableExperiences: [hm] });
+      const availabilityRes = response({
+        tiers: [{ experiences: [{ facilityId: sm.id }] }],
+      });
+      respond(noExpsRes, availabilityRes);
+      const exps = [
+        { ...hm, experienced: true },
+        { ...sm, ...closed },
+      ];
+      expect(await client.experiences(mk, TOMORROW)).toEqual(exps);
+
+      respond(noExpsRes, availabilityRes);
+      const dayAfterTomorrow = modifyDate(TOMORROW, 1);
+      expect(await client.experiences(mk, dayAfterTomorrow)).toEqual(exps);
+
+      respond(
+        response({ availableExperiences: [] }),
+        response({
+          tiers: [{ experiences: [{ facilityId: sdd.id }] }],
+        })
+      );
+      expect(await client.experiences(hs, TOMORROW)).toEqual([
+        { ...sdd, ...closed },
+      ]);
     });
   });
 
@@ -257,8 +333,12 @@ describe('LLClientWDW', () => {
       return response(offerSet);
     }
 
-    const changeOfferTime = jest.spyOn(client, 'changeOfferTime');
-    changeOfferTime.mockResolvedValueOnce(offer);
+    let changeOfferTime: jest.SpyInstance;
+
+    beforeEach(() => {
+      changeOfferTime = jest.spyOn(client, 'changeOfferTime');
+      changeOfferTime.mockResolvedValueOnce(offer);
+    });
 
     afterAll(() => {
       changeOfferTime.mockRestore();

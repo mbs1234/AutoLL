@@ -100,41 +100,50 @@ export class LLClientWDW extends LLClient {
     prebook: true,
     timeSelect: true,
   };
+  #closedExpIds: { [dateParkId: string]: Experience['id'][] | undefined } = {};
 
   async experiences(park: Park, date: string): Promise<Experience[]> {
     const exps = await super.experiences(park, date);
-    if (exps.length > 0) return exps;
 
-    const { data } = await this.request<{
-      tiers: {
-        experiences: { facilityId: string; isAvailable?: boolean }[];
-      }[];
-    }>({
-      path: `/ea-vas/planning/api/v1/experiences/availability/bundles/experiences`,
-      data: {
-        parkId: park.id,
-        date,
-        guestIds: [await this.primaryGuestId()],
-        existingOfferIds: [],
-        orderId: null,
-      },
-    });
-    return data.tiers.flatMap(t =>
-      t.experiences.flatMap(exp => {
-        if (!exp.isAvailable) return [];
+    if (date > parkDate() || exps.length === 0) {
+      const expIds = new Set(exps.map(exp => exp.id));
+      const dateParkId = date + park.id;
+      if (!this.#closedExpIds[dateParkId]) {
+        const { data } = await this.request<{
+          tiers: {
+            experiences: { facilityId: string; isAvailable?: boolean }[];
+          }[];
+        }>({
+          path: '/ea-vas/planning/api/v1/experiences/availability/bundles/experiences',
+          data: {
+            parkId: park.id,
+            date,
+            guestIds: [await this.primaryGuestId()],
+            existingOfferIds: [],
+            orderId: null,
+          },
+        });
+        this.#closedExpIds[dateParkId] = data.tiers.flatMap(t =>
+          t.experiences.map(exp => exp.facilityId).filter(id => !expIds.has(id))
+        );
+      }
+
+      for (const id of this.#closedExpIds[dateParkId] ?? []) {
+        if (expIds.has(id)) continue;
         try {
-          return {
+          exps.push({
             type: 'ATTRACTION',
-            ...this.resort.experience(exp.facilityId),
+            ...this.resort.experience(id),
             flex: { available: false },
             standby: { available: false, unavailableReason: 'CLOSED' },
-          };
+          });
         } catch (error) {
-          if (error instanceof InvalidId) return [];
-          throw error;
+          if (!(error instanceof InvalidId)) throw error;
         }
-      })
-    );
+      }
+    }
+
+    return exps;
   }
 
   async guests(experience?: { id: string }, date?: string): Promise<Guests> {
