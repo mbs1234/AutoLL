@@ -27,7 +27,7 @@ const ca = {
 
 export const parks: ResortData['parks'] = [dl, ca];
 
-// DL Lands
+// Disneyland - Lands
 const mainStreet = {
   name: 'Main Street, USA',
   sort: 1,
@@ -83,7 +83,7 @@ const tomorrowland = {
   park: dl,
 };
 
-// DCA Lands
+// California Adventure -  Lands
 const buenaVista = {
   name: 'Buena Vista Street',
   sort: 1,
@@ -108,12 +108,6 @@ const cars = {
   theme: { bg: 'bg-red-600', text: 'text-red-700' },
   park: ca,
 };
-const pacific = {
-  name: 'Pacific Wharf',
-  sort: 5,
-  theme: { bg: 'bg-cyan-600', text: 'text-cyan-700' },
-  park: ca,
-};
 const pixar = {
   name: 'Pixar Pier',
   sort: 6,
@@ -134,7 +128,7 @@ const paradise = {
 };
 
 export const experiences: ResortData['experiences'] = {
-  // Disneyland
+  // Disneyland - Attractions
   367495: {
     name: 'Alice in Wonderland',
     land: fantasyland,
@@ -152,11 +146,6 @@ export const experiences: ResortData['experiences'] = {
     type: 'A',
     geo: [33.8126634, -117.9167994],
     priority: 4.7,
-  },
-  424945: {
-    name: 'Believe… in Holiday Magic Fireworks',
-    land: mainStreet,
-    type: 'E',
   },
   353295: {
     name: 'Big Thunder Mountain Railroad',
@@ -184,24 +173,9 @@ export const experiences: ResortData['experiences'] = {
     land: toontown,
     type: 'A',
   },
-  3908469: {
-    name: 'Christmas Fantasy Parade',
-    land: mainStreet,
-    type: 'E',
-  },
-  401463: {
-    name: 'Dapper Dans',
-    land: mainStreet,
-    type: 'E',
-  },
   353311: {
     name: "Davy Crockett's Explorer Canoes",
     land: frontierland,
-    type: 'A',
-  },
-  353461: {
-    name: 'Disneyland Story presenting Great Moments with Mr. Lincoln',
-    land: mainStreet,
     type: 'A',
   },
   353323: {
@@ -214,25 +188,10 @@ export const experiences: ResortData['experiences'] = {
     land: adventureland,
     type: 'A',
   },
-  401483: {
-    name: 'Fantasmic!',
-    land: frontierland,
-    type: 'E',
-  },
   353327: {
     name: 'Finding Nemo Submarine Voyage',
     land: tomorrowland,
     type: 'A',
-  },
-  19348571: {
-    name: 'Halloween Screams (Fireworks)',
-    land: mainStreet,
-    type: 'E',
-  },
-  19348570: {
-    name: 'Halloween Screams (Projections)',
-    land: mainStreet,
-    type: 'E',
   },
   353347: {
     name: 'Haunted Mansion',
@@ -271,11 +230,6 @@ export const experiences: ResortData['experiences'] = {
     geo: [33.8144167, -117.9181268],
     highlight: true,
   },
-  18847498: {
-    name: "it's a small world Holiday Lighting",
-    land: fantasyland,
-    type: 'E',
-  },
   353363: {
     name: 'Jungle Cruise',
     land: adventureland,
@@ -292,11 +246,6 @@ export const experiences: ResortData['experiences'] = {
     land: fantasyland,
     type: 'A',
   },
-  19444352: {
-    name: 'Magic Happens Parade',
-    land: mainStreet,
-    type: 'E',
-  },
   353449: {
     name: 'Many Adventures of Winnie the Pooh',
     land: bayou,
@@ -309,26 +258,6 @@ export const experiences: ResortData['experiences'] = {
     geo: [33.8127838, -117.9182386],
     priority: 2.1,
     highlight: true,
-  },
-  18738682: {
-    name: 'Disney Princesses (Royal Hall)',
-    land: fantasyland,
-    type: 'C',
-  },
-  401526: {
-    name: "Mickey (Mickey's House)",
-    land: toontown,
-    type: 'C',
-  },
-  19263037: {
-    name: "Mickey's Mix Magic (Projections)",
-    land: mainStreet,
-    type: 'E',
-  },
-  401524: {
-    name: 'Tinker Bell (Pixie Hollow)',
-    land: fantasyland,
-    type: 'C',
   },
   411821333: {
     name: "Mickey & Minnie's Runaway Railway",
@@ -374,11 +303,6 @@ export const experiences: ResortData['experiences'] = {
     geo: [33.811295, -117.9209785],
     priority: 4.4,
     highlight: true,
-  },
-  411973631: {
-    name: 'Queenie & the Jambalaya Jazz Band',
-    land: newOrleans,
-    type: 'E',
   },
   19193461: {
     name: 'Rise of the Resistance',
@@ -427,16 +351,6 @@ export const experiences: ResortData['experiences'] = {
     land: fantasyland,
     type: 'A',
   },
-  17346575: {
-    name: 'Storytelling at Royal Theatre',
-    land: fantasyland,
-    type: 'E',
-  },
-  19319963: {
-    name: 'Tale of the Lion King',
-    land: fantasyland,
-    type: 'E',
-  },
   412062678: {
     name: "Tiana's Bayou Adventure",
     land: bayou,
@@ -444,6 +358,53 @@ export const experiences: ResortData['experiences'] = {
     geo: [33.8124171, -117.9222263],
     priority: 2.2,
     highlight: true,
+  },
+
+  // Disneyland - Entertainment
+  412333563: {
+    name: 'Celebrate Happy Cavalcade',
+    land: mainStreet,
+    type: 'E',
+  },
+  401463: {
+    name: 'Dapper Dans',
+    land: mainStreet,
+    type: 'E',
+  },
+  401483: {
+    name: 'Fantasmic!',
+    land: frontierland,
+    type: 'E',
+  },
+  19444352: {
+    name: 'Magic Happens Parade',
+    land: mainStreet,
+    type: 'E',
+  },
+  19259687: {
+    name: "Mickey's Mix Magic (Fireworks)",
+    land: mainStreet,
+    type: 'E',
+  },
+  19263037: {
+    name: "Mickey's Mix Magic (Projections)",
+    land: mainStreet,
+    type: 'E',
+  },
+  412287389: {
+    name: 'Paint the Night',
+    land: mainStreet,
+    type: 'E',
+  },
+  17346575: {
+    name: 'Storytelling at Royal Theatre',
+    land: fantasyland,
+    type: 'E',
+  },
+  412343720: {
+    name: 'Tapestry of Happiness',
+    land: fantasyland,
+    type: 'E',
   },
   412109781: {
     name: 'Together Forever - Pixar Nighttime Spectacular (Fireworks)',
@@ -455,52 +416,57 @@ export const experiences: ResortData['experiences'] = {
     land: mainStreet,
     type: 'E',
   },
+
+  // Disneyland - Characters
+  18738682: {
+    name: 'Disney Princesses (Royal Hall)',
+    land: fantasyland,
+    type: 'C',
+  },
+  401526: {
+    name: "Mickey (Mickey's House)",
+    land: toontown,
+    type: 'C',
+  },
+  401524: {
+    name: 'Tinker Bell (Pixie Hollow)',
+    land: fantasyland,
+    type: 'C',
+  },
+
+  // Disneyland - Holiday
+  424945: {
+    name: 'Believe… in Holiday Magic Fireworks',
+    land: mainStreet,
+    type: 'H',
+  },
+  3908469: {
+    name: 'Christmas Fantasy Parade',
+    land: mainStreet,
+    type: 'H',
+  },
+  19348571: {
+    name: 'Halloween Screams (Fireworks)',
+    land: mainStreet,
+    type: 'H',
+  },
+  19348570: {
+    name: 'Halloween Screams (Projections)',
+    land: mainStreet,
+    type: 'H',
+  },
+  18847498: {
+    name: "it's a small world Holiday Lighting",
+    land: fantasyland,
+    type: 'H',
+  },
   15756384: {
     name: 'Wintertime Enchantment',
     land: mainStreet,
-    type: 'E',
+    type: 'H',
   },
-  // California Adventure
-  19630108: {
-    name: 'Amazing Spider-Man',
-    land: avengers,
-    type: 'E',
-  },
-  19630107: {
-    name: 'Avengers Assemble!',
-    land: avengers,
-    type: 'E',
-  },
-  411459995: {
-    name: 'Better Together - Pixar Parade',
-    land: buenaVista,
-    type: 'E',
-  },
-  18781959: {
-    name: 'Coco Musical Celebration',
-    land: paradise,
-    type: 'E',
-  },
-  18708628: {
-    name: 'Disney Junior Dance Party',
-    land: hollywood,
-    type: 'E',
-  },
-  17595196: {
-    name: 'Viva Navidad Street Party',
-    land: paradise,
-    type: 'E',
-  },
-  19630109: {
-    name: 'Dr. Strange: Mystic Arts',
-    land: avengers,
-    type: 'E',
-  },
-  16633170: {
-    name: 'Five & Dime',
-    land: buenaVista,
-    type: 'E',
-  },
+
+  // California Adventure - Attractions
   353341: {
     name: 'Golden Zephyr',
     land: paradise,
@@ -537,11 +503,6 @@ export const experiences: ResortData['experiences'] = {
     priority: 1.1,
     highlight: true,
   },
-  18614009: {
-    name: 'Hurry Home - Lunar New Year Celebration',
-    land: paradise,
-    type: 'E',
-  },
   353303: {
     name: 'Incredicoaster',
     land: pixar,
@@ -562,7 +523,7 @@ export const experiences: ResortData['experiences'] = {
   },
   353361: {
     name: "Jumpin' Jellyfish",
-    land: pixar,
+    land: paradise,
     type: 'A',
   },
   15575069: {
@@ -587,11 +548,6 @@ export const experiences: ResortData['experiences'] = {
     land: cars,
     type: 'A',
   },
-  15559914: {
-    name: 'Mariachi Divas',
-    land: pacific,
-    type: 'E',
-  },
   16514431: {
     name: "Mater's Junkyard Jamboree",
     land: cars,
@@ -607,20 +563,10 @@ export const experiences: ResortData['experiences'] = {
     land: cars,
     type: 'A',
   },
-  19259687: {
-    name: "Mickey's Mix Magic (Fireworks)",
-    land: mainStreet,
-    type: 'E',
-  },
   19299875: {
     name: "Mickey's PhilharMagic",
     land: hollywood,
     type: 'A',
-  },
-  19354444: {
-    name: "Mickey's Trick & Treat",
-    land: hollywood,
-    type: 'E',
   },
   353387: {
     name: 'Monsters, Inc.',
@@ -676,11 +622,6 @@ export const experiences: ResortData['experiences'] = {
     priority: 3.0,
     highlight: true,
   },
-  353457: {
-    name: 'Turtle Talk with Crush',
-    land: hollywood,
-    type: 'E',
-  },
   19531124: {
     name: 'WEB SLINGERS',
     land: avengers,
@@ -688,6 +629,43 @@ export const experiences: ResortData['experiences'] = {
     geo: [33.8067598, -117.91849],
     priority: 4.0,
     highlight: true,
+  },
+
+  // California Adventure - Entertainment
+  19630108: {
+    name: 'Amazing Spider-Man',
+    land: avengers,
+    type: 'E',
+  },
+  19630107: {
+    name: 'Avengers Assemble!',
+    land: avengers,
+    type: 'E',
+  },
+  411459995: {
+    name: 'Better Together - Pixar Parade',
+    land: buenaVista,
+    type: 'E',
+  },
+  412357973: {
+    name: 'Disney Jr. Mickey Clubhouse Live',
+    land: hollywood,
+    type: 'E',
+  },
+  19630109: {
+    name: 'Dr. Strange: Mystic Arts',
+    land: avengers,
+    type: 'E',
+  },
+  16633170: {
+    name: 'Five & Dime',
+    land: buenaVista,
+    type: 'E',
+  },
+  353457: {
+    name: 'Turtle Talk with Crush',
+    land: hollywood,
+    type: 'E',
   },
   411805943: {
     name: 'Wondrous Journeys (Fireworks)',
@@ -704,15 +682,40 @@ export const experiences: ResortData['experiences'] = {
     land: paradise,
     type: 'E',
   },
+  412278312: {
+    name: 'World of Color Happiness!',
+    land: paradise,
+    type: 'E',
+  },
   411805933: {
     name: 'World of Color - ONE',
     land: paradise,
     type: 'E',
   },
+
+  // California Adventure - Holiday
+  18614009: {
+    name: 'Hurry Home - Lunar New Year Celebration',
+    land: paradise,
+    type: 'H',
+  },
+  19354444: {
+    name: "Mickey's Trick & Treat",
+    land: hollywood,
+    type: 'H',
+  },
+  17595196: {
+    name: 'Viva Navidad Street Party',
+    land: paradise,
+    type: 'H',
+  },
   18492231: {
     name: 'World of Color - Season of Light',
     land: paradise,
-    type: 'E',
+    type: 'H',
   },
+
+  // Ignored
   18407713: null,
+  412420542: null,
 };

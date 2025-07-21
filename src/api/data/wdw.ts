@@ -51,7 +51,7 @@ const ak = {
 
 export const parks: ResortData['parks'] = [mk, ep, hs, ak];
 
-// Magic Kingdom Lands
+// Magic Kingdom - Lands
 const mainStreet = {
   name: 'Main Street, USA',
   sort: 1,
@@ -89,7 +89,7 @@ const tomorrowland = {
   park: mk,
 };
 
-// EPCOT Lands
+// EPCOT - Lands
 const celebration = {
   name: 'World Celebration',
   sort: 1,
@@ -115,7 +115,7 @@ const showcase = {
   park: ep,
 };
 
-// Hollywood Studios Lands
+// Hollywood Studios - Lands
 const hollywood = {
   name: 'Hollywood & Sunset',
   sort: 1,
@@ -159,7 +159,7 @@ const echoLake = {
   park: hs,
 };
 
-// Animal Kingdom Lands
+// Animal Kingdom - Lands
 const discIsland = {
   name: 'Discovery Island',
   sort: 1,
@@ -198,7 +198,7 @@ const dinoland = {
 };
 
 export const experiences: ResortData['experiences'] = {
-  // Magic Kingdom
+  // Magic Kingdom - Attractions
   80010107: {
     name: 'Astro Orbiter',
     land: tomorrowland,
@@ -218,9 +218,7 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.4197486, -81.5845092],
     tier: 1,
     priority: 2.3,
-    avgWait: 40,
     highlight: true,
-    dropTimes: ['08:47', '13:47'],
   },
   80010114: {
     name: "Buzz Lightyear's Space Ranger Spin",
@@ -236,30 +234,10 @@ export const experiences: ResortData['experiences'] = {
     land: tomorrowland,
     type: 'A',
   },
-  8074: {
-    name: "Casey's Corner Pianist",
-    land: mainStreet,
-    type: 'E',
-  },
   80069748: {
-    name: 'Country Bear Jamboree',
+    name: 'Country Bear Musical Jamboree',
     land: frontierland,
     type: 'A',
-  },
-  8075: {
-    name: 'Dapper Dans',
-    land: mainStreet,
-    type: 'E',
-  },
-  411550122: {
-    name: 'Disney Adventure Friends Cavalcade',
-    land: mainStreet,
-    type: 'E',
-  },
-  276291: {
-    name: 'Fourth of July Fireworks',
-    land: mainStreet,
-    type: 'E',
   },
   80010129: {
     name: 'Dumbo the Flying Elephant',
@@ -268,42 +246,15 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.4206047, -81.5789092],
     avgWait: 16,
   },
-  16767276: {
-    name: 'Enchanted Tales with Belle',
-    land: fantasyland,
-    geo: [28.4207354, -81.5807867],
-    type: 'C',
-  },
   16124144: {
     name: 'Enchanted Tiki Room',
     land: adventureland,
     type: 'A',
   },
-  12248: {
-    name: 'Fantasy in the Sky Fireworks',
-    land: mainStreet,
-    type: 'E',
-  },
-  17718925: {
-    name: 'Festival of Fantasy Parade',
-    land: mainStreet,
-    type: 'E',
-    geo: [28.4189018, -81.5812001],
-  },
-  7922: {
-    name: 'Flag Retreat',
-    land: mainStreet,
-    type: 'E',
-  },
   80069754: {
     name: 'Hall of Presidents',
     land: libertySquare,
     type: 'A',
-  },
-  18672598: {
-    name: 'Happily Ever After',
-    land: mainStreet,
-    type: 'E',
   },
   80010208: {
     name: 'Haunted Mansion',
@@ -341,11 +292,6 @@ export const experiences: ResortData['experiences'] = {
     avgWait: 40,
     highlight: true,
   },
-  8336: {
-    name: 'Let the Magic Begin',
-    land: mainStreet,
-    type: 'E',
-  },
   80010162: {
     name: 'Mad Tea Party',
     land: fantasyland,
@@ -360,11 +306,6 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.4183166, -81.5835006],
     avgWait: 13,
   },
-  8066: {
-    name: 'Main Street Philharmonic',
-    land: mainStreet,
-    type: 'E',
-  },
   80010213: {
     name: 'Many Adventures of Winnie the Pooh',
     land: fantasyland,
@@ -374,76 +315,12 @@ export const experiences: ResortData['experiences'] = {
     avgWait: 36,
     highlight: true,
   },
-  16874126: {
-    name: "Ariel (Ariel's Grotto)",
-    land: fantasyland,
-    type: 'C',
-    geo: [28.4208803, -81.5796853],
-  },
-  15850196: {
-    name: 'Mickey (Town Square Theater)',
-    land: mainStreet,
-    type: 'C',
-    geo: [28.4167334, -81.5803937],
-  },
-  18498503: {
-    name: 'Cinderella (Princess Fairytale Hall)',
-    land: fantasyland,
-    type: 'C',
-    geo: [28.4199771, -81.5808316],
-  },
-  387133: {
-    name: "Donald & Goofy (Pete's Silly Side Show)",
-    land: fantasyland,
-    type: 'C',
-  },
-  15743682: {
-    name: "Minnie & Daisy (Pete's Silly Side Show)",
-    land: fantasyland,
-    type: 'C',
-  },
-  411987382: {
-    name: 'Mirabel (Fairytale Garden)',
-    land: fantasyland,
-    type: 'C',
-  },
-  17505397: {
-    name: 'Tiana (Princess Fairytale Hall)',
-    land: fantasyland,
-    geo: [28.4199771, -81.5808316],
-    type: 'C',
-  },
-  19579538: {
-    name: "Mickey's Celebration Cavalcade",
-    land: mainStreet,
-    type: 'E',
-  },
-  18381020: {
-    name: "Mickey's Magical Friendship Faire",
-    land: mainStreet,
-    type: 'E',
-  },
-  411854077: {
-    name: "Mickey's Most Merriest Celebration",
-    land: mainStreet,
-    type: 'E',
-  },
-  411854078: {
-    name: "Mickey's Once Upon a Christmastime Parade",
-    land: mainStreet,
-    type: 'E',
-  },
   80010170: {
     name: "Mickey's PhilharMagic",
     land: fantasyland,
     type: 'A',
     geo: [28.4200575, -81.5814156],
     avgWait: 12,
-  },
-  411854079: {
-    name: "Minnie's Wonderful Christmastime Fireworks",
-    land: mainStreet,
-    type: 'E',
   },
   136550: {
     name: 'Monsters Inc. Laugh Floor',
@@ -480,11 +357,6 @@ export const experiences: ResortData['experiences'] = {
     name: 'Prince Charming Regal Carrousel',
     land: fantasyland,
     type: 'A',
-  },
-  8515: {
-    name: 'Buzz/Stitch (Rocket Tower Plaza Stage)',
-    land: tomorrowland,
-    type: 'C',
   },
   16767284: {
     name: 'Seven Dwarfs Mine Train',
@@ -554,97 +426,150 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.4210351, -81.5799673],
     avgWait: 19,
   },
-  // EPCOT
-  78700: {
-    name: 'Alberta Bound',
-    land: showcase,
+
+  // Magic Kingdom - Entertainment
+  8074: {
+    name: "Casey's Corner Pianist",
+    land: mainStreet,
     type: 'E',
   },
-  80010200: {
-    name: 'American Adventure',
-    land: showcase,
+  8075: {
+    name: 'Dapper Dans',
+    land: mainStreet,
     type: 'E',
   },
-  412026226: {
-    name: 'Asha (World Showcase Plaza)',
-    land: showcase,
+  411550122: {
+    name: 'Disney Adventure Friends Cavalcade',
+    land: mainStreet,
+    type: 'E',
+  },
+  412328853: {
+    name: 'Disney Starlight Parade',
+    land: mainStreet,
+    type: 'E',
+  },
+  17718925: {
+    name: 'Festival of Fantasy Parade',
+    land: mainStreet,
+    type: 'E',
+    geo: [28.4189018, -81.5812001],
+  },
+  7922: {
+    name: 'Flag Retreat',
+    land: mainStreet,
+    type: 'E',
+  },
+  18672598: {
+    name: 'Happily Ever After',
+    land: mainStreet,
+    type: 'E',
+  },
+  8336: {
+    name: 'Let the Magic Begin',
+    land: mainStreet,
+    type: 'E',
+  },
+  8066: {
+    name: 'Main Street Philharmonic',
+    land: mainStreet,
+    type: 'E',
+  },
+  18381020: {
+    name: "Mickey's Magical Friendship Faire",
+    land: mainStreet,
+    type: 'E',
+  },
+
+  // Magic Kingdom - Characters
+  16874126: {
+    name: "Ariel (Ariel's Grotto)",
+    land: fantasyland,
+    type: 'C',
+    geo: [28.4208803, -81.5796853],
+  },
+  8515: {
+    name: 'Buzz/Stitch (Plaza Stage)',
+    land: tomorrowland,
     type: 'C',
   },
-  19496225: {
-    name: 'Atlas Fusion (Morocco)',
-    land: showcase,
-    type: 'E',
+  18498503: {
+    name: 'Cinderella (Princess Fairytale Hall)',
+    land: fantasyland,
+    type: 'C',
+    geo: [28.4199771, -81.5808316],
   },
+  387133: {
+    name: "Donald & Goofy (Pete's Silly Side Show)",
+    land: fantasyland,
+    type: 'C',
+  },
+  16767276: {
+    name: 'Enchanted Tales with Belle',
+    land: fantasyland,
+    geo: [28.4207354, -81.5807867],
+    type: 'C',
+  },
+  15850196: {
+    name: 'Mickey (Town Square Theater)',
+    land: mainStreet,
+    type: 'C',
+    geo: [28.4167334, -81.5803937],
+  },
+  15743682: {
+    name: "Minnie & Daisy (Pete's Silly Side Show)",
+    land: fantasyland,
+    type: 'C',
+  },
+  411987382: {
+    name: 'Mirabel (Fairytale Garden)',
+    land: fantasyland,
+    type: 'C',
+  },
+  17505397: {
+    name: 'Tiana (Princess Fairytale Hall)',
+    land: fantasyland,
+    geo: [28.4199771, -81.5808316],
+    type: 'C',
+  },
+
+  // Magic Kingdom - Holiday
+  12248: {
+    name: 'Fantasy in the Sky Fireworks',
+    land: mainStreet,
+    type: 'H',
+  },
+  276291: {
+    name: 'Fourth of July Fireworks',
+    land: mainStreet,
+    type: 'H',
+  },
+  411854077: {
+    name: "Mickey's Most Merriest Celebration",
+    land: mainStreet,
+    type: 'H',
+  },
+  411854078: {
+    name: "Mickey's Once Upon a Christmastime Parade",
+    land: mainStreet,
+    type: 'H',
+  },
+  411854079: {
+    name: "Minnie's Wonderful Christmastime Fireworks",
+    land: mainStreet,
+    type: 'H',
+  },
+
+  // EPCOT - Attractions
   19473173: {
     name: 'Awesome Planet',
     land: nature,
     type: 'A',
-  },
-  19463785: {
-    name: 'Beauty & the Beast Sing-Along',
-    land: showcase,
-    type: 'E',
-  },
-  80010174: {
-    name: 'Canada Far and Wide',
-    land: showcase,
-    type: 'E',
-  },
-  245275: {
-    name: 'Canadian Holiday Voyageurs',
-    land: showcase,
-    type: 'H',
-  },
-  19036653: {
-    name: 'Canada Mill Stage Entertainment',
-    land: showcase,
-    type: 'E',
-  },
-  70684: {
-    name: 'Candlelight Processional',
-    land: showcase,
-    type: 'H',
-  },
-  245272: {
-    name: 'Chinese Lion Dancer',
-    land: showcase,
-    type: 'H',
-  },
-  411702927: {
-    name: 'Command Performance (UK)',
-    land: showcase,
-    type: 'E',
-  },
-  245268: {
-    name: 'Daruma Storyteller (Japan)',
-    land: showcase,
-    type: 'H',
   },
   18269694: {
     name: 'Disney & Pixar Short Film Festival',
     land: celebration,
     type: 'A',
     geo: [28.3720463, -81.5508243],
-  },
-  412126654: {
-    name: 'Encanto Celebration',
-    land: celebration,
-    type: 'E',
-  },
-  19258170: {
-    name: 'Epcot Forever',
-    land: showcase,
-    type: 'E',
-  },
-  245270: {
-    name: 'Father Christmas (UK)',
-    land: showcase,
-    type: 'H',
-  },
-  412120305: {
-    name: 'Forces of Nature by AntiGravity',
-    land: celebration,
-    type: 'E',
   },
   18375495: {
     name: 'Frozen Ever After',
@@ -656,25 +581,10 @@ export const experiences: ResortData['experiences'] = {
     avgWait: 54,
     highlight: true,
   },
-  17198736: {
-    name: 'Garden Rocks Concert Series',
-    land: showcase,
-    type: 'E',
-  },
-  19242311: {
-    name: 'Germany Gazebo Entertainment',
-    land: showcase,
-    type: 'E',
-  },
   207395: {
     name: 'Gran Fiesta Tour',
     land: showcase,
     type: 'A',
-  },
-  18923661: {
-    name: "Groovin' Alps",
-    land: showcase,
-    type: 'E',
   },
   411499845: {
     name: 'Guardians of the Galaxy: Cosmic Rewind',
@@ -683,16 +593,6 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.3747479, -81.5478405],
     highlight: true,
     priority: 1.0,
-  },
-  17186496: {
-    name: 'Hanukkah Storyteller (Between Morocco & France)',
-    land: showcase,
-    type: 'H',
-  },
-  13507: {
-    name: 'Jammitors',
-    land: celebration,
-    type: 'E',
   },
   80010152: {
     name: 'Journey Into Imagination',
@@ -706,31 +606,6 @@ export const experiences: ResortData['experiences'] = {
     land: nature,
     type: 'A',
   },
-  3427049: {
-    name: 'JOYFUL! A Celebration of the Season',
-    land: celebration,
-    type: 'H',
-  },
-  19516307: {
-    name: 'Julia Scheeser & Band',
-    land: showcase,
-    type: 'E',
-  },
-  245263: {
-    name: 'La Befana (Italy)',
-    land: showcase,
-    type: 'H',
-  },
-  245264: {
-    name: 'Las Posadas Celebration (Mexico)',
-    land: showcase,
-    type: 'H',
-  },
-  411928911: {
-    name: 'Les Raftsmen',
-    land: showcase,
-    type: 'E',
-  },
   80010161: {
     name: 'Living with the Land',
     land: nature,
@@ -739,67 +614,12 @@ export const experiences: ResortData['experiences'] = {
     avgWait: 18,
   },
   412010036: {
-    name: 'Living with the Land', // Christmas overlay
+    name: 'Living with the Land - Glimmering Greenhouses',
     land: nature,
     type: 'A',
     geo: [28.3739368, -81.5526389],
     priority: 4.1,
     avgWait: 35,
-  },
-  412008998: {
-    land: showcase,
-    name: 'Luminous: The Symphony of Us',
-    type: 'E',
-  },
-  19423795: {
-    name: 'Mischievous Barn Santa (Norway)',
-    land: showcase,
-    type: 'H',
-  },
-  19322758: {
-    name: 'Mariachi Cobre',
-    land: showcase,
-    type: 'E',
-  },
-  19277873: {
-    name: 'Marimba de las Américas',
-    land: showcase,
-    type: 'E',
-  },
-  80010865: {
-    name: 'Matsuriza (Japan)',
-    land: showcase,
-    type: 'E',
-  },
-  412126613: {
-    name: 'Mickey & Friends',
-    land: celebration,
-    type: 'C',
-  },
-  15695444: {
-    name: 'Mary Poppins (UK)',
-    land: showcase,
-    type: 'C',
-  },
-  268742: {
-    name: 'Mulan (China)',
-    land: showcase,
-    type: 'C',
-  },
-  15574092: {
-    name: 'Princess Aurora (France)',
-    land: showcase,
-    type: 'C',
-  },
-  245271: {
-    name: 'Meet Santa (Odyssey Pavilion)',
-    land: celebration,
-    type: 'H',
-  },
-  13625: {
-    name: 'Winnie the Pooh (UK)',
-    land: showcase,
-    type: 'C',
   },
   80010173: {
     name: 'Mission: SPACE',
@@ -808,21 +628,6 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.3739368, -81.5526389],
     priority: 3.0,
     avgWait: 17,
-  },
-  245274: {
-    name: 'Père Noël (France)',
-    land: showcase,
-    type: 'H',
-  },
-  18416876: {
-    name: 'Pluto (Main Entrance)',
-    land: celebration,
-    type: 'C',
-  },
-  18780200: {
-    name: 'Raffy',
-    land: showcase,
-    type: 'E',
   },
   80010180: {
     name: 'Reflections of China',
@@ -840,27 +645,12 @@ export const experiences: ResortData['experiences'] = {
     highlight: true,
     dropTimes: ['13:47'],
   },
-  17490262: {
-    name: 'Rose & Crown Pub Musician',
-    land: showcase,
-    type: 'E',
-  },
   107785: {
     name: 'Seas with Nemo & Friends',
     land: nature,
     type: 'A',
     geo: [28.3748995, -81.5507208],
     avgWait: 19,
-  },
-  80010873: {
-    name: 'Sergio (Italy)',
-    land: showcase,
-    type: 'E',
-  },
-  411840597: {
-    name: 'Si-Zhu Trio (China)',
-    land: showcase,
-    type: 'H',
   },
   20194: {
     name: "Soarin' Around the World",
@@ -903,8 +693,90 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.3753989, -81.5511449],
     avgWait: 15,
   },
-  209984: {
-    name: 'Viva Mexico',
+
+  // EPCOT - Entertainment
+  80010200: {
+    name: 'American Adventure',
+    land: showcase,
+    type: 'E',
+  },
+  19496225: {
+    name: 'Atlas Fusion (Morocco)',
+    land: showcase,
+    type: 'E',
+  },
+  19463785: {
+    name: 'Beauty & the Beast Sing-Along',
+    land: showcase,
+    type: 'E',
+  },
+  80010174: {
+    name: 'Canada Far and Wide',
+    land: showcase,
+    type: 'E',
+  },
+  19036653: {
+    name: 'Canada Mill Stage Entertainment',
+    land: showcase,
+    type: 'E',
+  },
+  411702927: {
+    name: 'Command Performance (UK)',
+    land: showcase,
+    type: 'E',
+  },
+  412126654: {
+    name: 'Encanto Celebration',
+    land: celebration,
+    type: 'E',
+  },
+  19258170: {
+    name: 'Epcot Forever',
+    land: showcase,
+    type: 'E',
+  },
+  17198736: {
+    name: 'Garden Rocks Concert Series',
+    land: showcase,
+    type: 'E',
+  },
+  19242311: {
+    name: 'Germany Gazebo Entertainment',
+    land: showcase,
+    type: 'E',
+  },
+  13507: {
+    name: 'Jammitors',
+    land: celebration,
+    type: 'E',
+  },
+  412008998: {
+    name: 'Luminous: The Symphony of Us',
+    land: showcase,
+    type: 'E',
+  },
+  19322758: {
+    name: 'Mariachi Cobre',
+    land: showcase,
+    type: 'E',
+  },
+  19277873: {
+    name: 'Marimba de las Américas',
+    land: showcase,
+    type: 'E',
+  },
+  80010865: {
+    name: 'Matsuriza (Japan)',
+    land: showcase,
+    type: 'E',
+  },
+  17490262: {
+    name: 'Rose & Crown Pub Musician',
+    land: showcase,
+    type: 'E',
+  },
+  80010873: {
+    name: 'Sergio (Italy)',
     land: showcase,
     type: 'E',
   },
@@ -913,12 +785,117 @@ export const experiences: ResortData['experiences'] = {
     land: showcase,
     type: 'E',
   },
+
+  // EPCOT - Characters
+  412026226: {
+    name: 'Asha (World Showcase Plaza)',
+    land: showcase,
+    type: 'C',
+  },
+  15695444: {
+    name: 'Mary Poppins (UK)',
+    land: showcase,
+    type: 'C',
+  },
+  412126613: {
+    name: 'Mickey & Friends',
+    land: celebration,
+    type: 'C',
+  },
+  268742: {
+    name: 'Mulan (China)',
+    land: showcase,
+    type: 'C',
+  },
+  18416876: {
+    name: 'Pluto (Main Entrance)',
+    land: celebration,
+    type: 'C',
+  },
+  15574092: {
+    name: 'Princess Aurora (France)',
+    land: showcase,
+    type: 'C',
+  },
+  13625: {
+    name: 'Winnie the Pooh (UK)',
+    land: showcase,
+    type: 'C',
+  },
+
+  // EPCOT - Holiday
+  245275: {
+    name: 'Canadian Holiday Voyageurs',
+    land: showcase,
+    type: 'H',
+  },
+  70684: {
+    name: 'Candlelight Processional',
+    land: showcase,
+    type: 'H',
+  },
+  245272: {
+    name: 'Chinese Lion Dancer',
+    land: showcase,
+    type: 'H',
+  },
+  245268: {
+    name: 'Daruma Storyteller (Japan)',
+    land: showcase,
+    type: 'H',
+  },
+  245270: {
+    name: 'Father Christmas (UK)',
+    land: showcase,
+    type: 'H',
+  },
+  17186496: {
+    name: 'Hanukkah Storyteller (Between Morocco & France)',
+    land: showcase,
+    type: 'H',
+  },
+  3427049: {
+    name: 'JOYFUL! A Celebration of the Season',
+    land: celebration,
+    type: 'H',
+  },
+  245263: {
+    name: 'La Befana (Italy)',
+    land: showcase,
+    type: 'H',
+  },
+  245264: {
+    name: 'Las Posadas Celebration (Mexico)',
+    land: showcase,
+    type: 'H',
+  },
+  19423795: {
+    name: 'Mischievous Barn Santa (Norway)',
+    land: showcase,
+    type: 'H',
+  },
+  245274: {
+    name: 'Père Noël (France)',
+    land: showcase,
+    type: 'H',
+  },
+  245271: {
+    name: 'Santa (Odyssey Pavilion)',
+    land: celebration,
+    type: 'H',
+  },
+  411840597: {
+    name: 'Si-Zhu Trio (China)',
+    land: showcase,
+    type: 'H',
+  },
   178205: {
     name: 'Voice of Liberty',
     land: showcase,
     type: 'H',
   },
-  // Hollywood Studios
+
+  // Hollywood Studios - Attractions
   18904172: {
     name: 'Alien Swirling Saucers',
     land: toyStory,
@@ -927,97 +904,10 @@ export const experiences: ResortData['experiences'] = {
     priority: 3.0,
     avgWait: 29,
   },
-  80010848: {
-    name: 'Beauty & the Beast Live on Stage',
-    land: hollywood,
-    type: 'E',
-    geo: [28.3591529, -81.5597641],
-  },
-  19583373: {
-    name: 'Disney Junior Play and Dance',
-    land: animation,
-    geo: [28.3579409, -81.5607914],
-    type: 'E',
-  },
-  412328859: {
-    name: 'Disney Villains: Unfairly Ever After',
-    land: hollywood,
-    type: 'E',
-  },
-  18693119: {
-    name: 'Disney Movie Magic',
-    land: hollywood,
-    type: 'E',
-  },
-  80010887: {
-    name: 'Fantasmic!',
-    land: hollywood,
-    type: 'E',
-    geo: [28.3599166, -81.5592299],
-  },
-  19025720: {
-    name: 'Green Army Drum Corps',
-    land: toyStory,
-    type: 'E',
-  },
-  136: {
-    name: 'Indiana Jones Epic Stunt Spectacular',
-    land: echoLake,
-    type: 'E',
-    geo: [28.3567464, -81.5588053],
-  },
-  411979428: {
-    name: 'First Order Searches for the Resistance',
-    land: starWars,
-    type: 'E',
-  },
-  17842841: {
-    name: 'Frozen Sing-Along',
-    land: echoLake,
-    type: 'E',
-    geo: [28.3566155, -81.5594812],
-  },
-  411926516: {
-    name: 'Ariel (Walt Disney Presents)',
-    land: animation,
-    type: 'C',
-  },
   412328858: {
     name: 'Little Mermaid - A Musical Adventure',
     land: animation,
     type: 'A',
-  },
-  18189394: {
-    name: 'Chewbacca (Launch Bay)',
-    land: animation,
-    type: 'C',
-  },
-  224093: {
-    name: 'Disney Junior Pals',
-    land: animation,
-    type: 'C',
-  },
-  411908664: {
-    name: 'Joy',
-    land: pixar,
-    type: 'C',
-  },
-  18368386: {
-    name: 'Mickey & Minnie (Red Carpet Dreams)',
-    land: commissary,
-    geo: [28.3560952, -81.5594433],
-    type: 'C',
-  },
-  19205017: {
-    name: 'Edna Mode',
-    land: pixar,
-    type: 'C',
-  },
-  18368385: {
-    name: 'Olaf (Celebrity Spotlight)',
-    land: echoLake,
-    geo: [28.3562836, -81.55906],
-    type: 'C',
   },
   19259335: {
     name: "Mickey & Minnie's Runaway Railway",
@@ -1038,6 +928,13 @@ export const experiences: ResortData['experiences'] = {
     avgWait: 48,
     highlight: true,
     dropTimes: ['10:47', '15:47'],
+  },
+  19263736: {
+    name: 'Rise of the Resistance',
+    land: starWars,
+    type: 'A',
+    geo: [28.3548829, -81.5604682],
+    highlight: true,
   },
   80010182: {
     name: "Rock 'n' Roller Coaster",
@@ -1067,13 +964,6 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.3557799, -81.5588696],
     avgWait: 11,
   },
-  19263736: {
-    name: 'Rise of the Resistance',
-    land: starWars,
-    type: 'A',
-    geo: [28.3548829, -81.5604682],
-    highlight: true,
-  },
   209857: {
     name: 'Toy Story Mania',
     land: toyStory,
@@ -1094,12 +984,99 @@ export const experiences: ResortData['experiences'] = {
     highlight: true,
     dropTimes: ['13:17', '15:47'],
   },
+
+  // Hollywood Studios - Entertainment
+  80010848: {
+    name: 'Beauty & the Beast Live on Stage',
+    land: hollywood,
+    type: 'E',
+    geo: [28.3591529, -81.5597641],
+  },
+  19583373: {
+    name: 'Disney Junior Play and Dance',
+    land: animation,
+    geo: [28.3579409, -81.5607914],
+    type: 'E',
+  },
+  412328859: {
+    name: 'Disney Villains: Unfairly Ever After',
+    land: hollywood,
+    type: 'E',
+  },
+  80010887: {
+    name: 'Fantasmic!',
+    land: hollywood,
+    type: 'E',
+    geo: [28.3599166, -81.5592299],
+  },
+  411979428: {
+    name: 'First Order Searches for the Resistance',
+    land: starWars,
+    type: 'E',
+  },
+  17842841: {
+    name: 'Frozen Sing-Along',
+    land: echoLake,
+    type: 'E',
+    geo: [28.3566155, -81.5594812],
+  },
+  19025720: {
+    name: 'Green Army Drum Corps',
+    land: toyStory,
+    type: 'E',
+  },
+  136: {
+    name: 'Indiana Jones Epic Stunt Spectacular',
+    land: echoLake,
+    type: 'E',
+    geo: [28.3567464, -81.5588053],
+  },
   19260580: {
     name: 'Wonderful World of Animation',
     land: hollywood,
     type: 'E',
   },
-  // Animal Kingdom
+
+  // Hollywood Studios - Characters
+  411926516: {
+    name: 'Ariel (Walt Disney Presents)',
+    land: animation,
+    type: 'C',
+  },
+  18189394: {
+    name: 'Chewbacca (Launch Bay)',
+    land: animation,
+    type: 'C',
+  },
+  224093: {
+    name: 'Disney Junior Pals',
+    land: animation,
+    type: 'C',
+  },
+  19205017: {
+    name: 'Edna Mode',
+    land: pixar,
+    type: 'C',
+  },
+  411908664: {
+    name: 'Joy',
+    land: pixar,
+    type: 'C',
+  },
+  18368386: {
+    name: 'Mickey & Minnie (Red Carpet Dreams)',
+    land: commissary,
+    geo: [28.3560952, -81.5594433],
+    type: 'C',
+  },
+  18368385: {
+    name: 'Olaf (Celebrity Spotlight)',
+    land: echoLake,
+    geo: [28.3562836, -81.55906],
+    type: 'C',
+  },
+
+  // Animal Kingdom - Attractions
   19330300: {
     name: 'Animation Experience',
     land: rafikis,
@@ -1112,21 +1089,6 @@ export const experiences: ResortData['experiences'] = {
     type: 'A',
     geo: [28.3555698, -81.592292],
     highlight: true,
-  },
-  412226163: {
-    name: 'Beats and Strings',
-    land: asia,
-    type: 'E',
-  },
-  16235871: {
-    name: 'Burudika',
-    land: africa,
-    type: 'E',
-  },
-  19581371: {
-    name: 'Discovery Island Drummers Flotilla',
-    land: discIsland,
-    type: 'E',
   },
   80010123: {
     name: 'DINOSAUR',
@@ -1146,33 +1108,10 @@ export const experiences: ResortData['experiences'] = {
     highlight: true,
     dropTimes: ['08:47', '12:47'],
   },
-  19581372: {
-    name: 'Feathered Friends in Flight',
-    land: asia,
-    type: 'E',
-    geo: [28.3586675, -81.5900411],
-  },
-  12432: {
-    name: 'Festival of the Lion King',
-    land: africa,
-    type: 'E',
-    geo: [28.3581957, -81.5925823],
-  },
-  411550125: {
-    name: 'Finding Nemo: The Big Blue and Beyond',
-    land: dinoland,
-    type: 'E',
-    geo: [28.3574008, -81.5874145],
-  },
   80010175: {
     name: 'Gorilla Falls Exploration Trail',
     land: africa,
     type: 'A',
-  },
-  18425797: {
-    name: 'Harambe Village Acrobats',
-    land: africa,
-    type: 'E',
   },
   80010154: {
     name: 'Kali River Rapids',
@@ -1193,16 +1132,82 @@ export const experiences: ResortData['experiences'] = {
     highlight: true,
     dropTimes: ['09:47', '12:47'],
   },
-  18435910: {
-    name: 'Kora Tinga Tinga',
-    land: africa,
-    type: 'E',
-  },
   80010164: {
     name: 'Maharajah Jungle Trek',
     land: asia,
     type: 'A',
   },
+  18665185: {
+    name: "Na'vi River Journey",
+    land: pandora,
+    type: 'A',
+    geo: [28.3551663, -81.591708],
+    priority: 1.0,
+    avgWait: 56,
+    highlight: true,
+  },
+
+  // Animal Kingdom - Entertainment
+  412226163: {
+    name: 'Beats and Strings',
+    land: asia,
+    type: 'E',
+  },
+  16235871: {
+    name: 'Burudika',
+    land: africa,
+    type: 'E',
+  },
+  19581371: {
+    name: 'Discovery Island Drummers Flotilla',
+    land: discIsland,
+    type: 'E',
+  },
+  19581372: {
+    name: 'Feathered Friends in Flight',
+    land: asia,
+    type: 'E',
+    geo: [28.3586675, -81.5900411],
+  },
+  12432: {
+    name: 'Festival of the Lion King',
+    land: africa,
+    type: 'E',
+    geo: [28.3581957, -81.5925823],
+  },
+  411550125: {
+    name: 'Finding Nemo: The Big Blue and Beyond',
+    land: dinoland,
+    type: 'E',
+    geo: [28.3574008, -81.5874145],
+  },
+  18425797: {
+    name: 'Harambe Village Acrobats',
+    land: africa,
+    type: 'E',
+  },
+  18435910: {
+    name: 'Kora Tinga Tinga',
+    land: africa,
+    type: 'E',
+  },
+  72877: {
+    name: 'Tam Tam Drummers of Harambe',
+    land: africa,
+    type: 'E',
+  },
+  16629705: {
+    name: 'Viva Gaia Street Band',
+    land: discIsland,
+    type: 'E',
+  },
+  17821434: {
+    name: 'Winged Encounters - The Kingdom Takes Flight',
+    land: discIsland,
+    type: 'E',
+  },
+
+  // Animal Kingdom - Characters
   17421326: {
     name: 'Mickey & Minnie (Adventurers Outpost)',
     land: discIsland,
@@ -1214,33 +1219,11 @@ export const experiences: ResortData['experiences'] = {
     land: discovery,
     type: 'C',
   },
-  18665185: {
-    name: "Na'vi River Journey",
-    land: pandora,
-    type: 'A',
-    geo: [28.3551663, -81.591708],
-    priority: 1.0,
-    avgWait: 56,
-    highlight: true,
-  },
-  72877: {
-    name: 'Tam Tam Drummers of Harambe',
-    land: africa,
-    type: 'E',
-  },
+
+  // Animal Kingdom - Holiday
   18447293: {
     name: 'Tree of Life Awakenings',
     land: discIsland,
     type: 'H',
-  },
-  16629705: {
-    name: 'Viva Gaia Street Band',
-    land: discIsland,
-    type: 'E',
-  },
-  17821434: {
-    name: 'Winged Encounters - The Kingdom Takes Flight',
-    land: discIsland,
-    type: 'E',
   },
 };
