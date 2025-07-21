@@ -1,6 +1,6 @@
 import { use, useCallback, useEffect, useState } from 'react';
 
-import { HourlySlots, Offer } from '@/api/ll';
+import { HourlyTimes, Offer } from '@/api/ll';
 import Button from '@/components/Button';
 import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
@@ -16,6 +16,8 @@ import ReturnTime from '../ReturnTime';
 import YourDayButton from '../YourDayButton';
 import RefreshButton from './RefreshButton';
 
+const getHour = (time: string) => Number(time.split(':')[0]);
+
 export default function SelectReturnTime<B extends Offer['booking']>({
   offer,
   onOfferChange,
@@ -27,34 +29,31 @@ export default function SelectReturnTime<B extends Offer['booking']>({
   const { ll } = use(ClientsContext);
   const rebooking = use(RebookingContext);
   const { loadData, loaderElem } = useDataLoader();
-  const [times, setTimes] = useState<HourlySlots>();
+  const [times, setTimes] = useState<HourlyTimes>();
   const { booking } = offer;
   const bookingTimeChange = booking && !rebooking.current;
 
   const refreshTimes = useCallback(() => {
-    function insertOfferTime(times: HourlySlots) {
+    function insertOfferTime(times: HourlyTimes) {
       const offerTime = offer.start.time;
       if (!booking || offerTime === booking.start.time) return times;
-      const offerSlot = {
-        startTime: offerTime,
-        endTime: offer.end.time,
-      };
-      const getHour = (time: string) => Number(time.split(':')[0]);
+      times = [...times];
       const offerHour = getHour(offerTime);
-      const hours = times.map(slots => getHour(slots[0].startTime));
+      const hours = times.map(times => getHour(times[0]));
       const hourIdx = hours.findIndex(hour => hour >= offerHour);
       const hour = hours[hourIdx];
-      const slots = times[hourIdx] ?? [];
+      const hourTimes = [...(times[hourIdx] ?? [])];
       if (hourIdx === -1) {
-        times.push([offerSlot]);
+        times.push([offerTime]);
       } else if (hour > offerHour) {
-        times.splice(hourIdx, 0, [offerSlot]);
-      } else if (offerTime < slots[0].startTime) {
-        if (slots.length < 3) {
-          slots.unshift(offerSlot);
+        times.splice(hourIdx, 0, [offerTime]);
+      } else if (offerTime < hourTimes[0]) {
+        if (hourTimes.length < 3) {
+          hourTimes.unshift(offerTime);
         } else {
-          slots[0] = offerSlot;
+          hourTimes[0] = offerTime;
         }
+        times[hourIdx] = hourTimes;
       }
       return times;
     }
@@ -95,29 +94,29 @@ export default function SelectReturnTime<B extends Offer['booking']>({
           <h3>More Available Times</h3>
           <table className="whitespace-nowrap">
             <tbody>
-              {times.map(slots => (
-                <tr key={slots[0].startTime}>
+              {times.map(times => (
+                <tr key={times[0]}>
                   <th
                     scope="row"
                     className="pt-3 pr-2 text-gray-500 text-sm font-semibold text-right uppercase"
                   >
-                    {formatTime(slots[0].startTime.slice(0, 2))}
+                    {formatTime(times[0].slice(0, 2))}
                   </th>
-                  {slots.map(slot => (
-                    <td className="pt-3 pr-3 text-center" key={slot.startTime}>
+                  {times.map(t => (
+                    <td className="pt-3 pr-3 text-center" key={t}>
                       <Button
                         onClick={() => {
                           loadData(async () => {
                             const newOffer =
-                              slot.startTime === offer.start.time
+                              t === offer.start.time
                                 ? offer
-                                : await ll.changeOfferTime(offer, slot);
+                                : await ll.changeOfferTime(offer, t);
                             await goBack();
                             onOfferChange(newOffer);
                           });
                         }}
                       >
-                        <Time>{slot.startTime}</Time>
+                        <Time>{t}</Time>
                       </Button>
                     </td>
                   ))}

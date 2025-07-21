@@ -1,5 +1,5 @@
 import { ll, modOffer, offer, renderResort, times } from '@/__fixtures__/ll';
-import { HourlySlots, Offer } from '@/api/ll';
+import { HourlyTimes, Offer } from '@/api/ll';
 import { formatTime } from '@/datetime';
 import { click, loading, nav, see } from '@/testing';
 
@@ -9,7 +9,7 @@ jest.useFakeTimers();
 const onOfferChange = jest.fn();
 
 async function renderComponent(
-  times: HourlySlots,
+  times: HourlyTimes,
   currentOffer: Offer = offer
 ) {
   jest.spyOn(ll, 'times').mockResolvedValueOnce(times);
@@ -26,7 +26,7 @@ async function renderComponent(
   return view;
 }
 
-async function addedOfferTime(times: HourlySlots) {
+async function addedOfferTime(times: HourlyTimes) {
   await renderComponent(times, modOffer);
   see(formatTime(offer.start.time), 'button');
 }
@@ -40,21 +40,17 @@ describe('SelectReturnTime', () => {
     await renderComponent(times);
     see('11 AM', 'rowheader');
     see('12 PM', 'rowheader');
-    for (const slots of times) {
-      for (const { startTime } of slots) {
-        see(formatTime(startTime), 'button');
-      }
-    }
-    const slot = times[1][1];
+    times.flat().forEach(t => see(formatTime(t), 'button'));
+    const time = '11:40:00';
     const newOffer = {
       ...offer,
       offerId: offer.id + '-new',
       offerSetId: offer.offerSetId + '-new',
-      start: { ...offer.start, time: slot.startTime },
-      end: { ...offer.end, time: slot.endTime },
+      start: { ...offer.start, time },
+      end: { ...offer.end, time: '12:40:00' },
     };
     jest.spyOn(ll, 'changeOfferTime').mockResolvedValueOnce(newOffer);
-    click(formatTime(slot.startTime));
+    click(formatTime(time));
     await loading();
     expect(nav.goBack).toHaveBeenCalledTimes(1);
     expect(onOfferChange).toHaveBeenCalledWith(newOffer);
@@ -73,25 +69,22 @@ describe('SelectReturnTime', () => {
   });
 
   it("doesn't replace earliest slot if offer time is later", async () => {
-    const startTime = '11:05:00';
-    await renderComponent(
-      [[{ startTime, endTime: '12:05:00' }, ...times[0].slice(1)], times[1]],
-      offer
-    );
-    see(formatTime(startTime), 'button');
+    const time = '11:05:00';
+    await renderComponent([[time, ...times[0].slice(1)], times[1]], offer);
+    see(formatTime(time), 'button');
     see.no(formatTime(offer.start.time), 'button');
   });
 
-  it('adds offer time button if 1-2 slots for this hour', async () => {
+  it('adds offer time button if 1-2 times for this hour', async () => {
     await addedOfferTime([times[0].slice(1), times[1]]);
-    for (const { startTime } of times[0]) see(formatTime(startTime), 'button');
+    times[0].slice(1).forEach(t => see(formatTime(t), 'button'));
   });
 
-  it('adds offer time if no slots for this hour', async () => {
+  it('adds offer time if no times for this hour', async () => {
     await addedOfferTime(times.slice(1));
   });
 
-  it('adds offer time if no other slots', async () => {
+  it('adds offer time if no other times', async () => {
     await addedOfferTime([]);
   });
 

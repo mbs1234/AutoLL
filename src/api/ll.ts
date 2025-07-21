@@ -138,12 +138,7 @@ export interface Offer<B = LLMP | undefined> {
   booking: B;
 }
 
-export interface Slot {
-  startTime: string;
-  endTime: string;
-}
-
-export type HourlySlots = Slot[][];
+export type HourlyTimes = string[][];
 
 export class ModifyNotAllowed extends Error {
   name = 'ModifyNotAllowed';
@@ -240,11 +235,11 @@ export abstract class LLClient extends ApiClient {
     options?: { date: string } | { booking?: B }
   ): Promise<Offer<B>>;
 
-  abstract times(offer: Offer): Promise<HourlySlots>;
+  abstract times(offer: Offer): Promise<HourlyTimes>;
 
   abstract changeOfferTime<B extends Offer['booking']>(
     offer: Offer<B>,
-    slot: Slot
+    time: string
   ): Promise<Offer<B>>;
 
   abstract book<B extends Offer['booking']>(

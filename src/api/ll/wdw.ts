@@ -5,7 +5,7 @@ import {
   Experience,
   Guest,
   Guests,
-  HourlySlots,
+  HourlyTimes,
   IneligibleReason,
   LLClient,
   LLMP,
@@ -13,7 +13,6 @@ import {
   OfferError,
   OfferExperience,
   OrderDetails,
-  Slot,
   throwOnNotModifiable,
 } from '../ll';
 import { InvalidId, Park } from '../resort';
@@ -224,10 +223,7 @@ export class LLClientWDW extends LLClient {
       parkMinutes(offer.start.time) - parkMinutes(nextAvailableTime) > 10
     ) {
       try {
-        offer = await this.changeOfferTime(offer, {
-          startTime: '08:00:00',
-          endTime: '08:00:00',
-        });
+        offer = await this.changeOfferTime(offer, nextAvailableTime);
         offer.changed = offer.start.time !== nextAvailableTime;
       } catch (error) {
         // Keep original offer
@@ -237,7 +233,7 @@ export class LLClientWDW extends LLClient {
     return this.updateLastOffer(offer);
   }
 
-  async times(offer: Offer): Promise<HourlySlots> {
+  async times(offer: Offer): Promise<HourlyTimes> {
     const { data } = await this.request<{
       hourSegmentGroups: {
         inventorySlotsAvailability: { startTime: string; endTime: string }[];
@@ -257,16 +253,13 @@ export class LLClientWDW extends LLClient {
       },
     });
     return data.hourSegmentGroups.map(group =>
-      group.inventorySlotsAvailability.map(({ startTime, endTime }) => ({
-        startTime,
-        endTime,
-      }))
+      group.inventorySlotsAvailability.map(s => s.startTime)
     );
   }
 
   async changeOfferTime<B extends Offer['booking']>(
     offer: Offer<B>,
-    slot: Slot
+    time: string
   ): Promise<Offer<B>> {
     const {
       data: { updatedPlanningOfferDisplayItem: newOffer },
@@ -287,7 +280,7 @@ export class LLClientWDW extends LLClient {
           : { offerSetIds: [offer.offerSetId] }),
         offerType: 'FLEX',
         guestIds: offer.guests.eligible.map(g => g.id),
-        targetSlot: slot,
+        targetSlot: { startTime: time, endTime: time },
         experienceIdsToIgnore: [],
       },
     });

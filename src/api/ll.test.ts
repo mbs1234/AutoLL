@@ -19,7 +19,7 @@ import {
   times,
   wdw,
 } from '@/__fixtures__/ll';
-import { modifyDate } from '@/datetime';
+import { DateTime, modifyDate } from '@/datetime';
 import kvdb from '@/kvdb';
 import { TODAY, TOMORROW, caught, setTime } from '@/testing';
 
@@ -458,8 +458,8 @@ describe('LLClientWDW', () => {
 
   describe('times()', () => {
     const timesRes = response({
-      hourSegmentGroups: times.map(slots => ({
-        inventorySlotsAvailability: slots,
+      hourSegmentGroups: times.map(times => ({
+        inventorySlotsAvailability: times.map(t => ({ startTime: t })),
       })),
     });
     const timesReq = {
@@ -487,20 +487,20 @@ describe('LLClientWDW', () => {
   });
 
   describe('changeOfferTime()', () => {
-    const slot = { startTime: '15:00:00', endTime: '16:00:00' };
+    const time = '15:00:00';
     const newOffer = {
       ...offer,
       id: 'changedOfferId',
       offerSetId: 'changedOfferSetId',
-      start: { date: TODAY, time: slot.startTime },
-      end: { date: TODAY, time: slot.endTime },
+      start: new DateTime(TODAY, time),
+      end: new DateTime(TODAY, '16:00:00'),
     };
     const changeRes = response({
       updatedPlanningOfferDisplayItem: {
         offerId: newOffer.id,
         offerSetId: newOffer.offerSetId,
-        startDateTime: `${TODAY}T${slot.startTime}`,
-        endDateTime: `${TODAY}T${slot.endTime}`,
+        startDateTime: `${newOffer.start}`,
+        endDateTime: `${newOffer.end}`,
       },
     });
     const changeReq = {
@@ -511,14 +511,14 @@ describe('LLClientWDW', () => {
         offerSetIds: [offer.offerSetId],
         offerType: 'FLEX',
         parkId: mk.id,
-        targetSlot: slot,
+        targetSlot: { startTime: time, endTime: time },
         experienceIdsToIgnore: [],
       },
     };
 
     it('changes offer time', async () => {
       respond(changeRes);
-      expect(await client.changeOfferTime(offer, slot)).toEqual(newOffer);
+      expect(await client.changeOfferTime(offer, time)).toEqual(newOffer);
       expectFetch(
         '/ea-vas/planning/api/v1/experiences/offerset/times/fulfill',
         changeReq
@@ -530,12 +530,12 @@ describe('LLClientWDW', () => {
         ...changeRes,
         data: { ...changeRes.data, conflict: 'ALTERNATIVE_TIME_FOUND' },
       });
-      expect(await client.changeOfferTime(offer, slot)).toEqual(newOffer);
+      expect(await client.changeOfferTime(offer, time)).toEqual(newOffer);
     });
 
     it('uses mod endpoint when modifying', async () => {
       respond(changeRes);
-      expect(await client.changeOfferTime(modOffer, slot)).toEqual({
+      expect(await client.changeOfferTime(modOffer, time)).toEqual({
         ...newOffer,
         booking,
       });

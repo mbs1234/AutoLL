@@ -6,7 +6,7 @@ import {
   ParkPass,
   Reservation,
 } from '@/api/itinerary';
-import { FlexExperience, Guest, HourlySlots, Offer } from '@/api/ll';
+import { FlexExperience, Guest, HourlyTimes, Offer } from '@/api/ll';
 import { DateTime } from '@/datetime';
 import { TODAY, TOMORROW } from '@/testing';
 
@@ -294,17 +294,9 @@ export const offer: Offer<undefined> = {
 
 export const modOffer: Offer<LLMP> = { ...offer, booking };
 
-export const times: HourlySlots = [
-  [
-    { startTime: '11:20:00', endTime: '12:20:00' },
-    { startTime: '11:40:00', endTime: '12:40:00' },
-    { startTime: '11:55:00', endTime: '12:55:00' },
-  ],
-  [
-    { startTime: '12:05:00', endTime: '13:05:00' },
-    { startTime: '12:25:00', endTime: '13:25:00' },
-    { startTime: '12:45:00', endTime: '13:45:00' },
-  ],
+export const times: HourlyTimes = [
+  ['11:20:00', '11:40:00', '11:55:00'],
+  ['12:05:00', '12:25:00', '12:45:00'],
 ];
 
 ll.nextBookTime = '11:00:00';
