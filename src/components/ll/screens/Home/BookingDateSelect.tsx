@@ -62,7 +62,7 @@ function CalendarMenu<K extends string, V>(props: MenuProps<K, V>) {
           </>
         )}
       </h4>
-      <table className="table-fixed border-separate border-spacing-[2px] w-full mt-2 font-semibold">
+      <table className="table-fixed border-separate border-spacing-0.5 w-full mt-2 font-semibold">
         <thead>
           <tr>
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (

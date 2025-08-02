@@ -54,7 +54,7 @@ export default function GuestList<T extends Guest>({
                     className="mr-3"
                   />
                 )}
-                <span className="w-[48px] h-[48px] leading-[48px] mr-3 rounded-full text-3xl font-bold text-center bg-gray-400 text-white">
+                <span className="w-12 h-12 leading-12 mr-3 rounded-full text-3xl font-bold text-center bg-gray-400 text-white">
                   {g.avatarImageUrl ? (
                     <img
                       src={g.avatarImageUrl}

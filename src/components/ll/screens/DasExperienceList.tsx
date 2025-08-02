@@ -85,7 +85,7 @@ function Sublist({
             <div className="flex-1 px-2">{exp.name}</div>
             <div className="px-2">
               <Button onClick={() => onSelect(exp)}>
-                <span className="min-w-[4rem]">
+                <span className="min-w-16">
                   {waitTime(exp.time, now)} <abbr title="minutes">min.</abbr>
                 </span>
               </Button>

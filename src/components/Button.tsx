@@ -33,7 +33,7 @@ export default function Button<P>(
         }
         if (onClick) await onClick();
       }}
-      className={`${cls} inline-flex items-center justify-center min-w-[36px] rounded-lg px-2 font-semibold disabled:opacity-50`}
+      className={`${cls} inline-flex items-center justify-center min-w-9 rounded-lg px-2 font-semibold disabled:opacity-50`}
       {...attrs}
     />
   );
