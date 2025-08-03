@@ -16,7 +16,7 @@ export function SelectMenu<K extends string, V = K>(props: MenuProps<K, V>) {
             className="border-t-2 first:border-0 border-gray-300"
             key={opt.text}
           >
-            <label className="flex flex-row items-center gap-x-2.5 px-4 py-3">
+            <label className="flex items-center gap-x-2.5 px-4 py-3">
               <input
                 type="radio"
                 name="_SELECT_RADIO_BUTTON_"

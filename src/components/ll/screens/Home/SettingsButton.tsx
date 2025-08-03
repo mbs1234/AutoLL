@@ -63,7 +63,7 @@ export default function SettingsButton() {
                   key={opt.text}
                 >
                   <button
-                    className="flex flex-row items-center w-full px-4 py-3"
+                    className="flex items-center w-full px-4 py-3"
                     onClick={() => {
                       showMenu(false);
                       setTimeout(opt.action, 50);

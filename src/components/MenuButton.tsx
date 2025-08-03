@@ -147,7 +147,7 @@ export default function MenuButton<K, V>(props: MenuButtonProps<K, V>) {
           data-testid="shade"
         >
           <div
-            className={`flex flex-col min-w-[min(50%,400px)] max-w-[400px] max-h-[90%] rounded-lg bg-white text-black`}
+            className={`min-w-[min(50%,400px)] max-w-[400px] max-h-[90%] rounded-lg bg-white text-black`}
           >
             {title && (
               <h3
