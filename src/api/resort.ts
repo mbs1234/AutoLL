@@ -1,18 +1,32 @@
 import { ParkTime } from '@/datetime';
 
+export class Theme {
+  readonly color;
+  readonly bg;
+  readonly text;
+
+  constructor(color: string) {
+    this.color = `var(--color-${color})`;
+    this.bg = `bg-${color}`;
+    this.text = `text-${color}-d`;
+  }
+}
+
 export interface Park {
   id: string;
   name: string;
   icon: string;
   geo: { n: number; s: number; e: number; w: number };
-  theme: { bg: string; text: string };
+  color: string;
+  theme: Theme;
   dropTimes: ParkTime[];
 }
 
 export interface Land {
   name: string;
   sort: number;
-  theme: { bg: string; text: string };
+  color: string;
+  theme: Theme;
   park: Park;
 }
 
@@ -32,8 +46,8 @@ export interface Experience {
   highlight?: boolean;
 }
 
-type ParkData = Omit<Park, 'dropTimes'>;
-type LandData = Omit<Land, 'park'> & { park: ParkData };
+type ParkData = Omit<Park, 'dropTimes' | 'theme'>;
+type LandData = Omit<Land, 'park' | 'theme'> & { park: ParkData };
 export type ExperienceData = Omit<
   Experience,
   'id' | 'land' | 'park' | 'dropTimes'
@@ -75,12 +89,14 @@ export class Resort {
       const exp = expData as Experience;
       exp.id = id;
       exp.park = exp.land.park;
+      if (!exp.land.theme) exp.land.theme = new Theme(exp.land.color);
       if (expData.dropTimes) {
         exp.dropTimes = expData.dropTimes.map(ParkTime.from);
         this.dropExpsByPark.get(exp.land.park)?.push(exp);
       }
     }
     for (const park of this.parks) {
+      park.theme = new Theme(park.color);
       park.dropTimes = [
         ...new Map(
           this.dropExpsByPark

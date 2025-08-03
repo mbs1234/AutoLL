@@ -63,8 +63,8 @@ export default function BookingListing({
       </div>
       {button && <div className="flex gap-x-3 items-center">{button}</div>}
       {details && (
-        <button className={theme.text} title="More Info">
-          <ChevronRightIcon />
+        <button title="More Info">
+          <ChevronRightIcon themed />
         </button>
       )}
     </div>

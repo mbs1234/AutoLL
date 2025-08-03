@@ -1,8 +1,27 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-white: #f8f8f8;
-  --color-blue-500: #5271ff;
+  --color-bg1-blue: #5271ff;
+  --color-bg1-blue-d: oklch(53% 0.21 270);
+  --color-blue: oklch(54% 0.23 270);
+  --color-blue-d: oklch(46% 0.23 270);
+  --color-cyan: oklch(60% 0.12 214);
+  --color-cyan-d: oklch(52% 0.12 214);
+  --color-fuchsia: oklch(60% 0.27 326);
+  --color-fuchsia-d: oklch(52% 0.27 326);
+  --color-gold: oklch(62% 0.12 90);
+  --color-gold-d: oklch(54% 0.12 90);
+  --color-gray: oklch(40% 0 0);
+  --color-gray-d: oklch(32% 0 0);
+  --color-green: oklch(58% 0.18 142);
+  --color-green-d: oklch(50% 0.18 142);
+  --color-orange: oklch(62% 0.2 56);
+  --color-orange-d: oklch(54% 0.2 56);
+  --color-purple: oklch(54% 0.23 300);
+  --color-purple-d: oklch(46% 0.23 300);
+  --color-red: oklch(58% 0.22 28);
+  --color-red-d: oklch(50% 0.22 28);
+
   --breakpoint-xs: 360px;
 }
 
@@ -63,6 +82,6 @@
   }
 
   a {
-    @apply text-blue-500 underline;
+    @apply text-bg1-blue underline;
   }
 }

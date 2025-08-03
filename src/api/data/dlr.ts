@@ -10,7 +10,7 @@ const dl = {
     e: -117.9155825,
     w: -117.9243814,
   },
-  theme: { bg: 'bg-pink-600', text: 'text-pink-600' },
+  color: 'fuchsia',
 };
 const ca = {
   id: '336894',
@@ -22,7 +22,7 @@ const ca = {
     e: -117.9155825,
     w: -117.9243814,
   },
-  theme: { bg: 'bg-yellow-600', text: 'text-yellow-600' },
+  color: 'gold',
 };
 
 export const parks: ResortData['parks'] = [dl, ca];
@@ -31,55 +31,55 @@ export const parks: ResortData['parks'] = [dl, ca];
 const mainStreet = {
   name: 'Main Street, USA',
   sort: 1,
-  theme: { bg: 'bg-red-600', text: 'text-red-700' },
+  color: 'red',
   park: dl,
 };
 const adventureland = {
   name: 'Adventureland',
   sort: 2,
-  theme: { bg: 'bg-lime-600', text: 'text-lime-700' },
+  color: 'green',
   park: dl,
 };
 const newOrleans = {
   name: 'New Orleans Square',
   sort: 3,
-  theme: { bg: 'bg-indigo-600', text: 'text-indigo-700' },
+  color: 'purple',
   park: dl,
 };
 const bayou = {
   name: 'Bayou Country',
   sort: 4,
-  theme: { bg: 'bg-orange-600', text: 'text-orange-700' },
+  color: 'blue',
   park: dl,
 };
 const starWars = {
   name: "Star Wars: Galaxy's Edge",
   sort: 5,
-  theme: { bg: 'bg-gray-600', text: 'text-gray-700' },
+  color: 'gray',
   park: dl,
 };
 const frontierland = {
   name: 'Frontierland',
   sort: 6,
-  theme: { bg: 'bg-yellow-600', text: 'text-yellow-700' },
+  color: 'gold',
   park: dl,
 };
 const fantasyland = {
   name: 'Fantasyland',
   sort: 7,
-  theme: { bg: 'bg-pink-600', text: 'text-pink-700' },
+  color: 'fuchsia',
   park: dl,
 };
 const toontown = {
   name: "Mickey's Toontown",
   sort: 8,
-  theme: { bg: 'bg-purple-600', text: 'text-purple-700' },
+  color: 'orange',
   park: dl,
 };
 const tomorrowland = {
   name: 'Tomorrowland',
   sort: 9,
-  theme: { bg: 'bg-cyan-600', text: 'text-cyan-700' },
+  color: 'cyan',
   park: dl,
 };
 
@@ -87,43 +87,43 @@ const tomorrowland = {
 const buenaVista = {
   name: 'Buena Vista Street',
   sort: 1,
-  theme: { bg: 'bg-orange-600', text: 'text-orange-700' },
+  color: 'orange',
   park: ca,
 };
 const hollywood = {
   name: 'Hollywood Land',
   sort: 2,
-  theme: { bg: 'bg-pink-600', text: 'text-pink-700' },
+  color: 'fuchsia',
   park: ca,
 };
 const avengers = {
   name: 'Avengers Campus',
   sort: 3,
-  theme: { bg: 'bg-gray-600', text: 'text-gray-700' },
+  color: 'gray',
   park: ca,
 };
 const cars = {
   name: 'Cars Land',
   sort: 4,
-  theme: { bg: 'bg-red-600', text: 'text-red-700' },
+  color: 'red',
   park: ca,
 };
 const pixar = {
   name: 'Pixar Pier',
   sort: 6,
-  theme: { bg: 'bg-yellow-600', text: 'text-yellow-700' },
+  color: 'gold',
   park: ca,
 };
 const grizzly = {
   name: 'Grizzly Peak',
   sort: 7,
-  theme: { bg: 'bg-[#c4602c]', text: 'text-[#c4602c]' },
+  color: 'green',
   park: ca,
 };
 const paradise = {
   name: 'Paradise Gardens Park',
   sort: 8,
-  theme: { bg: 'bg-lime-600', text: 'text-lime-700' },
+  color: 'cyan',
   park: ca,
 };
 

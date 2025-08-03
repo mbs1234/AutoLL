@@ -70,7 +70,7 @@ export default function GuestList<T extends Guest>({
                 <span className="leading-tight">
                   {g.name}
                   {conflicts?.[g.id] && (
-                    <span className="block text-xs font-semibold text-red-700 uppercase">
+                    <span className="block text-xs font-semibold text-red-d uppercase">
                       {conflicts[g.id]?.replace(/_/g, ' ')}
                     </span>
                   )}

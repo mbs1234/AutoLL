@@ -21,7 +21,7 @@ export default function TimeBoard({
             <>
               <Clock onSync={setSynced} />
               {!synced && (
-                <span className="text-sm font-sans font-semibold text-red-600">
+                <span className="text-sm font-sans font-semibold text-red">
                   {' '}
                   (unsynced)
                 </span>

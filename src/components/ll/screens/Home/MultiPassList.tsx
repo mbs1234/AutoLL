@@ -18,6 +18,7 @@ import { DateTime, parkDate, upcomingTimes } from '@/datetime';
 import useSavedParty from '@/hooks/useSavedParty';
 import CheckmarkIcon from '@/icons/CheckmarkIcon';
 import DropIcon from '@/icons/DropIcon';
+import { IconProps } from '@/icons/Icon';
 import LightningIcon from '@/icons/LightningIcon';
 import StarIcon from '@/icons/StarIcon';
 import kvdb from '@/kvdb';
@@ -254,19 +255,19 @@ const Experiences = memo(function Experiences({
         <>
           <Legend>
             <Symbol
-              sym={<LightningIcon className={theme.text} />}
+              sym={<LightningIcon themed />}
               def={LIGHTNING_PICK}
               onInfo={showLightningPickDesc}
             />
             {park.dropTimes.length > 0 && (
               <Symbol
-                sym={<DropIcon className={theme.text} />}
+                sym={<DropIcon themed />}
                 def={UPCOMING_DROP}
                 onInfo={showDropTimeDesc}
               />
             )}
             <Symbol
-              sym={<CheckmarkIcon className={theme.text} />}
+              sym={<CheckmarkIcon themed />}
               def={BOOKED}
               onInfo={showBookedDesc}
             />
@@ -300,18 +301,17 @@ function InfoButton({
   className,
 }: {
   name: string;
-  icon: React.FunctionComponent;
+  icon: React.FunctionComponent<IconProps>;
   onClick: () => void;
   className?: string;
 }) {
-  const theme = use(ThemeContext);
   return (
     <button
       title={`${name} (more info)`}
-      className={`-mx-2 px-2 ${theme.text} ${className}`}
+      className={`-mx-2 px-2 ${className ?? ''}`}
       onClick={onClick}
     >
-      <Icon />
+      <Icon themed />
     </button>
   );
 }
@@ -323,14 +323,13 @@ function StarButton({
   experience: ExtFlexExp;
   toggleStar: (exp: ExtFlexExp) => void;
 }) {
-  const theme = use(ThemeContext);
   return (
     <button
       title={`${experience.starred ? 'Remove from' : 'Add to'} Favorites`}
-      className="-m-2 p-2"
+      className="-m-2 p-2 text-gray-300"
       onClick={() => toggleStar(experience)}
     >
-      <StarIcon className={experience.starred ? theme.text : 'text-gray-300'} />
+      <StarIcon themed={experience.starred} />
     </button>
   );
 }

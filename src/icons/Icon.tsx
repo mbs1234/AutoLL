@@ -1,11 +1,17 @@
+import { use } from 'react';
+
+import ThemeContext from '@/contexts/ThemeContext';
+
 export interface IconProps {
   className?: string;
+  themed?: boolean;
   title?: string;
 }
 
 export default function Icon({
   children,
   className,
+  themed,
   title,
 }: IconProps & { children: React.ReactNode }) {
   className ||= '';
@@ -14,7 +20,7 @@ export default function Icon({
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      fill="currentColor"
+      fill={themed ? use(ThemeContext).color : 'currentColor'}
       viewBox="0 0 16 16"
       className={`mx-auto ${className}`}
       role="img"

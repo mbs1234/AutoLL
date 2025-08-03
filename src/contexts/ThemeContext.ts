@@ -1,13 +1,13 @@
 import { createContext } from 'react';
 
-export interface Theme {
-  bg: string;
-  text: string;
-}
+import { Theme } from '@/api/resort';
+
+export { Theme };
 
 export const DEFAULT_THEME = {
-  bg: 'bg-blue-500',
-  text: 'text-blue-500',
-} as const;
+  bg: `bg-bg1-blue`,
+  text: 'text-bg1-blue-d',
+  color: `var(--color-bg1-blue)`,
+};
 
 export default createContext<Theme>(DEFAULT_THEME);

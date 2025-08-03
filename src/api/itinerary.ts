@@ -250,7 +250,8 @@ export class ItineraryClient extends ApiClient {
         name: (assets[facilityAsset.land ?? ''] ?? {}).name ?? '',
         park,
         sort: 0,
-        theme: { bg: '', text: '' },
+        color: '',
+        theme: { bg: '', text: '', color: '' },
       };
       const parkAsset = assets[parkIdStr];
       if (park.name === '' && parkIdStr && parkAsset) {
@@ -459,7 +460,13 @@ export class ItineraryClient extends ApiClient {
     } catch (error) {
       if (!(error instanceof InvalidId && parkId)) throw error;
       const park = this.park(parkId);
-      const land = { name: '', sort: 0, theme: { bg: '', text: '' }, park };
+      const land = {
+        name: '',
+        sort: 0,
+        color: '',
+        theme: { bg: '', text: '', color: '' },
+        park,
+      };
       exp = { id, name, park, land, type: 'A' };
     }
     return {
@@ -482,6 +489,7 @@ export class ItineraryClient extends ApiClient {
           name: '',
           icon: '',
           geo: { n: 0, s: 0, e: 0, w: 0 },
+          color: '',
           theme: DEFAULT_THEME,
           dropTimes: [],
         };

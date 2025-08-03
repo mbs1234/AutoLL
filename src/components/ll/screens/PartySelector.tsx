@@ -62,7 +62,7 @@ export default function PartySelector() {
       </ul>
 
       {auto ? null : guests?.length === 0 ? (
-        <p className="text-red-700">No guests to select</p>
+        <p className="text-red-d">No guests to select</p>
       ) : partyGuests && nonpartyGuests ? (
         <>
           {partyGuests.length > 0 && (

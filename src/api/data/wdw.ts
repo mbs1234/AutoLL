@@ -10,7 +10,7 @@ const mk = {
     e: -81.575,
     w: -81.586,
   },
-  theme: { bg: 'bg-fuchsia-600', text: 'text-fuchsia-700' },
+  color: 'fuchsia',
 };
 const ep = {
   id: '80007838',
@@ -22,7 +22,7 @@ const ep = {
     e: -81.545,
     w: -81.555,
   },
-  theme: { bg: 'bg-indigo-600', text: 'text-indigo-700' },
+  color: 'blue',
 };
 const hs = {
   id: '80007998',
@@ -34,7 +34,7 @@ const hs = {
     e: -81.557,
     w: -81.564,
   },
-  theme: { bg: 'bg-orange-600', text: 'text-orange-700' },
+  color: 'orange',
 };
 const ak = {
   id: '80007823',
@@ -46,7 +46,7 @@ const ak = {
     e: -81.585,
     w: -81.597,
   },
-  theme: { bg: 'bg-green-600', text: 'text-green-700' },
+  color: 'green',
 };
 
 export const parks: ResortData['parks'] = [mk, ep, hs, ak];
@@ -55,37 +55,37 @@ export const parks: ResortData['parks'] = [mk, ep, hs, ak];
 const mainStreet = {
   name: 'Main Street, USA',
   sort: 1,
-  theme: { bg: 'bg-red-600', text: 'text-red-700' },
+  color: 'red',
   park: mk,
 };
 const adventureland = {
   name: 'Adventureland',
   sort: 2,
-  theme: { bg: 'bg-green-600', text: 'text-green-700' },
+  color: 'green',
   park: mk,
 };
 const frontierland = {
   name: 'Frontierland',
   sort: 3,
-  theme: { bg: 'bg-yellow-600', text: 'text-yellow-700' },
+  color: 'gold',
   park: mk,
 };
 const libertySquare = {
   name: 'Liberty Square',
   sort: 4,
-  theme: { bg: 'bg-indigo-600', text: 'text-indigo-700' },
+  color: 'blue',
   park: mk,
 };
 const fantasyland = {
   name: 'Fantasyland',
   sort: 5,
-  theme: { bg: 'bg-pink-600', text: 'text-pink-700' },
+  color: 'fuchsia',
   park: mk,
 };
 const tomorrowland = {
   name: 'Tomorrowland',
   sort: 6,
-  theme: { bg: 'bg-cyan-600', text: 'text-cyan-700' },
+  color: 'cyan',
   park: mk,
 };
 
@@ -93,25 +93,25 @@ const tomorrowland = {
 const celebration = {
   name: 'World Celebration',
   sort: 1,
-  theme: { bg: 'bg-indigo-600', text: 'text-indigo-700' },
+  color: 'blue',
   park: ep,
 };
 const discovery = {
   name: 'World Discovery',
   sort: 2,
-  theme: { bg: 'bg-red-600', text: 'text-red-700' },
+  color: 'fuchsia',
   park: ep,
 };
 const nature = {
   name: 'World Nature',
   sort: 3,
-  theme: { bg: 'bg-green-600', text: 'text-green-700' },
+  color: 'green',
   park: ep,
 };
 const showcase = {
   name: 'World Showcase',
   sort: 4,
-  theme: { bg: 'bg-yellow-600', text: 'text-yellow-700' },
+  color: 'gold',
   park: ep,
 };
 
@@ -119,43 +119,43 @@ const showcase = {
 const hollywood = {
   name: 'Hollywood & Sunset',
   sort: 1,
-  theme: { bg: 'bg-orange-600', text: 'text-orange-700' },
+  color: 'orange',
   park: hs,
 };
 const animation = {
   name: 'Animation Courtyard',
   sort: 2,
-  theme: { bg: 'bg-fuchsia-600', text: 'text-fuchsia-700' },
+  color: 'fuchsia',
   park: hs,
 };
 const pixar = {
   name: 'Pixar Plaza',
   sort: 3,
-  theme: { bg: 'bg-yellow-600', text: 'text-yellow-700' },
+  color: 'gold',
   park: hs,
 };
 const toyStory = {
   name: 'Toy Story Land',
   sort: 4,
-  theme: { bg: 'bg-green-600', text: 'text-green-700' },
+  color: 'green',
   park: hs,
 };
 const starWars = {
   name: "Star Wars: Galaxy's Edge",
   sort: 5,
-  theme: { bg: 'bg-gray-600', text: 'text-gray-700' },
+  color: 'gray',
   park: hs,
 };
 const commissary = {
   name: 'Commissary Lane',
   sort: 6,
-  theme: { bg: 'bg-red-600', text: 'text-red-700' },
+  color: 'red',
   park: hs,
 };
 const echoLake = {
   name: 'Echo Lake',
   sort: 7,
-  theme: { bg: 'bg-indigo-600', text: 'text-indigo-700' },
+  color: 'blue',
   park: hs,
 };
 
@@ -163,37 +163,37 @@ const echoLake = {
 const discIsland = {
   name: 'Discovery Island',
   sort: 1,
-  theme: { bg: 'bg-green-600', text: 'text-green-700' },
+  color: 'green',
   park: ak,
 };
 const pandora = {
   name: 'Pandora',
   sort: 2,
-  theme: { bg: 'bg-cyan-600', text: 'text-cyan-700' },
+  color: 'cyan',
   park: ak,
 };
 const africa = {
   name: 'Africa',
   sort: 3,
-  theme: { bg: 'bg-yellow-600', text: 'text-yellow-700' },
+  color: 'gold',
   park: ak,
 };
 const rafikis = {
   name: "Rafiki's Planet Watch",
   sort: 4,
-  theme: { bg: 'bg-orange-600', text: 'text-orange-700' },
+  color: 'purple',
   park: ak,
 };
 const asia = {
   name: 'Asia',
   sort: 5,
-  theme: { bg: 'bg-red-600', text: 'text-red-700' },
+  color: 'red',
   park: ak,
 };
 const dinoland = {
   name: 'Dinoland USA',
   sort: 6,
-  theme: { bg: 'bg-purple-600', text: 'text-purple-700' },
+  color: 'blue',
   park: ak,
 };
 
