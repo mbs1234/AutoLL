@@ -156,7 +156,7 @@ const Experiences = memo(function Experiences({
     experiences: ExtFlexExp[];
     type: string;
   }) => (
-    <ul data-testid={type}>
+    <ul className="dividers" data-testid={type}>
       {experiences.map(exp => {
         const nextDropTime = isBookingToday
           ? upcomingTimes(exp.dropTimes ?? [])[0]
@@ -164,11 +164,8 @@ const Experiences = memo(function Experiences({
             ? dropTime
             : null;
         return (
-          <li
-            className="pb-3 first:border-0 border-t-4 border-gray-300"
-            key={exp.id + (exp.starred ? '*' : '')}
-          >
-            <div className="flex items-center gap-x-2 mt-2">
+          <li key={exp.id + (exp.starred ? '*' : '')}>
+            <div className="flex items-center gap-x-2">
               <StarButton experience={exp} toggleStar={toggleStar} />
               <h3 className="flex-1 mt-0 text-lg font-semibold leading-tight truncate">
                 {exp.name}

@@ -28,12 +28,9 @@ export default function YourDay({
       theme={parks[0]?.theme}
     >
       {nonAprPlans && nonAprPlans.length > 0 ? (
-        <ul>
+        <ul className="dividers">
           {nonAprPlans.map(b => (
-            <li
-              className="py-3 first:border-0 border-t-4 border-gray-300"
-              key={b.id}
-            >
+            <li key={b.id}>
               <BookingListing
                 details
                 booking={b}

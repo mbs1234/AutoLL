@@ -70,12 +70,9 @@ const PlansList = memo(function PlansList({ plans }: { plans: Booking[] }) {
               </div>
             </div>
             {plans.length > 0 ? (
-              <ul className={plans.length === 0 ? 'mt-3' : ''}>
+              <ul className={`dividers ${plans.length === 0 ? 'mt-3' : ''}`}>
                 {plans.map(booking => (
-                  <li
-                    className="py-3 first:border-0 border-t-4 border-gray-300"
-                    key={booking.id}
-                  >
+                  <li key={booking.id} data-testid="plan">
                     <BookingListing details booking={booking} />
                   </li>
                 ))}

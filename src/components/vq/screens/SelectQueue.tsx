@@ -57,12 +57,9 @@ export default function SelectQueue() {
       }
     >
       {!queues ? null : queues.length > 0 ? (
-        <ul className="mt-1">
+        <ul className="dividers mt-1">
           {queues.map(q => (
-            <li
-              key={q.id}
-              className="py-3 first:border-0 border-t-4 border-gray-300"
-            >
+            <li key={q.id}>
               <h2 className="mt-0">{q.name}</h2>
               <div className="flex items-center mt-2">
                 <div className="flex-1">

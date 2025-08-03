@@ -27,9 +27,7 @@ describe('Plans', () => {
     click('Refresh Plans');
     expect(refreshPlans).toHaveBeenCalledTimes(1);
 
-    const planLIs = (await screen.findAllByRole('listitem')).filter(li =>
-      li.classList.contains('border-t-4')
-    );
+    const planLIs = await screen.findAllByTestId('plan');
     see('Today, October 1');
     bookings
       .filter(b => b.type !== 'APR')

@@ -53,17 +53,14 @@ export default function SettingsButton() {
           data-testid="shade"
         >
           <ul
-            className="overflow-auto min-w-[50%] max-h-[90%] rounded-lg bg-white text-black text-lg font-normal"
+            className="dividers overflow-auto min-w-[50%] max-h-[90%] rounded-lg bg-white text-black text-lg font-normal"
             ref={listRef}
           >
             {options.map(opt => {
               return (
-                <li
-                  className="border-t-2 first:border-0 border-gray-300"
-                  key={opt.text}
-                >
+                <li key={opt.text}>
                   <button
-                    className="flex items-center w-full px-4 py-3"
+                    className="flex items-center w-full px-4"
                     onClick={() => {
                       showMenu(false);
                       setTimeout(opt.action, 50);

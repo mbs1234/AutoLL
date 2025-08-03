@@ -9,14 +9,11 @@ export default function Select<K extends string, V = K>(
 export function SelectMenu<K extends string, V = K>(props: MenuProps<K, V>) {
   const { options, selected } = props;
   return (
-    <ul className="overflow-auto">
+    <ul className="dividers overflow-auto">
       {[...options].map(([k, opt]) => {
         return (
-          <li
-            className="border-t-2 first:border-0 border-gray-300"
-            key={opt.text}
-          >
-            <label className="flex items-center gap-x-2.5 px-4 py-3">
+          <li key={opt.text}>
+            <label className="flex items-center gap-x-2.5 px-4">
               <input
                 type="radio"
                 name="_SELECT_RADIO_BUTTON_"
