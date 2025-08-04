@@ -749,7 +749,7 @@ describe('LLClientDLR', () => {
   });
 
   describe('offer()', () => {
-    const dlrOffer = { ...offer, offerSetId: undefined };
+    const dlrOffer = { ...offer, offerSetId: undefined, parkHours: undefined };
     const offerData = {
       id: offer.id,
       date: offer.start.date,

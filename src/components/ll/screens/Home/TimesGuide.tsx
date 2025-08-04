@@ -118,7 +118,7 @@ const Experiences = memo(function Experiences({
       ))}
       {experiences.length > 0 && (
         <>
-          <Legend>
+          <Legend title="Symbols">
             <Symbol sym="–" def="No posted wait/show time" />
             <Symbol sym="❌" def="Temporarily down" />
             <Symbol sym="VQ" def="Virtual queue" />

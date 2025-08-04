@@ -168,7 +168,7 @@ describe('BookExperience', () => {
     expect(ll.offer).toHaveBeenCalledTimes(1);
     click('More Info');
     await see.screen('Your Lightning Lane');
-    mockOffer({ ...offer });
+    mockOffer({ ...offer, id: 'offer2' });
     click('Change');
     await see.screen('Select Return Time');
     await goBack('Your Lightning Lane');
@@ -210,6 +210,7 @@ describe('BookExperience', () => {
     },
     experience: hm,
     booking: undefined,
+    itinerary: [],
   };
 
   it('refreshes offer when Refresh button clicked', async () => {

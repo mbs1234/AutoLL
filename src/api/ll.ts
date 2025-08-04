@@ -160,8 +160,12 @@ export interface GuestsResponse {
 
 export type OfferExperience = Omit<Experience, 'standby'>;
 
+interface Overlap {
+  contains: (time: ParkTime) => boolean;
+}
+
 export interface OfferItineraryItem {
-  overlap: { startTime: ParkTime; endTime: ParkTime };
+  overlap: Overlap;
   facilityId: string;
   startTime: ParkTime;
   endTime?: ParkTime;
@@ -181,6 +185,8 @@ export interface Offer<B = LLMP | undefined> {
     ineligible: Guest[];
   };
   experience: OfferExperience;
+  itinerary: OfferItineraryItem[];
+  parkHours?: { openTime: ParkTime; closeTime: ParkTime };
   offerSetId?: string;
   booking: B;
 }

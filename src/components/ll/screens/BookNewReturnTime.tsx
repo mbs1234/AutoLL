@@ -15,6 +15,7 @@ import useDataLoader from '@/hooks/useDataLoader';
 import { ping } from '@/ping';
 
 import BookingDate from '../BookingDate';
+import OverlappingPlans from '../OverlappingPlans';
 import RebookingHeader from '../RebookingHeader';
 import ReturnTime from '../ReturnTime';
 import YourDayButton from '../YourDayButton';
@@ -79,6 +80,7 @@ export default function BookNewReturnTime({
           </Button>
         }
       />
+      <OverlappingPlans offer={offer} />
       <h3>Your Party</h3>
       <GuestList guests={offer.guests.eligible} />
       {loaderElem}

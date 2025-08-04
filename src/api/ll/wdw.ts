@@ -12,7 +12,9 @@ import {
   Offer,
   OfferError,
   OfferExperience,
+  OfferItineraryItem,
   OrderDetails,
+  replaceTimeStrings,
   throwOnNotModifiable,
 } from '../ll';
 import { InvalidId, Park } from '../resort';
@@ -46,7 +48,6 @@ export interface OfferItem extends OfferSetItineraryItem {
   offerSetId: string;
   offerId: string;
   offerType: 'FLEX';
-  conflict?: 'ALTERNATIVE_TIME_FOUND';
   endDateTime: string;
   endTime: string;
 }
@@ -98,6 +99,25 @@ export interface ModBookingResponse {
     guests: { entitlementId: string; guestId: string }[];
   };
   party: GuestsResponse;
+}
+
+export class Overlap {
+  protected startTime;
+  protected endTime;
+
+  constructor(
+    item: Pick<OfferItineraryItem, 'startTime' | 'endTime' | 'showTimeInfo'>
+  ) {
+    const startTime = ParkTime.from(item.startTime);
+    this.startTime = startTime.add({ minutes: -40 });
+    this.endTime = item.showTimeInfo
+      ? ParkTime.from(item.showTimeInfo.showEndTime).add({ minutes: -20 })
+      : startTime.add({ minutes: item.endTime ? 40 : 60 });
+  }
+
+  contains(time: ParkTime) {
+    return time > this.startTime && time < this.endTime;
+  }
 }
 
 export class LLClientWDW extends LLClient {
@@ -195,9 +215,31 @@ export class LLClientWDW extends LLClient {
       },
     });
     const party = this.parseGuestData(data.party);
-    const offerItem = (data.itinerary ?? {}).items?.find(
-      item => item.type === 'OFFER_ITEM'
-    );
+
+    let offerItem: OfferItem | undefined;
+    const itinerary: Offer['itinerary'] = [];
+    let openTime: ParkTime | undefined;
+    let closeTime: ParkTime | undefined;
+    for (const item of (data.itinerary ?? {}).items ?? []) {
+      switch (item.type) {
+        case 'EXISTING_ITEM': {
+          const newItem = replaceTimeStrings(item);
+          itinerary.push({ ...newItem, overlap: new Overlap(newItem) });
+          break;
+        }
+        case 'EVENT_ITEM':
+          if (item.eventType === 'PARK_OPEN') {
+            openTime = ParkTime.from(item.startTime);
+          } else if (item.eventType === 'PARK_CLOSE') {
+            closeTime = ParkTime.from(item.startTime);
+          }
+          break;
+        case 'OFFER_ITEM':
+          if (item.facilityId === experience.id) offerItem = item;
+          break;
+      }
+    }
+
     if (!offerItem) throw new OfferError(party);
     const { offerSetId, offerId, startDateTime, endDateTime } = offerItem;
     const guestsById = Object.fromEntries(guests.map(g => [g.id, g]));
@@ -212,6 +254,8 @@ export class LLClientWDW extends LLClient {
         ineligible: party.ineligible,
       },
       booking: booking as B,
+      itinerary,
+      parkHours: openTime && closeTime ? { openTime, closeTime } : undefined,
     };
     // When you already have two LLs booked, the system tries to place your
     // third LL in between them rather than offering you the earliest available
@@ -236,7 +280,7 @@ export class LLClientWDW extends LLClient {
   async times(offer: Offer): Promise<HourlyTimes> {
     const { data } = await this.request<{
       hourSegmentGroups: {
-        inventorySlotsAvailability: { startTime: string; endTime: string }[];
+        inventorySlotsAvailability: { startTime: string }[];
       }[];
     }>({
       path: `/ea-vas/planning/api/v1/experiences${offer.booking ? '/mod' : ''}/offerset/times`,

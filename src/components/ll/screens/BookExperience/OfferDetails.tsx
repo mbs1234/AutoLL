@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
 
+import OverlappingPlans from '../../OverlappingPlans';
 import ReturnTime from '../../ReturnTime';
 import SelectReturnTime from '../SelectReturnTime';
 import PartyList from './PartyList';
@@ -44,6 +45,7 @@ export default function OfferDetails({
         />
       </div>
       {offer.changed && <Alert title="Return Time Changed" />}
+      {<OverlappingPlans offer={offer} />}
       <PartyList />
     </>
   );

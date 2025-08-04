@@ -74,8 +74,13 @@ export class ParkTime {
     );
   }
 
-  equals(other: ParkTimeable) {
-    return +this === +ParkTime.from(other);
+  equals(other: unknown) {
+    try {
+      return +this === +ParkTime.from(other as ParkTimeable);
+    } catch (error) {
+      if (error instanceof TypeError) return false;
+      throw error;
+    }
   }
 
   toString() {

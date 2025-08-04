@@ -250,7 +250,7 @@ const Experiences = memo(function Experiences({
       )}
       {flexExps.length > 0 && (
         <>
-          <Legend>
+          <Legend title="Symbols">
             <Symbol
               sym={<LightningIcon themed />}
               def={LIGHTNING_PICK}
@@ -396,7 +396,7 @@ function DropTimeDesc({
                     <ul className="flex flex-wrap gap-y-2 mt-1 leading-tight">
                       {exp.dropTimes?.map(time => {
                         const isNextDrop =
-                          isBookingToday && time === nextDropTime;
+                          isBookingToday && time.equals(nextDropTime);
                         return (
                           <li className="min-w-[6em] text-center" key={+time}>
                             <div

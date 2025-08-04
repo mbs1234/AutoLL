@@ -294,6 +294,8 @@ export const offer: Offer<undefined> = {
   },
   experience: hm,
   booking: undefined,
+  itinerary: [],
+  parkHours: { openTime: new ParkTime(9), closeTime: new ParkTime(21) },
 };
 
 export const modOffer: Offer<LLMP> = { ...offer, booking };

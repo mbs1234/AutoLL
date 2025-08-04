@@ -46,7 +46,7 @@ export default function BookExperience({
 
   useEffect(() => {
     if (!isActiveScreen) return;
-    setOffer(offer => (offer && offer !== ll.lastOffer ? undefined : offer));
+    setOffer(offer => (offer?.id !== ll.lastOffer?.id ? undefined : offer));
   }, [isActiveScreen, ll]);
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function BookExperience({
 
   const refreshOffer = useCallback(
     (first = false) => {
-      if (!isActiveScreen || !party || party.selected.length === 0) return;
+      if (!party || party.selected.length === 0) return;
 
       function updateParty({ guests }: Pick<Offer, 'guests'>) {
         setParty(party => ({
@@ -175,7 +175,7 @@ export default function BookExperience({
         }
       );
     },
-    [ll, experience, party, bookingDate, rebooking, isActiveScreen, loadData]
+    [ll, experience, party, bookingDate, rebooking, loadData]
   );
 
   useEffect(() => {

@@ -112,6 +112,7 @@ export class LLClientDLR extends LLClient {
         booking: booking as B,
         guests: party,
         experience,
+        itinerary: [],
       },
       nextAvailableTime
     );
