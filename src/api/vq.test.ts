@@ -128,11 +128,11 @@ describe('VQClient', () => {
     });
 
     it('returns partial success result', async () => {
-      respond(jqInvalidRes([guests[0]]), jqSuccessRes(guests.slice(1)));
+      respond(jqInvalidRes([guests[0]!]), jqSuccessRes(guests.slice(1)));
       expect(await client.joinQueue(rotr, guests)).toEqual({
         boardingGroup: 77,
         closed: false,
-        conflicts: { [guests[0].id]: 'NO_PARK_PASS' },
+        conflicts: { [guests[0]!.id]: 'NO_PARK_PASS' },
       });
     });
 
@@ -171,7 +171,7 @@ describe('VQClient', () => {
 describe('sortGuests()', () => {
   it('sorts in place', () => {
     let g = guests;
-    g = [g[3], g[1], g[0], g[2]];
+    g = [g[3]!, g[1]!, g[0]!, g[2]!];
     const sorted = sortGuests(g);
     expect(sorted).toEqual(guests);
     expect(sorted).toBe(g);

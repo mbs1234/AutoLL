@@ -46,13 +46,11 @@ export default function useDataLoader(): {
             await callback(setFlashArgs);
           } catch (error: any) {
             const status = error?.response?.status;
-            if (error instanceof Error && msgs[error.name]) {
-              setFlashArgs(msgs[error.name], 'error');
+            const { name } = error;
+            if (error instanceof Error && msgs[name]) {
+              setFlashArgs(msgs[name], 'error');
             } else if (Number.isInteger(status)) {
-              setFlashArgs(
-                status in msgs ? msgs[status] : msgs.request,
-                'error'
-              );
+              setFlashArgs(msgs[status] ? msgs[status] : msgs.request, 'error');
             } else {
               console.error(error);
               setFlashArgs(msgs.error, 'error');

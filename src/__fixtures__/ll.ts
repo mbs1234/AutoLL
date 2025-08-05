@@ -151,7 +151,7 @@ export function createBooking(
     cancellable: true,
     modifiable: true,
     guests: bookingGuests,
-    id: bookingGuests[0].entitlementId,
+    id: bookingGuests[0]!.entitlementId,
     ...properties,
   };
 }

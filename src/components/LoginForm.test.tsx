@@ -48,7 +48,7 @@ describe('LoginForm', () => {
     await waitFor(() => expect(launchLogin).toHaveBeenCalled());
 
     const exp = new Date('2050-01-01T00:00:00Z').getTime();
-    callbacks.login({
+    callbacks.login!({
       token: { swid: '{123}', access_token: 'XYZ', exp },
     });
     expect(onLogin).toHaveBeenCalledWith({

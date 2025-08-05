@@ -1,5 +1,5 @@
 import * as data from '@/api/data/wdw';
-import { Resort } from '@/api/resort';
+import { Park, Resort } from '@/api/resort';
 import ClientsContext, { createClients } from '@/contexts/ClientsContext';
 import ResortContext from '@/contexts/ResortContext';
 import { render } from '@/testing';
@@ -24,4 +24,4 @@ export function renderResort(children: React.ReactNode) {
 
 const { das, itinerary, liveData, ll, vq } = clients;
 export { das, itinerary, liveData, ll, vq };
-export const [mk, ep, hs, ak] = wdw.parks;
+export const [mk, ep, hs, ak] = wdw.parks as [Park, Park, Park, Park];

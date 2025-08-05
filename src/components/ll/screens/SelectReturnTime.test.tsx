@@ -105,7 +105,7 @@ function expectTimes({
   lastHour?: number;
 }) {
   const expectedAvailable = Object.keys(available).flatMap(h =>
-    available[h].map(m => new ParkTime(+h, m).toString())
+    available[h]!.map(m => new ParkTime(+h, m).toString())
   );
   const expectedTimes =
     firstHour === undefined
@@ -246,7 +246,7 @@ describe('SelectReturnTime', () => {
     await renderComponent(offer, { 12: [20, 35, 55] });
     clickShowAll();
     expectTimes({ firstHour: 10, available: { 12: fullHour.slice(1) } });
-    click(see.times('12:10:00')[1]);
+    click(see.times('12:10:00')[1]!);
     expect(changeOfferTime).not.toHaveBeenCalled();
     expect(onOfferChange).not.toHaveBeenCalled();
     expect(nav.goBack).toHaveBeenCalled();
@@ -270,7 +270,7 @@ describe('SelectReturnTime', () => {
       {},
       'auto'
     );
-    click(see.all('Keep')[0]);
+    click(see.all('Keep')[0]!);
     expect(nav.goBack).toHaveBeenCalledWith({ screen: Home });
   });
 });

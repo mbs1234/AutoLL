@@ -23,12 +23,12 @@ export default function ParkProvider({
       return resort.park(id);
     } catch (error) {
       if (!(error instanceof InvalidId)) console.error(error);
-      return resort.parks[0];
+      return resort.parks[0]!;
     }
   });
 
   useEffect(() => {
-    if (park.id) kvdb.setDaily(PARK_KEY, park.id);
+    if (park?.id) kvdb.setDaily(PARK_KEY, park.id);
   }, [park]);
 
   return (

@@ -28,7 +28,7 @@ describe('YourDay', () => {
     bookings
       .filter(b => b.type !== 'APR' && parkDate(b.start) === TODAY)
       .forEach((booking, i) => {
-        const inLI = within(planLIs[i]);
+        const inLI = within(planLIs[i]!);
         inLI.getByText(booking.choices ? 'Multiple Experiences' : booking.name);
         if (booking.type === 'BG') {
           inLI.getByText(`BG ${booking.boardingGroup}`);

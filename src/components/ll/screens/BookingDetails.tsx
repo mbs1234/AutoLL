@@ -61,7 +61,7 @@ export default function BookingDetails({
     .filter(([, exps]) => exps.length > 0)
     .map(([park]) => park);
   const theme =
-    (!choices ? park : parkChoices.length === 1 ? parkChoices[0] : {}).theme ??
+    (!choices ? park : parkChoices.length === 1 ? parkChoices[0]! : {}).theme ??
     DEFAULT_THEME;
   const titles = {
     LL: 'Lightning Lane',

@@ -15,7 +15,7 @@ const events: {
     );
   },
   'comm-bootstrap-data': event => {
-    event.ports[0].onmessage = function (event: MessageEvent) {
+    event.ports[0]!.onmessage = function (event: MessageEvent) {
       const { id, type, name } = event.data ?? {};
       if (type === 'CALL') {
         this.postMessage({

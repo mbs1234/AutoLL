@@ -103,7 +103,7 @@ export default function BookExperience({
               parkDate(b.start) === bookingDate
           );
         if (sameExpLLs.length === 1) {
-          return rebooking.begin(sameExpLLs[0], true);
+          return rebooking.begin(sameExpLLs[0]!, true);
         }
       }
 

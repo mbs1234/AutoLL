@@ -49,7 +49,7 @@ describe('PartySelector', () => {
     guests.forEach(g => click(g.name));
     see('Your Party');
     see.no('Add to Your Party');
-    click(guests[0].name);
+    click(guests[0]!.name);
     see('Add to Your Party');
 
     await save();

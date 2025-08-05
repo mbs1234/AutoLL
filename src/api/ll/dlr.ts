@@ -178,7 +178,7 @@ export class LLClientDLR extends LLClient {
       park,
       type: 'LL',
       subtype: 'MP',
-      id: entitlements[0]?.id,
+      id: entitlements[0]!.id,
       start: DateTime.from(startDateTime),
       end: DateTime.from(endDateTime),
       cancellable: true,

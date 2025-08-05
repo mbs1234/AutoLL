@@ -23,7 +23,7 @@ describe('ChangeBookingTime', () => {
     await loading();
     const newOffer = { ...modOffer, id: 'new-offer' };
     ll.changeOfferTime.mockResolvedValueOnce(newOffer);
-    click(see.time(times[1][1]));
+    click(see.time(times[1]![1]));
     await waitFor(() =>
       expect(goTo).toHaveBeenCalledWith(<BookNewReturnTime offer={newOffer} />)
     );

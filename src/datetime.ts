@@ -141,7 +141,7 @@ export class DateTime {
       date.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)
     ) {
       const [d, t] = date.split('T');
-      return new DateTime(d, ParkTime.from(t));
+      return new DateTime(d!, ParkTime.from(t!));
     }
 
     const dt = DateTime.format.parts(toDate(date));
@@ -217,7 +217,8 @@ export function formatDate(date: string, type?: DateFormatType) {
 export function formatTime(time: unknown) {
   const m = String(time).match(/^([01]?\d|2[0-3])(:[0-5]\d)?(?::[0-5]\d)?$/);
   if (!m) throw new RangeError(`Invalid time string: ${time}`);
-  return `${+m[1] % 12 || 12}${m[2] ?? ''} ${+m[1] < 12 ? 'AM' : 'PM'}`;
+  const hour = +m[1]!;
+  return `${hour % 12 || 12}${m[2] ?? ''} ${hour < 12 ? 'AM' : 'PM'}`;
 }
 
 /**

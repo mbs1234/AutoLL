@@ -27,7 +27,7 @@ export default function DasPartyList({ parties }: { parties: DasParty[] }) {
   );
 
   if (!loaderElem && parties.length === 1) {
-    const party = parties[0];
+    const party = parties[0]!;
     const selection = selectionByGuestId.get(party.primaryGuest.id);
     if (selection) {
       return <BookingDetails booking={selection} />;

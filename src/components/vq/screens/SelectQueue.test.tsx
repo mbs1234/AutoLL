@@ -28,7 +28,11 @@ describe('SelectQueue', () => {
 
     revisitTab(0);
     await loading();
-    const lis = screen.getAllByRole('listitem');
+    const lis = screen.getAllByRole('listitem') as [
+      HTMLElement,
+      HTMLElement,
+      HTMLElement,
+    ];
     within(lis[0]).getByText(rotr.name);
     expect(lis[0]).toHaveTextContent('Next opening: 7:00 AM');
     expect(within(lis[0]).getByText('Join Queue')).toBeEnabled();
@@ -39,7 +43,7 @@ describe('SelectQueue', () => {
     expect(lis[2]).toHaveTextContent('No more openings today');
     expect(within(lis[2]).getByText('Closed')).toBeDisabled();
 
-    click(screen.getAllByText('Join Queue')[0]);
+    click(screen.getAllByText('Join Queue')[0]!);
     expect(goTo).toHaveBeenLastCalledWith(<ChooseParty queue={rotr} />);
 
     vq.getQueues.mockResolvedValueOnce([

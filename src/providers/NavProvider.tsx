@@ -24,7 +24,7 @@ export default function NavProvider({
       let pos = getHashPos();
       let key: number;
       if (options?.replace) {
-        key = stack.current[pos].key ?? nextKey();
+        key = stack.current[pos]?.key ?? nextKey();
         setScreens(screens => ({ ...screens, activeScreen: elem }));
       } else {
         stack.current = stack.current.slice(0, ++pos);
@@ -49,11 +49,12 @@ export default function NavProvider({
       }
       const pos = getHashPos();
       for (let i = pos - 1; i >= 0; --i) {
-        if (stack.current[i].elem.type === Screen) {
+        const item = stack.current[i];
+        if (item?.elem.type === Screen) {
           history.go(i - pos);
           if (props) {
-            const newProps = { ...stack.current[i].elem.props, ...props };
-            stack.current[i].elem = <Screen {...newProps} />;
+            const newProps = { ...item.elem.props, ...props };
+            item.elem = <Screen {...newProps} />;
           }
           return promise;
         }

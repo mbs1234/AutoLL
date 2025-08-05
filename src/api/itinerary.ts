@@ -197,7 +197,7 @@ export const FALLBACK_EXPS = {
 
 const RES_TYPES = new Set(['ACTIVITY', 'DINING']);
 
-const idNum = (id: string) => id.split(';')[0];
+const idNum = (id: string) => id.split(';')[0]!;
 
 export class ItineraryClient extends ApiClient {
   onRefresh: (bookings: Booking[]) => void = () => {};
@@ -225,7 +225,7 @@ export class ItineraryClient extends ApiClient {
     const primaryGuestId = idNum(loggedInGuestId);
 
     const getGuest = (g: ReservationItem['guests'][0]) => {
-      const { name, avatarId, type } = profiles[g.id];
+      const { name, avatarId, type } = profiles[g.id]!;
       const id = idNum(g.id);
       return {
         id,

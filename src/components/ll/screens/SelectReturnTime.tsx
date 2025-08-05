@@ -188,7 +188,7 @@ interface TimeButtonsProps {
 
 function AvailableOnlyButtons({ times, onClick }: TimeButtonsProps) {
   return times.map(times => {
-    const { hour } = times[0];
+    const { hour } = times[0]!;
     return (
       <TimeButtonsRow hour={hour} key={hour}>
         {times.map(t => (
@@ -228,7 +228,7 @@ function fullAvailabilityTimes(
 ): { hour: number; times: Map<ParkTime, AvailabilityCode> }[] {
   if (!times || times.length === 0 || !allowsFullAvailability(offer)) {
     return (times ?? []).map(times => ({
-      hour: times[0].hour,
+      hour: times[0]!.hour,
       times: new Map(times.map(t => [t, 'A'])),
     }));
   }
@@ -243,7 +243,7 @@ function fullAvailabilityTimes(
     });
     overlaps.push(bookingOverlap);
   }
-  const timesByHour = new Map(times.map(times => [times[0].hour, [...times]]));
+  const timesByHour = new Map(times.map(times => [times[0]!.hour, [...times]]));
   const offerHourTimes = timesByHour.get(offerTime.hour);
   if (!offerHourTimes) {
     timesByHour.set(offerTime.hour, [offerTime]);
@@ -253,7 +253,7 @@ function fullAvailabilityTimes(
     offerHourTimes.push(offerTime);
     offerHourTimes.sort();
   }
-  let firstTime = floor10Min(times[0][0]);
+  let firstTime = floor10Min(times[0]![0]!);
   if (offerTime < firstTime) firstTime = floor10Min(offerTime);
   const { openTime } = offer.parkHours;
   const firstHour = Math.max(

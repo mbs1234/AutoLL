@@ -137,7 +137,7 @@ export class VQClient extends ApiClient {
       .map(({ queueId, tabContentId = '', ...queue }) => {
         const q: Queue = { ...queue, id: queueId };
         try {
-          q.park = this.resort.park(tabContentId.split(';')[0]);
+          q.park = this.resort.park(tabContentId.split(';')[0]!);
         } catch (error) {
           if (!(error instanceof InvalidId)) throw error;
         }

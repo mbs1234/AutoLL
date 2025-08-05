@@ -16,9 +16,9 @@ export default function BookingDateSelect(props: { className?: string }) {
     return new Map(
       [...Array(NUM_BOOKING_DAYS).keys()].map(i => {
         const date = modifyDate(today, i);
-        const [, m, d] = date.split('-');
-        const buttonText = date === today ? 'Today' : `${+m}/${+d}`;
-        const text = String(+d);
+        const [m, d] = date.split('-').slice(1).map(Number);
+        const buttonText = date === today ? 'Today' : `${m}/${d}`;
+        const text = `${d}`;
         return [date, { buttonText, text }];
       })
     );
@@ -44,11 +44,11 @@ function CalendarMenu<K extends string, V>(props: MenuProps<K, V>) {
   const { bg } = use(ThemeContext);
   const { options, selected } = props;
   const dates = [...options.keys()];
-  const bookStart = toDate(dates[0]);
+  const bookStart = toDate(dates[0] as K);
   const calStart = modifyDate(bookStart, -bookStart.getDay());
   const monthFmt = new DateFormat({ month: 'long' });
   const startMonth = monthFmt.format(bookStart);
-  const endMonth = monthFmt.format(dates[dates.length - 1]);
+  const endMonth = monthFmt.format(dates[dates.length - 1] as K);
   const numWeeks = Math.ceil(options.size / 7);
 
   return (

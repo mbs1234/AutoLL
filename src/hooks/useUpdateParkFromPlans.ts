@@ -28,7 +28,7 @@ export default function useUpdateParkFromPlans() {
         }
         if (!park && isInPark(b)) park = b.park;
       }
-      setPark(prevPark => park ?? (prevPark.id ? prevPark : resort.parks[0]));
+      setPark(prevPark => park ?? (prevPark.id ? prevPark : resort.parks[0]!));
     },
     [plans, resort, setPark]
   );

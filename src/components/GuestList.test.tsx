@@ -25,7 +25,7 @@ describe('GuestList', () => {
       .forEach((g, i) => {
         const li = guestLIs[i];
         expect(li).toHaveTextContent(g.name);
-        expect(within(li).getByRole('presentation')).toHaveAttribute(
+        expect(within(li!).getByRole('presentation')).toHaveAttribute(
           'src',
           g.avatarImageUrl
         );
@@ -35,7 +35,7 @@ describe('GuestList', () => {
       .forEach((g, i) => {
         const li = guestLIs[i];
         expect(li).toHaveTextContent(g.name);
-        within(li).getByText(g.name[0]);
+        within(li!).getByText(g.name[0]!);
       });
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });

@@ -180,7 +180,7 @@ export class LLClientWDW extends LLClient {
         facilityId: experience?.id ?? null,
         parkId: experience
           ? this.resort.experience(experience.id).park.id
-          : this.resort.parks[0].id,
+          : this.resort.parks[0]!.id,
       },
     });
     return this.parseGuestData(data);
@@ -401,7 +401,7 @@ export class LLClientWDW extends LLClient {
     experience: OfferExperience,
     response: NewBookingResponse
   ): LLMP {
-    const booking = response.entitlementExperiences[0];
+    const booking = response.entitlementExperiences[0]!;
     const entIdsByGuestId = Object.fromEntries(
       booking.guests.map(g => [g.guestId, g.entitlementId])
     );
@@ -414,14 +414,14 @@ export class LLClientWDW extends LLClient {
       park,
       type: 'LL',
       subtype: 'MP',
-      id: booking.guests[0]?.entitlementId,
+      id: booking.guests[0]!.entitlementId,
       start: DateTime.from(booking.startDateTime),
       end: DateTime.from(booking.endDateTime),
       cancellable: true,
       modifiable: true,
       guests: response.party.guests.map(g => ({
         ...this.convertGuest(g),
-        entitlementId: entIdsByGuestId[g.id],
+        entitlementId: entIdsByGuestId[g.id]!,
       })),
     };
   }

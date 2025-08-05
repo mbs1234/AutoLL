@@ -30,7 +30,7 @@ export default function withTabs<N extends string>(
           changeTab: changeTab as (tab: string) => void,
           scrollPos: {
             get: () => {
-              return scrollPos.current[active.name];
+              return scrollPos.current[active.name] ?? 0;
             },
             set: pos => {
               scrollPos.current[active.name] = pos;

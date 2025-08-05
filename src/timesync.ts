@@ -42,7 +42,7 @@ export async function syncTime() {
       if (offsets.length < 2) continue;
       offsets.sort((a, b) => a - b);
       for (const [i, o1] of offsets.slice(0, -1).entries()) {
-        const o2 = offsets[i + 1];
+        const o2 = offsets[i + 1]!;
         const diff = Math.abs(o1 - o2);
         if (diff < minDiff) {
           minDiff = diff;

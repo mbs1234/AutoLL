@@ -120,7 +120,7 @@ describe('MultiPassList', () => {
     click('Remove from Favorites');
     expect(getExperiences()).toEqual(names([sm, hm]));
 
-    click(screen.getAllByTitle('Add to Favorites')[4]);
+    click(screen.getAllByTitle('Add to Favorites')[4]!);
     expect(getExperiences()).toEqual(names([jc, sm, hm]));
 
     click(formatTime(sm.flex.nextAvailableTime));
