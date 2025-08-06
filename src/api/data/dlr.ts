@@ -145,7 +145,7 @@ export const experiences: ResortData['experiences'] = {
     land: tomorrowland,
     type: 'A',
     geo: [33.8126634, -117.9167994],
-    priority: 4.7,
+    priority: 4.5,
   },
   353295: {
     name: 'Big Thunder Mountain Railroad',
@@ -160,7 +160,7 @@ export const experiences: ResortData['experiences'] = {
     land: tomorrowland,
     type: 'A',
     geo: [33.8122751, -117.9181819],
-    priority: 4.5,
+    priority: 4.6,
     highlight: true,
   },
   353305: {
@@ -198,7 +198,7 @@ export const experiences: ResortData['experiences'] = {
     land: newOrleans,
     type: 'A',
     geo: [33.811616, -117.9218924],
-    priority: 4.1,
+    priority: 4.3,
     highlight: true,
   },
   18249927: {
@@ -256,7 +256,7 @@ export const experiences: ResortData['experiences'] = {
     land: fantasyland,
     type: 'A',
     geo: [33.8127838, -117.9182386],
-    priority: 2.1,
+    priority: 2.0,
     highlight: true,
   },
   411821333: {
@@ -272,7 +272,7 @@ export const experiences: ResortData['experiences'] = {
     land: starWars,
     type: 'A',
     geo: [33.8153228, -117.922197],
-    priority: 4.6,
+    priority: 4.4,
     highlight: true,
   },
   353389: {
@@ -301,7 +301,6 @@ export const experiences: ResortData['experiences'] = {
     land: newOrleans,
     type: 'A',
     geo: [33.811295, -117.9209785],
-    priority: 4.4,
     highlight: true,
   },
   19193461: {
@@ -316,7 +315,7 @@ export const experiences: ResortData['experiences'] = {
     land: toontown,
     type: 'A',
     geo: [33.8155682, -117.9181205],
-    priority: 4.3,
+    priority: 4.1,
     highlight: true,
   },
   353429: {
@@ -329,7 +328,7 @@ export const experiences: ResortData['experiences'] = {
     land: tomorrowland,
     type: 'A',
     geo: [33.8112647, -117.9175892],
-    priority: 2.0,
+    priority: 1.2,
     highlight: true,
   },
   18237368: {
@@ -356,7 +355,7 @@ export const experiences: ResortData['experiences'] = {
     land: bayou,
     type: 'A',
     geo: [33.8124171, -117.9222263],
-    priority: 2.2,
+    priority: 1.1,
     highlight: true,
   },
 
@@ -485,7 +484,7 @@ export const experiences: ResortData['experiences'] = {
     land: grizzly,
     type: 'A',
     geo: [33.8069638, -117.9212689],
-    priority: 4.3,
+    priority: 4.2,
   },
   353451: {
     name: 'Guardians of the Galaxy - Mission: BREAKOUT',
@@ -573,7 +572,7 @@ export const experiences: ResortData['experiences'] = {
     land: hollywood,
     type: 'A',
     geo: [33.8081471, -117.9175137],
-    priority: 4.2,
+    priority: 4.3,
     highlight: true,
   },
   353379: {
