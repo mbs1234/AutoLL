@@ -38,7 +38,6 @@ const LP_MIN_STANDBY = 30;
 const LP_MAX_LL_WAIT = 60;
 export const STARRED_KEY = 'bg1.genie.tipBoard.starred';
 const LIGHTNING_PICK = 'Lightning Pick';
-const UPCOMING_DROP = 'Upcoming Drop';
 const BOOKED = 'Booked';
 
 export interface ExtFlexExp extends FlexExperience {
@@ -160,9 +159,7 @@ const Experiences = memo(function Experiences({
       {experiences.map(exp => {
         const nextDropTime = isBookingToday
           ? upcomingTimes(exp.dropTimes ?? [])[0]
-          : exp.dropTimes
-            ? dropTime
-            : null;
+          : exp.dropTimes?.[0];
         return (
           <li key={exp.id + (exp.starred ? '*' : '')}>
             <div className="flex items-center gap-x-2">
@@ -177,12 +174,20 @@ const Experiences = memo(function Experiences({
                   onClick={showLightningPickDesc}
                 />
               ) : nextDropTime ? (
-                <InfoButton
-                  name={UPCOMING_DROP}
-                  icon={DropIcon}
-                  onClick={() => showDropTimeDesc(exp)}
-                  className={nextDropTime !== dropTime ? 'opacity-50' : ''}
-                />
+                nextDropTime.equals(dropTime) ? (
+                  <InfoButton
+                    name="Next Drop"
+                    icon={DropIcon}
+                    onClick={() => showDropTimeDesc(exp)}
+                  />
+                ) : (
+                  <InfoButton
+                    name="Future Drop"
+                    icon={DropIcon}
+                    onClick={() => showDropTimeDesc(exp)}
+                    className="opacity-50"
+                  />
+                )
               ) : null}
               {exp.booked && (
                 <InfoButton
@@ -258,8 +263,13 @@ const Experiences = memo(function Experiences({
             />
             {park.dropTimes.length > 0 && (
               <Symbol
-                sym={<DropIcon themed />}
-                def={UPCOMING_DROP}
+                sym={
+                  <div className="flex gap-x-1">
+                    <DropIcon themed /> /{' '}
+                    <DropIcon themed className="opacity-50" />
+                  </div>
+                }
+                def="Next/Future Drop"
                 onInfo={showDropTimeDesc}
               />
             )}
@@ -358,7 +368,7 @@ function DropTimeDesc({
     .filter(p => p.dropTimes.length > 0)
     .sort((a, b) => (a === park ? -1 : b === park ? 1 : 0));
   return (
-    <Screen title={UPCOMING_DROP}>
+    <Screen title="Upcoming Drop">
       <p>
         {experience ? <b>{experience.name}</b> : <>This attraction</>} may be
         part of{' '}

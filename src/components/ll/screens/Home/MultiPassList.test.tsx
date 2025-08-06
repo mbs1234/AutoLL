@@ -1,18 +1,30 @@
-import { booking, hm, jc, mk, renderResort, sm, wdw } from '@/__fixtures__/ll';
-import { FlexExperience } from '@/api/ll';
+import {
+  booking,
+  hm,
+  jc,
+  liveData,
+  ll,
+  mk,
+  renderResort,
+  sm,
+  wdw,
+} from '@/__fixtures__/ll';
+import { Experience, FlexExperience } from '@/api/ll';
 import BookingDateContext from '@/contexts/BookingDateContext';
-import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
 import { ParkTime, formatTime } from '@/datetime';
 import kvdb from '@/kvdb';
+import ExperiencesProvider from '@/providers/ExperiencesProvider';
 import NavProvider from '@/providers/NavProvider';
 import { TODAY, click, loading, screen, see, setTime, within } from '@/testing';
 
 import MultiPassList, { STARRED_KEY } from './MultiPassList';
 
-setTime('10:00');
-const refreshExperiences = jest.fn();
+const BOOKED_INFO = 'Booked (more info)';
+const LIGHTNING_PICK_INFO = 'Lightning Pick (more info)';
+const FUTURE_DROP_INFO = 'Future Drop (more info)';
+const NEXT_DROP_INFO = 'Next Drop (more info)';
 
 const getExperiences = (
   testId: 'experienced' | 'unexperienced' = 'unexperienced'
@@ -37,7 +49,7 @@ const db: FlexExperience = {
   ...wdw.experience('80010129'),
   park: mk,
   standby: { available: true, waitTime: 25 },
-  flex: { available: true, nextAvailableTime: new ParkTime(10, 5) },
+  flex: { available: true, nextAvailableTime: new ParkTime(11, 5) },
 };
 
 async function goBack() {
@@ -45,8 +57,20 @@ async function goBack() {
   await see.screen('LL');
 }
 
+const inExp = (exp: Experience) => within(see(exp.name).closest('li')!);
+
 describe('MultiPassList', () => {
+  ll.experiences.mockResolvedValue([
+    { ...hm },
+    { ...db, experienced: true },
+    { ...bz, experienced: true },
+    { ...jc, experienced: true },
+    sm,
+  ]);
+  jest.spyOn(liveData, 'shows').mockResolvedValue({});
+
   it('shows LL availability', async () => {
+    setTime('09:00');
     kvdb.set(STARRED_KEY, [bz.id]);
     renderResort(
       <BookingDateContext
@@ -61,51 +85,40 @@ describe('MultiPassList', () => {
               loaderElem: null,
             }}
           >
-            <ExperiencesContext
-              value={{
-                experiences: [
-                  { ...hm },
-                  { ...db, experienced: true },
-                  { ...bz, experienced: true },
-                  { ...jc, experienced: true },
-                  sm,
-                ],
-                refreshExperiences,
-                loaderElem: null,
-              }}
-            >
+            <ExperiencesProvider>
               <NavProvider>
                 <MultiPassList ref={{ current: null }} />
               </NavProvider>
-            </ExperiencesContext>
+            </ExperiencesProvider>
           </PlansContext>
         </ParkContext>
       </BookingDateContext>
     );
+    await loading();
+    expect(ll.experiences).toHaveBeenCalledTimes(1);
+    see.no(LIGHTNING_PICK_INFO);
+    inExp(sm).getByTitle(NEXT_DROP_INFO);
+    inExp(hm).getByTitle(BOOKED_INFO);
+    inExp(hm).getByTitle(FUTURE_DROP_INFO);
 
+    setTime('10:00');
     click('Refresh Experiences');
-    expect(refreshExperiences).toHaveBeenCalledTimes(1);
+    await loading();
+    expect(ll.experiences).toHaveBeenCalledTimes(2);
 
-    const inSM = within(see(sm.name).closest('li') as HTMLElement);
-    inSM.getByTitle('Lightning Pick (more info)');
+    see.no(NEXT_DROP_INFO);
+    inExp(sm).getByTitle(LIGHTNING_PICK_INFO);
+    inExp(hm).getByTitle(FUTURE_DROP_INFO);
 
-    const inHM = within(see(hm.name).closest('li') as HTMLElement);
-    inHM.getByTitle('Upcoming Drop (more info)');
-    inHM.getByTitle('Booked (more info)');
-
-    expect(see.all('Lightning Pick (more info)')).toHaveLength(1);
-    expect(see.all('Upcoming Drop (more info)')).toHaveLength(1);
-    expect(see.all('Booked (more info)')).toHaveLength(1);
-
-    click('Booked (more info)');
+    click(BOOKED_INFO);
     await see.screen('Booked');
     await goBack();
 
-    click('Lightning Pick (more info)');
+    click(LIGHTNING_PICK_INFO);
     await see.screen('Lightning Pick');
     await goBack();
 
-    click('Upcoming Drop (more info)');
+    click(FUTURE_DROP_INFO);
     await see.screen('Upcoming Drop');
     see.time(mk.dropTimes[0]);
     expect(screen.getAllByTime(mk.dropTimes[1])).toHaveLength(3);
