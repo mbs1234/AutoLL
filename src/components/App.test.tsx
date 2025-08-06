@@ -3,12 +3,14 @@ import { fetchJson } from '@/fetch';
 import { DISCLAIMER_ACCEPTED_KEY } from '@/hooks/useDisclaimer';
 import { NEWS_VERSION_KEY } from '@/hooks/useNews';
 import kvdb from '@/kvdb';
+import { navigate } from '@/navigate';
 import { act, click, render, screen, see, waitFor } from '@/testing';
 
 import App, { NEWS_VERSION } from './App';
 import Screen from './Screen';
 
 jest.mock('@/fetch');
+jest.mock('@/navigate');
 jest.mock('./ll/Merlock', () => {
   return function Merlock() {
     return <Screen title="LL">test</Screen>;
@@ -99,12 +101,9 @@ describe('App', () => {
 
   it('redirects to start page if BG1 cannot be run from this origin', async () => {
     self.origin = 'https://example.com';
-    Object.defineProperty(self, 'location', {
-      value: { assign: jest.fn() },
-    });
     renderComponent();
     await waitFor(() => {
-      expect(self.location.assign).toHaveBeenCalledWith(
+      expect(navigate).toHaveBeenCalledWith(
         'https://joelface.github.io/bg1/start.html'
       );
     });

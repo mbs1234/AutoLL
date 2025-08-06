@@ -1,12 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   transform: {
-    '^.+\\.tsx?$': [
-      'ts-jest',
-      {
-        isolatedModules: true,
-      },
-    ],
+    '^.+\\.tsx?$': ['ts-jest'],
   },
   moduleNameMapper: {
     '^@/(.*)': '<rootDir>/src/$1',

@@ -10,6 +10,7 @@ import ResortContext from '@/contexts/ResortContext';
 import { DateTime } from '@/datetime';
 import useDisclaimer from '@/hooks/useDisclaimer';
 import useNews from '@/hooks/useNews';
+import { navigate } from '@/navigate';
 import onVisible from '@/onVisible';
 
 import LoginForm from './LoginForm';
@@ -66,7 +67,7 @@ export default function App() {
           if (!(error instanceof InvalidOrigin)) throw error;
         }
       }
-      location.assign('https://joelface.github.io/bg1/start.html');
+      navigate('https://joelface.github.io/bg1/start.html');
     })();
   }, []);
 

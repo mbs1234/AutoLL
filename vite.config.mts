@@ -11,6 +11,9 @@ const server = {
     cert: './tls/dev.cert',
     key: './tls/dev.key',
   },
+  headers: {
+    'Access-Control-Allow-Origin': '*',
+  },
 };
 
 export default defineConfig({
