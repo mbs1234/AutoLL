@@ -9,11 +9,13 @@ export default function TabButton<N extends string>({ name, icon }: TabDef<N>) {
   const theme = use(ThemeContext);
   const isActive = active?.name === name;
   const iconStyles = isActive
-    ? `bg-white/90 ${theme.text}`
-    : `${theme.bg} text-white`;
+    ? `border-black/20 bg-white/90 ${theme.text}`
+    : `border-transparent ${theme.bg} text-white`;
   return (
     <button className={`px-4 py-2`} onClick={() => changeTab(name)}>
-      <div className={`min-w-12 rounded-full py-1.5 ${iconStyles}`}>{icon}</div>
+      <div className={`min-w-12 rounded-full py-1.25 border ${iconStyles}`}>
+        {icon}
+      </div>
       <div className="mt-0.5 text-sm">{name}</div>
     </button>
   );

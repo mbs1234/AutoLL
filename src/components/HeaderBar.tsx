@@ -26,7 +26,8 @@ export default function HeaderBar({
     ) : (
       <n.type
         {...n.props}
-        className={`min-h-9 bg-white/90 ${theme.text} ${n.props.className || ''}`}
+        color={`bg-white/90 ${theme.text}`}
+        className={`min-h-9 ${n.props.className || ''}`}
       />
     );
   }
@@ -35,7 +36,7 @@ export default function HeaderBar({
     <div className={`px-3 ext-lg text-white ${theme.bg}`}>
       <div className="flex flex-wrap justify-end gap-x-2 gap-y-1 min-h-9 py-2">
         {!isFirstScreen && (
-          <Button back className="-my-2 -ml-3" title="Go Back">
+          <Button back border="" className="-my-2 -ml-3" title="Go Back">
             <BackIcon />
           </Button>
         )}
