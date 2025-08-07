@@ -1,4 +1,4 @@
-import { formatDate } from '@/datetime';
+import { ParkTime, formatDate } from '@/datetime';
 import { TODAY, TOMORROW, render, setTime } from '@/testing';
 
 import ReturnTime from './ReturnTime';
@@ -9,8 +9,8 @@ describe('ReturnTime', () => {
   it('shows return time details', () => {
     const { container } = render(
       <ReturnTime
-        start={{ date: TODAY, time: '10:00:00' }}
-        end={{ date: TODAY, time: '11:00:00' }}
+        start={{ date: TODAY, time: new ParkTime(10) }}
+        end={{ date: TODAY, time: new ParkTime(11) }}
       />
     );
     expect(container).toHaveTextContent('Arrive by: 10:00 AM – 11:00 AM');
@@ -19,8 +19,8 @@ describe('ReturnTime', () => {
   it('shows return time that is valid until the next day', () => {
     const { container } = render(
       <ReturnTime
-        start={{ date: TODAY, time: '10:00:00' }}
-        end={{ date: TOMORROW, time: '11:00:00' }}
+        start={{ date: TODAY, time: new ParkTime(10) }}
+        end={{ date: TOMORROW, time: new ParkTime(11) }}
       />
     );
     expect(container).toHaveTextContent(

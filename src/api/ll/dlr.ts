@@ -1,4 +1,4 @@
-import { DateTime, parkDate } from '@/datetime';
+import { DateTime, ParkTime, parkDate } from '@/datetime';
 
 import {
   ApiGuest,
@@ -107,8 +107,8 @@ export class LLClientDLR extends LLClient {
     return this.updateLastOffer(
       {
         id,
-        start: new DateTime(date, startTime),
-        end: new DateTime(date, endTime),
+        start: new DateTime(date, ParkTime.from(startTime)),
+        end: new DateTime(date, ParkTime.from(endTime)),
         booking: booking as B,
         guests: party,
         experience,

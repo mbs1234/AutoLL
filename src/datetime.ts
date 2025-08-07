@@ -1,4 +1,93 @@
-export const DAY_START_TIME = '04:00:00';
+interface Duration {
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+}
+
+interface TimeFields {
+  hour: number;
+  minute: number;
+  second: number;
+}
+
+export type ParkTimeable = ParkTime | TimeFields | string;
+
+function clamp(value: number, max: number, min = 0) {
+  return Math.max(min, Math.min(max, Math.trunc(value)));
+}
+
+export class ParkTime {
+  static readonly dayStart = new ParkTime(4);
+
+  readonly hour;
+  readonly minute;
+  readonly second;
+
+  static from(info: ParkTimeable) {
+    return new ParkTime(
+      ...(typeof info === 'string'
+        ? info.split(':').map(Number)
+        : [info.hour, info.minute, info.second])
+    );
+  }
+
+  constructor(hour?: number, minute?: number, second?: number) {
+    hour ??= 0;
+    minute ??= 0;
+    second ??= 0;
+    if (![hour, minute, second].every(Number.isFinite)) {
+      throw new RangeError('Invalid time');
+    }
+    this.hour = clamp(hour, 23);
+    this.minute = clamp(minute, 59);
+    this.second = clamp(second, 59);
+  }
+
+  add(duration: Duration) {
+    const secondsToAdd =
+      (duration.hours ?? 0) * 3600 +
+      (duration.minutes ?? 0) * 60 +
+      (duration.seconds ?? 0);
+    if (secondsToAdd === 0) return this;
+    const newTimeInSeconds =
+      this.hour * 3600 + this.minute * 60 + this.second + secondsToAdd;
+    const hour = Math.floor(newTimeInSeconds / 3600) % 24;
+    const minute = Math.floor((newTimeInSeconds % 3600) / 60);
+    const second = newTimeInSeconds % 60;
+    return new ParkTime(hour, minute, second);
+  }
+
+  with(info: Partial<TimeFields>) {
+    return new ParkTime(
+      info.hour ?? this.hour,
+      info.minute ?? this.minute,
+      info.second ?? this.second
+    );
+  }
+
+  valueOf() {
+    return (
+      ((this.hour + 24 - ParkTime.dayStart.hour) * 3600 +
+        this.minute * 60 +
+        this.second) %
+      86400
+    );
+  }
+
+  equals(other: ParkTimeable) {
+    return +this === +ParkTime.from(other);
+  }
+
+  toString() {
+    return [this.hour, this.minute, this.second]
+      .map(v => v.toString().padStart(2, '0'))
+      .join(':');
+  }
+
+  toJSON() {
+    return this.toString();
+  }
+}
 
 export type Dateable = Date | number | string;
 
@@ -47,13 +136,13 @@ export class DateTime {
       date.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)
     ) {
       const [d, t] = date.split('T');
-      return new DateTime(d, t);
+      return new DateTime(d, ParkTime.from(t));
     }
 
     const dt = DateTime.format.parts(toDate(date));
     const d = `${dt.year}-${dt.month}-${dt.day}`;
     const t = `${dt.hour}:${dt.minute}:${dt.second}`;
-    return new DateTime(d, t);
+    return new DateTime(d, ParkTime.from(t));
   }
 
   static setTimeZone(tz: string) {
@@ -70,7 +159,7 @@ export class DateTime {
     });
   }
 
-  constructor(date: string, time: string) {
+  constructor(date: string, time: ParkTime) {
     this.date = date;
     this.time = time;
   }
@@ -97,18 +186,10 @@ export function modifyDate(date: Dateable, days: number) {
 /**
  * Returns specified date if time is 4 AM or later, else previous date
  */
-export function parkDate(dateTime: { date?: string; time?: string } = {}) {
+export function parkDate(dateTime: { date?: string; time?: ParkTime } = {}) {
   const now = DateTime.now();
   const { date = now.date, time = now.time } = dateTime;
-  return time >= DAY_START_TIME ? date : modifyDate(date, -1);
-}
-
-/**
- * Converts time string to number of minutes since 7 AM
- */
-export function parkMinutes(time: string) {
-  const [h, m] = time.split(':').map(Number);
-  return (h * 60 + m + 1200) % 1440;
+  return `${time}` >= `${ParkTime.dayStart}` ? date : modifyDate(date, -1);
 }
 
 export type DateFormatType = 'short';
@@ -128,17 +209,17 @@ export function formatDate(date: string, type?: DateFormatType) {
   return `${weekday}, ${monthDay}`;
 }
 
-export function formatTime(time: string) {
-  const m = time.match(/^([01]?\d|2[0-3])(:[0-5]\d)?(?::[0-5]\d)?$/);
+export function formatTime(time: unknown) {
+  const m = String(time).match(/^([01]?\d|2[0-3])(:[0-5]\d)?(?::[0-5]\d)?$/);
   if (!m) throw new RangeError(`Invalid time string: ${time}`);
   return `${+m[1] % 12 || 12}${m[2] ?? ''} ${+m[1] < 12 ? 'AM' : 'PM'}`;
 }
 
 /**
- * Returns an array of non-past times from a sorted array of time strings
+ * Returns an array of non-past times from a sorted array of ParkTimes
  */
-export function upcomingTimes(times: string[]) {
-  const now = DateTime.now().time.slice(0, 5);
+export function upcomingTimes(times: ParkTime[]) {
+  const now = DateTime.now().time.with({ second: 0 });
   const nextIdx = times.findIndex(t => t >= now);
   return nextIdx >= 0 ? times.slice(nextIdx) : [];
 }

@@ -14,7 +14,7 @@ import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
 import ResortContext from '@/contexts/ResortContext';
 import ThemeContext from '@/contexts/ThemeContext';
-import { DateTime, parkDate, parkMinutes, upcomingTimes } from '@/datetime';
+import { DateTime, parkDate, upcomingTimes } from '@/datetime';
 import useSavedParty from '@/hooks/useSavedParty';
 import CheckmarkIcon from '@/icons/CheckmarkIcon';
 import DropIcon from '@/icons/DropIcon';
@@ -119,7 +119,7 @@ const Experiences = memo(function Experiences({
   const dropTime = isBookingToday
     ? upcomingTimes(park.dropTimes)[0]
     : park.dropTimes[0];
-  const nowMinutes = parkMinutes(DateTime.now().time);
+  const now = +DateTime.now().time;
 
   useEffect(() => {
     kvdb.set<string[]>(STARRED_KEY, [...starred]);
@@ -224,8 +224,8 @@ const Experiences = memo(function Experiences({
           !!nextAvailableTime &&
           standby >= LP_MIN_STANDBY &&
           priorityLevel < 3 &&
-          parkMinutes(nextAvailableTime) - nowMinutes <=
-            Math.min(LP_MAX_LL_WAIT, ((4 - priorityLevel) / 3) * standby),
+          +nextAvailableTime - now <=
+            Math.min(LP_MAX_LL_WAIT, ((4 - priorityLevel) / 3) * standby) * 60,
         starred: starred.has(exp.id),
       };
     })
@@ -370,7 +370,7 @@ function DropTimeDesc({
           <>a day-of</>
         ) : dropTime ? (
           <>
-            the <Time className="font-semibold">{dropTime}</Time>
+            the <Time time={dropTime} className="font-semibold" />
           </>
         ) : (
           <>an upcoming</>
@@ -402,11 +402,11 @@ function DropTimeDesc({
                         const isNextDrop =
                           isBookingToday && time === nextDropTime;
                         return (
-                          <li className="min-w-[6em] text-center" key={time}>
+                          <li className="min-w-[6em] text-center" key={+time}>
                             <div
                               className={`${isNextDrop ? `${park.theme.text} font-bold` : upcoming.has(time) || !isBookingToday ? 'font-semibold' : 'text-gray-500'}`}
                             >
-                              <Time>{time}</Time>
+                              <Time time={time} />
                             </div>
                             {isNextDrop ? (
                               <div

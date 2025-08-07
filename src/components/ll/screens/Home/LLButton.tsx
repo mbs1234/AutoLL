@@ -25,7 +25,7 @@ export default function LLButton({
           {standby.unavailableReason === 'CLOSED' ? (
             'Book'
           ) : flex.nextAvailableTime ? (
-            <Time>{flex.nextAvailableTime}</Time>
+            <Time time={flex.nextAvailableTime} />
           ) : (
             'none'
           )}

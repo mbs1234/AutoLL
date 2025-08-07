@@ -13,7 +13,6 @@ import {
 } from '@testing-library/react';
 
 import NavContext from './contexts/NavContext';
-import { formatTime } from './datetime';
 
 /* eslint-disable-next-line react-refresh/only-export-components */
 export * from '@testing-library/react';
@@ -22,14 +21,10 @@ export const YESTERDAY = '2021-09-30';
 export const TODAY = '2021-10-01';
 export const TOMORROW = '2021-10-02';
 
-function queryAllByTime(c: HTMLElement, time: string) {
-  try {
-    time = formatTime(time);
-  } catch {
-    // pass through
-  }
+function queryAllByTime(c: HTMLElement, time: unknown) {
+  time = String(time);
   return [...c.getElementsByTagName('time')].filter(
-    elem => elem.textContent === time
+    elem => elem.dateTime === time || elem.textContent === time
   ) as HTMLElement[];
 }
 
@@ -65,14 +60,8 @@ function getQueryError(message: string) {
 const getTextError = (text: string) =>
   getQueryError(`Unable to find element with text: ${text}`);
 
-const getTimeError = (time: string) => {
-  try {
-    time = formatTime(time);
-  } catch {
-    // pass through
-  }
-  return getQueryError(`Unable to find time element: ${time}`);
-};
+const getTimeError = (time: unknown) =>
+  getQueryError(`Unable to find time element: ${time}`);
 
 const getContainerElem = () =>
   document.querySelector<HTMLElement>('article:not([hidden])') ?? document.body;
@@ -100,7 +89,7 @@ export const see = Object.assign(
     throw getTextError(text);
   },
   {
-    time(time: string) {
+    time(time: unknown) {
       try {
         return withinActive().getByTime(time);
       } catch {
@@ -171,7 +160,7 @@ export async function loading() {
   }
 }
 
-export function setTime(time: string, minutes = 0) {
+export function setTime(time: unknown, minutes = 0) {
   const now = new Date(`${TODAY}T${time}-0400`);
   jest.useFakeTimers({ now });
   if (minutes) jest.advanceTimersByTime(minutes * 60_000);

@@ -94,7 +94,7 @@ const NextShowTime = ({
     }
   >
     {showTimes[0] ? (
-      <Available time={<Time>{showTimes[0]}</Time>} />
+      <Available time={<Time time={showTimes[0]} />} />
     ) : (
       <Unavailable text="none" />
     )}
@@ -108,7 +108,7 @@ const VQStatus = ({
     <Available
       time={
         virtualQueue.nextAvailableTime ? (
-          <Time>{virtualQueue.nextAvailableTime}</Time>
+          <Time time={virtualQueue.nextAvailableTime} />
         ) : (
           'closed'
         )

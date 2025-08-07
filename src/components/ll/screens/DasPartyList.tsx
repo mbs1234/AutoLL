@@ -125,7 +125,7 @@ export default function DasPartyList({ parties }: { parties: DasParty[] }) {
                         {selection && (
                           <div className="text-gray-500 text-xs font-semibold uppercase">
                             {selection.name} @{' '}
-                            <Time>{selection.start.time}</Time>
+                            <Time time={selection.start.time} />
                           </div>
                         )}
                       </div>

@@ -1,11 +1,12 @@
-import { formatTime } from '@/datetime';
+import { ParkTime, formatTime } from '@/datetime';
 
 export function Time({
-  children: time,
+  time,
   ...attrs
 }: React.HTMLProps<HTMLTimeElement> & {
-  children: string;
+  time: ParkTime | string;
 }) {
+  time = time.toString();
   try {
     const [hm, ampm] = formatTime(time).split(' ');
     return (

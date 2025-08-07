@@ -167,10 +167,10 @@ function ExperienceList({
                       onClick={() => onInfoClick(exp)}
                       className="underline"
                     >
-                      <Time>{exp.showTimes[0]}</Time>
+                      <Time time={exp.showTimes[0]} />
                     </button>
                   ) : (
-                    <Time>{exp.showTimes[0]}</Time>
+                    <Time time={exp.showTimes[0]} />
                   )
                 ) : exp.standby.available ? (
                   (exp.standby.waitTime ?? '–')
@@ -200,7 +200,7 @@ function ExperienceList({
                       </div>
                       {exp.individual.nextAvailableTime && (
                         <div>
-                          <Time>{exp.individual.nextAvailableTime}</Time>
+                          <Time time={exp.individual.nextAvailableTime} />
                         </div>
                       )}
                     </div>
@@ -222,8 +222,8 @@ const ExperienceInfo = ({ exp }: { exp: Experience }) => (
     <h3>Upcoming {exp.type === 'C' ? 'Appearances' : 'Shows'}</h3>
     <ul className="list-disc mt-2 pl-6">
       {exp.showTimes?.map(time => (
-        <li key={time}>
-          <Time>{time}</Time>
+        <li key={+time}>
+          <Time time={time} />
         </li>
       ))}
     </ul>

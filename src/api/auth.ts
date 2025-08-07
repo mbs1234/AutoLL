@@ -1,4 +1,4 @@
-import { DateTime } from '@/datetime';
+import { DateTime, ParkTime } from '@/datetime';
 import kvdb from '@/kvdb';
 
 export const AUTH_KEY = 'bg1.auth';
@@ -27,7 +27,10 @@ export class AuthStore {
         const { swid, accessToken, expires } = data;
         const exp = DateTime.from(expires);
         const now = DateTime.now();
-        if (exp > now && (exp.date > now.date || exp.time >= '17')) {
+        if (
+          exp > now &&
+          (exp.date > now.date || exp.time >= new ParkTime(17))
+        ) {
           return { swid, accessToken };
         }
       }

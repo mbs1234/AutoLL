@@ -1,4 +1,4 @@
-import { DateTime, parkDate, parkMinutes } from '@/datetime';
+import { DateTime, ParkTime, parkDate } from '@/datetime';
 
 import {
   ApiGuest,
@@ -32,7 +32,13 @@ interface OfferSetItineraryItem {
   type: 'OFFER_ITEM' | 'EXISTING_ITEM' | 'EVENT_ITEM';
   facilityId: string;
   startDateTime: string;
-  endDateTime: string;
+  startTime: string;
+  endDateTime?: string;
+  endTime?: string;
+  showTimeInfo?: {
+    showStartTime: string;
+    showEndTime: string;
+  };
 }
 
 export interface OfferItem extends OfferSetItineraryItem {
@@ -41,6 +47,8 @@ export interface OfferItem extends OfferSetItineraryItem {
   offerId: string;
   offerType: 'FLEX';
   conflict?: 'ALTERNATIVE_TIME_FOUND';
+  endDateTime: string;
+  endTime: string;
 }
 
 interface ExistingItem extends OfferSetItineraryItem {
@@ -213,7 +221,7 @@ export class LLClientWDW extends LLClient {
     if (
       nextAvailableTime &&
       offer.start.time !== nextAvailableTime &&
-      parkMinutes(offer.start.time) - parkMinutes(nextAvailableTime) > 10
+      +offer.start.time - +nextAvailableTime > 10 * 60
     ) {
       try {
         return await this.changeOfferTime(offer, nextAvailableTime);
@@ -245,13 +253,13 @@ export class LLClientWDW extends LLClient {
       },
     });
     return data.hourSegmentGroups.map(group =>
-      group.inventorySlotsAvailability.map(s => s.startTime)
+      group.inventorySlotsAvailability.map(s => ParkTime.from(s.startTime))
     );
   }
 
   async changeOfferTime<B extends Offer['booking']>(
     offer: Offer<B>,
-    time: string
+    time: ParkTime
   ): Promise<Offer<B>> {
     const {
       data: { updatedPlanningOfferDisplayItem: newOffer },

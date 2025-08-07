@@ -8,15 +8,13 @@ import { Time } from '@/components/Time';
 import ClientsContext from '@/contexts/ClientsContext';
 import NavContext from '@/contexts/NavContext';
 import RebookingContext from '@/contexts/RebookingContext';
-import { formatTime, parkDate } from '@/datetime';
+import { parkDate } from '@/datetime';
 import useDataLoader from '@/hooks/useDataLoader';
 
 import BookingDate from '../BookingDate';
 import ReturnTime from '../ReturnTime';
 import YourDayButton from '../YourDayButton';
 import RefreshButton from './RefreshButton';
-
-const getHour = (time: string) => Number(time.split(':')[0]);
 
 export default function SelectReturnTime<B extends Offer['booking']>({
   offer,
@@ -38,8 +36,8 @@ export default function SelectReturnTime<B extends Offer['booking']>({
       const offerTime = offer.start.time;
       if (!booking || offerTime === booking.start.time) return times;
       times = [...times];
-      const offerHour = getHour(offerTime);
-      const hours = times.map(times => getHour(times[0]));
+      const offerHour = offerTime.hour;
+      const hours = times.map(times => times[0].hour);
       const hourIdx = hours.findIndex(hour => hour >= offerHour);
       const hour = hours[hourIdx];
       const hourTimes = [...(times[hourIdx] ?? [])];
@@ -95,15 +93,15 @@ export default function SelectReturnTime<B extends Offer['booking']>({
           <table className="whitespace-nowrap">
             <tbody>
               {times.map(times => (
-                <tr key={times[0]}>
+                <tr key={+times[0]}>
                   <th
                     scope="row"
                     className="pt-3 pr-2 text-gray-500 text-sm font-semibold text-right uppercase"
                   >
-                    {formatTime(times[0].slice(0, 2))}
+                    {<Time time={`${times[0].hour}`} />}
                   </th>
                   {times.map(t => (
-                    <td className="pt-3 pr-3 text-center" key={t}>
+                    <td className="pt-3 pr-3 text-center" key={+t}>
                       <Button
                         onClick={() => {
                           loadData(async () => {
@@ -116,7 +114,7 @@ export default function SelectReturnTime<B extends Offer['booking']>({
                           });
                         }}
                       >
-                        <Time>{t}</Time>
+                        <Time time={t} />
                       </Button>
                     </td>
                   ))}

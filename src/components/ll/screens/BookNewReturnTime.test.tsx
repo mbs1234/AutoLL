@@ -1,5 +1,6 @@
 import { booking, ll, modOffer, renderResort, wdw } from '@/__fixtures__/ll';
 import PlansContext from '@/contexts/PlansContext';
+import { ParkTime } from '@/datetime';
 import { ping } from '@/ping';
 import { TODAY, act, click, loading, nav, see } from '@/testing';
 
@@ -42,8 +43,8 @@ describe('BookNewReturnTime', () => {
 
     const newOffer = {
       ...modOffer,
-      start: { date: TODAY, time: '12:25:00' },
-      end: { date: TODAY, time: '13:25:00' },
+      start: { date: TODAY, time: new ParkTime(12, 25) },
+      end: { date: TODAY, time: new ParkTime(13, 25) },
     };
     act(() => onOfferChange(newOffer));
 

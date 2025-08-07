@@ -7,7 +7,7 @@ import {
   Reservation,
 } from '@/api/itinerary';
 import { FlexExperience, Guest, HourlyTimes, Offer } from '@/api/ll';
-import { DateTime } from '@/datetime';
+import { DateTime, ParkTime } from '@/datetime';
 import { TODAY, TOMORROW } from '@/testing';
 
 import { ak, hs, itinerary, ll, mk, wdw } from './resort';
@@ -87,7 +87,7 @@ export const hm: FlexExperience = {
   ...wdw.experience('80010208'),
   park: mk,
   standby: { available: true, waitTime: 30 },
-  flex: { available: true, nextAvailableTime: '11:10:00' },
+  flex: { available: true, nextAvailableTime: new ParkTime(11, 10) },
   priority: 2.3,
 };
 wdw.experience(hm.id).priority = hm.priority;
@@ -98,7 +98,7 @@ export const jc: FlexExperience = {
   standby: { available: true, waitTime: 45 },
   flex: {
     available: true,
-    nextAvailableTime: '00:00:00',
+    nextAvailableTime: new ParkTime(0),
   },
   priority: 1.1,
 };
@@ -108,7 +108,7 @@ export const sm: FlexExperience = {
   ...wdw.experience('80010190'),
   park: mk,
   standby: { available: true, waitTime: 60 },
-  flex: { available: true, nextAvailableTime: '10:40:00' },
+  flex: { available: true, nextAvailableTime: new ParkTime(10, 40) },
   priority: 2.0,
 };
 wdw.experience(sm.id).priority = sm.priority;
@@ -124,10 +124,12 @@ export function createBooking(
   experience: FlexExperience,
   {
     date = TODAY,
+    startTime = new ParkTime(11),
     guests = [mickey, minnie, pluto],
     properties,
   }: {
     date?: string;
+    startTime?: ParkTime;
     guests?: Guest[];
     properties?: Partial<LLMP>;
   } = {}
@@ -135,6 +137,7 @@ export function createBooking(
   const bookingGuests = guests
     .map(omitOrderDetails)
     .map(g => ({ ...g, entitlementId: `${experience.id}-${g.id}` }));
+  const st = ParkTime.from(startTime);
   return {
     type: 'LL',
     subtype: 'MP',
@@ -143,8 +146,8 @@ export function createBooking(
     experience: wdw.experience(experience.id),
     park: experience.park,
     land: experience.land,
-    start: new DateTime(date, '11:00:00'),
-    end: new DateTime(date, '12:00:00'),
+    start: new DateTime(date, st),
+    end: new DateTime(date, st.add({ hours: 1 })),
     cancellable: true,
     modifiable: true,
     guests: bookingGuests,
@@ -163,7 +166,7 @@ export const multiExp: LightningLane = {
   experience: wdw.experience(sdd.id),
   land: sdd.land,
   park: sdd.park,
-  start: new DateTime(TODAY, '15:15:00'),
+  start: new DateTime(TODAY, new ParkTime(15, 15)),
   end: { date: TODAY, time: undefined },
   cancellable: false,
   modifiable: false,
@@ -206,7 +209,7 @@ export const bg: BoardingGroup = {
   boardingGroup: 42,
   status: 'IN_PROGRESS',
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
-  start: new DateTime(TODAY, '07:00:00'),
+  start: new DateTime(TODAY, new ParkTime(7)),
   id: 'tron_01',
 };
 
@@ -222,7 +225,7 @@ export const lttRes: Reservation = {
     theme: { bg: '', text: '' },
   },
   park: mk,
-  start: new DateTime(TODAY, '11:15:00'),
+  start: new DateTime(TODAY, new ParkTime(11, 15)),
   end: undefined,
   guests: [mickey, minnie].map(omitOrderDetails),
   id: '38943;type=DINING',
@@ -233,7 +236,7 @@ export const mkApr: ParkPass = {
   facilityId: mk.id,
   name: mk.name,
   park: mk,
-  start: new DateTime(TODAY, '06:00:00'),
+  start: new DateTime(TODAY, new ParkTime(6)),
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
   id: 'mk20211001',
 };
@@ -243,7 +246,7 @@ export const akApr: ParkPass = {
   facilityId: ak.id,
   name: ak.name,
   park: ak,
-  start: new DateTime(TOMORROW, '06:00:00'),
+  start: new DateTime(TOMORROW, new ParkTime(6)),
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
   id: 'ak20211002',
 };
@@ -256,8 +259,8 @@ export const expiredLL: LLMP = {
   experience: wdw.experience(jc.id),
   land: jc.land,
   park: jc.park,
-  start: new DateTime(TODAY, '14:00:00'),
-  end: new DateTime(TODAY, '15:00:00'),
+  start: new DateTime(TODAY, new ParkTime(14)),
+  end: new DateTime(TODAY, new ParkTime(15)),
   cancellable: true,
   modifiable: false,
   guests: [
@@ -281,8 +284,8 @@ export const bookings: Booking[] = [
 export const offer: Offer<undefined> = {
   id: '123',
   offerSetId: 'set123',
-  start: new DateTime(TODAY, '11:10:00'),
-  end: new DateTime(TODAY, '12:10:00'),
+  start: new DateTime(TODAY, new ParkTime(11, 10)),
+  end: new DateTime(TODAY, new ParkTime(12, 10)),
   changed: false,
   guests: {
     eligible: [mickey, minnie, pluto],
@@ -295,11 +298,12 @@ export const offer: Offer<undefined> = {
 export const modOffer: Offer<LLMP> = { ...offer, booking };
 
 export const times: HourlyTimes = [
-  ['11:20:00', '11:40:00', '11:55:00'],
-  ['12:05:00', '12:25:00', '12:45:00'],
-];
+  ['10:20', '10:40'],
+  ['11:20', '11:40', '11:55'],
+  ['12:05', '12:25', '12:45'],
+].map(times => times.map(t => ParkTime.from(t)));
 
-ll.nextBookTime = '11:00:00';
+ll.nextBookTime = new ParkTime(11) as any;
 
 export function mockOffer(offer: Offer) {
   jest.spyOn(ll, 'offer').mockResolvedValue(offer);

@@ -1,6 +1,6 @@
 import { ll, modOffer, offer, renderResort, times } from '@/__fixtures__/ll';
 import { HourlyTimes, Offer } from '@/api/ll';
-import { formatTime } from '@/datetime';
+import { ParkTime, formatTime } from '@/datetime';
 import { click, loading, nav, see } from '@/testing';
 
 import SelectReturnTime from './SelectReturnTime';
@@ -69,7 +69,7 @@ describe('SelectReturnTime', () => {
   });
 
   it("doesn't replace earliest slot if offer time is later", async () => {
-    const time = '11:05:00';
+    const time = new ParkTime(11, 5);
     await renderComponent([[time, ...times[0].slice(1)], times[1]], offer);
     see(formatTime(time), 'button');
     see.no(formatTime(offer.start.time), 'button');

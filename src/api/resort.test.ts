@@ -1,3 +1,5 @@
+import { ParkTime } from '@/datetime';
+
 import * as wdwData from './data/wdw';
 import { Experience, InvalidId, Park, Resort } from './resort';
 
@@ -10,8 +12,8 @@ for (const exp of Object.values(experiences)) {
 const mk = parks[0] as Park;
 const tron = experiences['411504498'] as Experience;
 const tba = experiences['412021364'] as Experience;
-tron.dropTimes = ['11:30', '14:00', '16:30'];
-tba.dropTimes = ['12:00', '14:00', '16:00'];
+tron.dropTimes = ['11:30', '14:00', '16:30'].map(ParkTime.from);
+tba.dropTimes = ['12:00', '14:00', '16:00'].map(ParkTime.from);
 experiences['8675309'] = null;
 
 const wdw = new Resort('WDW', wdwData);
@@ -22,7 +24,9 @@ describe('Resort', () => {
   });
 
   it('adds dropTimes property to parks', () => {
-    expect(mk.dropTimes).toEqual(['11:30', '12:00', '14:00', '16:00', '16:30']);
+    expect(mk.dropTimes).toEqual(
+      ['11:30', '12:00', '14:00', '16:00', '16:30'].map(ParkTime.from)
+    );
   });
 
   describe('experience()', () => {

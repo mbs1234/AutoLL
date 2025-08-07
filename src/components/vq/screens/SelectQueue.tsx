@@ -71,9 +71,10 @@ export default function SelectQueue() {
                   ) : q.nextScheduledOpenTime ? (
                     <>
                       Next opening:{' '}
-                      <Time className="font-semibold">
-                        {q.nextScheduledOpenTime}
-                      </Time>
+                      <Time
+                        time={q.nextScheduledOpenTime}
+                        className="font-semibold"
+                      />
                     </>
                   ) : (
                     'No more openings today'

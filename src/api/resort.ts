@@ -1,10 +1,12 @@
+import { ParkTime } from '@/datetime';
+
 export interface Park {
   id: string;
   name: string;
   icon: string;
   geo: { n: number; s: number; e: number; w: number };
   theme: { bg: string; text: string };
-  dropTimes: string[];
+  dropTimes: ParkTime[];
 }
 
 export interface Land {
@@ -26,14 +28,18 @@ export interface Experience {
   avgWait?: number;
   tier?: number;
   priority?: number;
-  dropTimes?: string[];
+  dropTimes?: ParkTime[];
   highlight?: boolean;
 }
 
 type ParkData = Omit<Park, 'dropTimes'>;
 type LandData = Omit<Land, 'park'> & { park: ParkData };
-type ExperienceData = Omit<Experience, 'id' | 'land' | 'park'> & {
+export type ExperienceData = Omit<
+  Experience,
+  'id' | 'land' | 'park' | 'dropTimes'
+> & {
   land: LandData;
+  dropTimes?: string[];
 };
 
 export interface ResortData {
@@ -64,18 +70,26 @@ export class Resort {
     this.parksById = Object.fromEntries(this.parks.map(p => [p.id, p]));
     this.expsById = data.experiences as Resort['expsById'];
     this.dropExpsByPark = new Map(this.parks.map(p => [p, [] as Experience[]]));
-    for (const [id, exp] of Object.entries(this.expsById)) {
-      if (!exp) continue;
+    for (const [id, expData] of Object.entries(data.experiences)) {
+      if (!expData) continue;
+      const exp = expData as Experience;
       exp.id = id;
       exp.park = exp.land.park;
-      if (exp.dropTimes) this.dropExpsByPark.get(exp.land.park)?.push(exp);
+      if (expData.dropTimes) {
+        exp.dropTimes = expData.dropTimes.map(ParkTime.from);
+        this.dropExpsByPark.get(exp.land.park)?.push(exp);
+      }
     }
     for (const park of this.parks) {
       park.dropTimes = [
-        ...new Set(
-          this.dropExpsByPark.get(park)?.flatMap(exp => exp.dropTimes ?? [])
+        ...new Map(
+          this.dropExpsByPark
+            .get(park)
+            ?.flatMap(exp => (exp.dropTimes ?? []).map(t => [+t, t]))
         ),
-      ].sort();
+      ]
+        .map(t => t[1])
+        .sort();
       this.dropExpsByPark
         .get(park)
         ?.sort((a, b) => a.name.localeCompare(b.name));

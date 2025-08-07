@@ -1,4 +1,4 @@
-import { DateTime } from '@/datetime';
+import { DateTime, ParkTime } from '@/datetime';
 
 import { authStore } from './auth';
 import { avatarUrl } from './avatar';
@@ -10,7 +10,7 @@ export type { DasBooking };
 
 export interface Experience extends ExpData {
   available: boolean;
-  time: string;
+  time: ParkTime;
 }
 
 interface ApiExperience {

@@ -57,8 +57,8 @@ describe('BookingDetails', () => {
   it('shows LL booking details', async () => {
     renderComponent(booking);
     await see.screen('Your Lightning Lane');
-    see.time(booking.start.time as string);
-    see.time(booking.end.time as string);
+    see.time(booking.start.time);
+    see.time(booking.end.time);
     see(mickey.name);
     see(minnie.name);
     see(pluto.name);
@@ -106,7 +106,7 @@ describe('BookingDetails', () => {
       DEFAULT_THEME.bg
     );
     see('Multiple Experiences');
-    see.time(multiExp.start.time as string);
+    see.time(multiExp.start.time);
     see('Park Close');
     expect(
       screen

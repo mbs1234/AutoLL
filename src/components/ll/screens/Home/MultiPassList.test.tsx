@@ -4,7 +4,7 @@ import BookingDateContext from '@/contexts/BookingDateContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
-import { formatTime } from '@/datetime';
+import { ParkTime, formatTime } from '@/datetime';
 import kvdb from '@/kvdb';
 import NavProvider from '@/providers/NavProvider';
 import { TODAY, click, loading, screen, see, setTime, within } from '@/testing';
@@ -37,7 +37,7 @@ const db: FlexExperience = {
   ...wdw.experience('80010129'),
   park: mk,
   standby: { available: true, waitTime: 25 },
-  flex: { available: true, nextAvailableTime: '10:05:00' },
+  flex: { available: true, nextAvailableTime: new ParkTime(10, 5) },
 };
 
 async function goBack() {
@@ -123,7 +123,7 @@ describe('MultiPassList', () => {
     click(screen.getAllByTitle('Add to Favorites')[4]);
     expect(getExperiences()).toEqual(names([jc, sm, hm]));
 
-    click(formatTime(sm.flex.nextAvailableTime as string));
+    click(formatTime(sm.flex.nextAvailableTime));
     await see.screen('Lightning Lane');
     await loading();
     see(sm.name);

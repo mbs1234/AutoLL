@@ -32,8 +32,8 @@ describe('RebookingHeader', () => {
   it('shows LL to be modified', async () => {
     render(<Test />);
     see(booking.name);
-    see.time(booking.start.time as string);
-    see.time(booking.end.time as string);
+    see.time(booking.start.time);
+    see.time(booking.end.time);
     click('Keep');
     expect(rebooking.end).toHaveBeenCalledTimes(1);
     expect(nav.goBack).not.toHaveBeenCalled();

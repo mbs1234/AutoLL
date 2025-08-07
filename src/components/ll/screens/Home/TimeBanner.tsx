@@ -2,14 +2,14 @@ import { use } from 'react';
 
 import { Time } from '@/components/Time';
 import ThemeContext from '@/contexts/ThemeContext';
-import { DateTime } from '@/datetime';
+import { DateTime, ParkTime } from '@/datetime';
 
 export default function TimeBanner({
   bookTime,
   dropTime,
 }: {
-  bookTime?: string;
-  dropTime?: string;
+  bookTime?: ParkTime;
+  dropTime?: ParkTime;
 }) {
   return bookTime || dropTime ? (
     <div className={`flex justify-center gap-x-10 ${use(ThemeContext).bg}`}>
@@ -19,14 +19,17 @@ export default function TimeBanner({
   ) : null;
 }
 
-function LabeledTime({ label, time }: { label?: string; time?: string }) {
+function LabeledTime({ label, time }: { label?: string; time?: ParkTime }) {
   if (!time) return null;
-  time = time.slice(0, 5);
-  const now = DateTime.now().time.slice(0, 5);
+  const now = DateTime.now().time.with({ second: 0 });
   return (
     <div>
       {label}:{' '}
-      {time > now ? <Time>{time}</Time> : <time dateTime={time}>now</time>}
+      {time > now ? (
+        <Time time={time} />
+      ) : (
+        <time dateTime={`${time}`}>now</time>
+      )}
     </div>
   );
 }

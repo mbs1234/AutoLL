@@ -13,14 +13,14 @@ export default function ReturnWindow({
 
   return (
     <span className="whitespace-nowrap">
-      {start.time ? <Time>{start.time}</Time> : <span>Park Open</span>}
+      {start.time ? <Time time={start.time} /> : <span>Park Open</span>}
       {end ? (
         <>
           {' – '}
           {endParkDate > startParkDate ? (
             <Day type="short">{endParkDate}</Day>
           ) : end.time ? (
-            <Time>{end.time}</Time>
+            <Time time={end.time} />
           ) : (
             <span>Park Close</span>
           )}

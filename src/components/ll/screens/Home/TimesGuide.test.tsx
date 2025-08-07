@@ -6,7 +6,7 @@ import { Experience as ExpData, ExperienceType } from '@/api/resort';
 import DasPartiesContext from '@/contexts/DasPartiesContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
-import { formatTime } from '@/datetime';
+import { ParkTime, formatTime } from '@/datetime';
 import NavProvider from '@/providers/NavProvider';
 import { click, screen, see, within } from '@/testing';
 
@@ -43,7 +43,7 @@ function exp(
   args: {
     type?: ExperienceType;
     waitTime?: number;
-    showTimes?: string[];
+    showTimes?: ParkTime[];
     down?: true;
     individual?: {
       available?: boolean;
@@ -66,13 +66,13 @@ function exp(
   };
 }
 
-const ddShowTimes = ['14:30:00', '15:30:00'];
+const ddShowTimes = ['14:30', '15:30'].map(ParkTime.from);
 const dd = exp('8075', {
   showTimes: ddShowTimes,
 });
-const fofShowTime = '15:00:00';
+const fofShowTimes = ['15:00'].map(ParkTime.from);
 const fof = exp('17718925', {
-  showTimes: [fofShowTime],
+  showTimes: fofShowTimes,
 });
 const potc = exp('80010177', { waitTime: 30 });
 const tiki = exp('16124144');
@@ -125,7 +125,7 @@ describe('TimesGuide', () => {
       },
     });
 
-    click(see.time(fofShowTime));
+    click(see.time(fofShowTimes[0]));
     expect(
       screen.queryByRole('heading', { name: fof.name, level: 2 })
     ).not.toBeInTheDocument();

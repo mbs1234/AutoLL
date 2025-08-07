@@ -24,11 +24,11 @@ export default function NoEligibleGuests() {
       ) : (
         <>
           {ll.nextBookTime &&
-            ll.nextBookTime.slice(0, 5) > DateTime.now().time.slice(0, 5) && (
+            ll.nextBookTime > DateTime.now().time.with({ second: 0 }) && (
               <Alert
                 title={
                   <>
-                    Eligible at <Time>{ll.nextBookTime}</Time>
+                    Eligible at <Time time={ll.nextBookTime} />
                   </>
                 }
               />

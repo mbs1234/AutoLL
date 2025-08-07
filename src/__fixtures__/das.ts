@@ -1,6 +1,6 @@
 import { avatarUrl } from '@/api/avatar';
 import { DasBooking, Experience } from '@/api/das';
-import { DateTime } from '@/datetime';
+import { DateTime, ParkTime } from '@/datetime';
 import { TODAY } from '@/testing';
 
 import { mk, wdw } from './resort';
@@ -28,17 +28,17 @@ export const party = {
 export const hm: Experience = {
   ...wdw.experience('80010208'),
   available: true,
-  time: '10:30:00',
+  time: new ParkTime(10, 30),
 };
 export const jc: Experience = {
   ...wdw.experience('80010153'),
   available: true,
-  time: '10:45:00',
+  time: new ParkTime(10, 45),
 };
 export const sm: Experience = {
   ...wdw.experience('80010190'),
   available: true,
-  time: '10:40:00',
+  time: new ParkTime(10, 40),
 };
 
 export const booking: DasBooking = {
@@ -53,7 +53,7 @@ export const booking: DasBooking = {
     { ...mickey, entitlementId: 'ent1' },
     { ...minnie, entitlementId: 'ent2' },
   ],
-  start: new DateTime(TODAY, '10:30:00'),
+  start: new DateTime(TODAY, new ParkTime(10, 30)),
   end: {},
   id: 'hm1030',
 };

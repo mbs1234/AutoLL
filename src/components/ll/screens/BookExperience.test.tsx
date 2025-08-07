@@ -16,11 +16,11 @@ import {
   renderResort,
 } from '@/__fixtures__/ll';
 import { RequestError } from '@/api/client';
-import { LLMP, OfferError } from '@/api/ll';
+import { LLMP, Offer, OfferError } from '@/api/ll';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
 import NavContext from '@/contexts/NavContext';
-import { DateTime, parkDate } from '@/datetime';
+import { DateTime, ParkTime, parkDate } from '@/datetime';
 import { ping } from '@/ping';
 import BookingDateProvider from '@/providers/BookingDateProvider';
 import NavProvider from '@/providers/NavProvider';
@@ -199,11 +199,10 @@ describe('BookExperience', () => {
     expect(see(pluto.name)).toHaveTextContent('TOO EARLY FOR PARK HOPPING');
   });
 
-  const newOffer = {
+  const newOffer: Offer = {
     id: 'new_offer',
-    start: new DateTime(TODAY, '10:05:00'),
-    end: new DateTime(TODAY, '11:05:00'),
-    active: true,
+    start: new DateTime(TODAY, new ParkTime(10, 5)),
+    end: new DateTime(TODAY, new ParkTime(11, 5)),
     changed: true,
     guests: {
       eligible: [mickey, minnie, pluto],

@@ -1,4 +1,4 @@
-import { DateTime } from '@/datetime';
+import { DateTime, ParkTime } from '@/datetime';
 import { fetchJson } from '@/fetch';
 
 import { Experience } from './ll';
@@ -21,7 +21,9 @@ export class LiveDataClient {
     const now = DateTime.now().time;
     return Object.fromEntries(
       Object.entries(showTimesByExpId).flatMap(([id, showTimes]) => {
-        const upcomingTimes = showTimes.filter(t => t >= now);
+        const upcomingTimes = showTimes
+          .map(ParkTime.from)
+          .filter(t => t >= now);
         const available = upcomingTimes.length > 0;
         const unavailableReason = available ? undefined : 'NO_MORE_SHOWS';
         try {

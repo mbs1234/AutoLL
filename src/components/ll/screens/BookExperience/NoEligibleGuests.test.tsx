@@ -34,9 +34,7 @@ describe('NoEligibleGuests', () => {
   it(`shows "No Eligible Guests" if not rebooking`, () => {
     renderComponent();
     see('No Eligible Guests');
-    expect(see('Eligible at')).toHaveTextContent(
-      formatTime(ll.nextBookTime as string)
-    );
+    expect(see('Eligible at')).toHaveTextContent(formatTime(ll.nextBookTime));
     expect(IneligibleGuestList).toHaveBeenCalled();
   });
 
@@ -48,7 +46,7 @@ describe('NoEligibleGuests', () => {
   });
 
   it(`doesn't show "Eligible at" time if eligible now`, () => {
-    setTime(ll.nextBookTime as string);
+    setTime(ll.nextBookTime);
     renderComponent();
     see.no('Eligible at');
   });

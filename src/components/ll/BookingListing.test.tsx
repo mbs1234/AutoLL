@@ -10,8 +10,8 @@ describe('BookingListing', () => {
   it('renders listing', () => {
     render(<BookingListing booking={booking} button={<button>Info</button>} />);
     see(booking.name);
-    see.time(booking.start.time as string);
-    see.time(booking.end.time as string);
+    see.time(booking.start.time);
+    see.time(booking.end.time);
     see.no('DAS');
     see('Info', 'button');
   });

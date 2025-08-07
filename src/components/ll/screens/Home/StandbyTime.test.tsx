@@ -1,3 +1,4 @@
+import { ParkTime } from '@/datetime';
 import { render, see } from '@/testing';
 
 import StandbyTime from './StandbyTime';
@@ -25,7 +26,7 @@ describe('StandbyTime', () => {
   });
 
   it('shows next show time', () => {
-    const nextShowTime = '15:00:00';
+    const nextShowTime = new ParkTime(15);
     render(
       <StandbyTime
         experience={{ standby: { available: true }, showTimes: [nextShowTime] }}
@@ -40,7 +41,7 @@ describe('StandbyTime', () => {
   });
 
   it('shows next VQ open time', () => {
-    const nextAvailableTime = '07:00:00';
+    const nextAvailableTime = new ParkTime(7);
     render(
       <StandbyTime
         experience={{

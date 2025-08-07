@@ -3,10 +3,10 @@ import { TODAY, TOMORROW, YESTERDAY, setTime } from '@/testing';
 import {
   DateFormat,
   DateTime,
+  ParkTime,
   formatDate,
   formatTime,
   parkDate,
-  parkMinutes,
   toDate,
   upcomingTimes,
 } from './datetime';
@@ -17,6 +17,66 @@ const dateTimeString = `${date}T${time}`;
 
 beforeEach(() => {
   setTime('08:00');
+});
+
+describe('ParkTime', () => {
+  const t = new ParkTime(10, 47, 12);
+
+  describe('ParkTime.from()', () => {
+    it('creates PlainTime', () => {
+      expect(ParkTime.from('10:47:12')).toEqual(t);
+      expect(ParkTime.from({ hour: 10, minute: 47, second: 12 })).toEqual(t);
+      expect(ParkTime.from(t)).toEqual(t);
+    });
+  });
+
+  describe('constructor()', () => {
+    it('throws RangeError if given non-finite field', () => {
+      expect(() => new ParkTime(NaN, 0, 0)).toThrow(RangeError);
+      expect(() => new ParkTime(Infinity, 0, 0)).toThrow(RangeError);
+    });
+  });
+
+  describe('add()', () => {
+    it('adds specified duration to time', () => {
+      expect(t.add({ hours: 8, minutes: 20, seconds: 33 })).toEqual(
+        new ParkTime(19, 7, 45)
+      );
+      expect(t.add({ hours: -1 })).toEqual(new ParkTime(9, 47, 12));
+    });
+
+    it('returns same PlainTime if zero duration added', () => {
+      expect(t.add({ hours: 0, minutes: 0, seconds: 0 })).toBe(t);
+    });
+  });
+
+  describe('with()', () => {
+    it('returns a new PlainTime with updated fields', () => {
+      expect(t.with({ hour: 8, second: 0 })).toEqual(new ParkTime(8, 47, 0));
+      expect(t.with({ minute: 30 })).toEqual(new ParkTime(10, 30, 12));
+    });
+  });
+
+  describe('valueOf()', () => {
+    it('returns seconds since ParkTime.dayStart', () => {
+      const t = ParkTime.dayStart;
+      expect(t.valueOf()).toBe(0);
+      expect(t < t.add({ seconds: 1 })).toBe(true);
+      expect(t < t.add({ seconds: -1 })).toBe(true);
+    });
+  });
+
+  describe('toString()', () => {
+    it('converts to string', () => {
+      expect(t.toString()).toBe('10:47:12');
+    });
+  });
+
+  describe('toJSON()', () => {
+    it('converts to string', () => {
+      expect(t.toJSON()).toBe('10:47:12');
+    });
+  });
 });
 
 describe('DateTime', () => {
@@ -37,21 +97,21 @@ describe('DateTime', () => {
     it('accepts string', () => {
       expect(DateTime.from(dateTimeString)).toEqual({
         date: '1998-04-22',
-        time: '16:35:40',
+        time: new ParkTime(16, 35, 40),
       });
     });
 
     it('accepts Date object', () => {
       expect(DateTime.from(new Date('1998-04-22T16:35:40-0400'))).toEqual({
         date: '1998-04-22',
-        time: '16:35:40',
+        time: new ParkTime(16, 35, 40),
       });
     });
 
     it('accepts timestamp', () => {
       expect(DateTime.from(893277340000)).toEqual({
         date: '1998-04-22',
-        time: '16:35:40',
+        time: new ParkTime(16, 35, 40),
       });
     });
   });
@@ -60,7 +120,7 @@ describe('DateTime', () => {
     it('returns current date/time', () => {
       expect(DateTime.now()).toEqual({
         date: '2021-10-01',
-        time: '08:00:00',
+        time: new ParkTime(8),
       });
     });
   });
@@ -74,7 +134,7 @@ describe('DateTime', () => {
       DateTime.setTimeZone('America/Los_Angeles');
       expect(DateTime.from(new Date(893277340752))).toEqual({
         date: '1998-04-22',
-        time: '13:35:40',
+        time: new ParkTime(13, 35, 40),
       });
     });
   });
@@ -133,15 +193,6 @@ describe('parkDate()', () => {
   });
 });
 
-describe('parkMinutes()', () => {
-  it('returns minutes since 4 AM', () => {
-    expect(parkMinutes('04:00:00')).toBe(0);
-    expect(parkMinutes('04:01')).toBe(1);
-    expect(parkMinutes('12:00')).toBe(480);
-    expect(parkMinutes('03:59')).toBe(1439);
-  });
-});
-
 describe('toDate()', () => {
   it('converts the supplied value to a Date object', () => {
     const dateObj = new Date(dateTimeString);
@@ -153,7 +204,7 @@ describe('toDate()', () => {
 });
 
 describe('upcomingTimes()', () => {
-  const times = ['11:30', '14:30', '17:30'];
+  const times = ['11:30', '14:30', '17:30'].map(ParkTime.from);
 
   it('returns upcoming times', () => {
     expect(upcomingTimes(times)).toEqual(times);

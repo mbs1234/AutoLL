@@ -19,7 +19,7 @@ import {
   times,
   wdw,
 } from '@/__fixtures__/ll';
-import { DateTime, modifyDate } from '@/datetime';
+import { DateTime, ParkTime, modifyDate } from '@/datetime';
 import kvdb from '@/kvdb';
 import { TODAY, TOMORROW, setTime } from '@/testing';
 
@@ -260,7 +260,7 @@ describe('LLClientWDW', () => {
         id: 'fifi',
         name: 'Fifi',
         ineligibleReason: 'TOO_EARLY',
-        eligibleAfter: '10:30:00',
+        eligibleAfter: ParkTime.from('10:30'),
       };
       const goofy = {
         id: 'goofy',
@@ -274,12 +274,12 @@ describe('LLClientWDW', () => {
             {
               ...minnie,
               ineligibleReason: 'TOO_EARLY',
-              eligibleAfter: '10:30:00',
+              eligibleAfter: ParkTime.from('10:30'),
             },
             {
               ...pluto,
               ineligibleReason: 'TOO_EARLY',
-              eligibleAfter: '10:00:00',
+              eligibleAfter: ParkTime.from('10:00'),
             },
             donald,
             fifi,
@@ -287,7 +287,7 @@ describe('LLClientWDW', () => {
             {
               ...mickey,
               ineligibleReason: 'TOO_EARLY',
-              eligibleAfter: '10:30:00',
+              eligibleAfter: ParkTime.from('10:30'),
               primary: true,
             },
           ].map(apiGuest),
@@ -318,16 +318,14 @@ describe('LLClientWDW', () => {
               type: 'EVENT_ITEM',
               eventType: 'PARK_OPEN',
               facilityId: '80007944',
-              startDateTime: `${TODAY}T08:00:00`,
-              endDateTime: `${TODAY}T08:00:00`,
+              startTime: ParkTime.from('09:00'),
             },
             offerItem,
             {
               type: 'EVENT_ITEM',
               eventType: 'PARK_CLOSE',
               facilityId: '80007944',
-              startDateTime: `${TODAY}T22:00:00`,
-              endDateTime: `${TODAY}T22:00:00`,
+              startTime: ParkTime.from('21:00'),
             },
           ],
         },
@@ -387,8 +385,8 @@ describe('LLClientWDW', () => {
         {
           ...offer,
           experience: sm,
-          start: new DateTime(TODAY, '10:40:00'),
-          end: new DateTime(TODAY, '11:40:00'),
+          start: new DateTime(TODAY, ParkTime.from('10:40')),
+          end: new DateTime(TODAY, ParkTime.from('11:40')),
           booking,
         }
       );
@@ -439,8 +437,8 @@ describe('LLClientWDW', () => {
         { date: TODAY },
         {
           ...offer,
-          start: new DateTime(TODAY, '11:20:00'),
-          end: new DateTime(TODAY, '12:20:00'),
+          start: new DateTime(TODAY, ParkTime.from('11:20')),
+          end: new DateTime(TODAY, ParkTime.from('12:20')),
           changed: true,
         }
       );
@@ -450,8 +448,8 @@ describe('LLClientWDW', () => {
     it('checks for earlier time if later than expected', async () => {
       respondOffer({
         ...offer,
-        start: new DateTime(TODAY, '11:25:00'),
-        end: new DateTime(TODAY, '12:25:00'),
+        start: new DateTime(TODAY, ParkTime.from('11:25')),
+        end: new DateTime(TODAY, ParkTime.from('12:25')),
       });
       expect(
         await client.offer(hm, offer.guests.eligible, { date: TODAY })
@@ -468,8 +466,8 @@ describe('LLClientWDW', () => {
         { date: TODAY },
         {
           ...offer,
-          start: new DateTime(TODAY, '11:25:00'),
-          end: new DateTime(TODAY, '12:25:00'),
+          start: new DateTime(TODAY, ParkTime.from('11:25')),
+          end: new DateTime(TODAY, ParkTime.from('12:25')),
           changed: true,
         }
       );
@@ -517,13 +515,13 @@ describe('LLClientWDW', () => {
   });
 
   describe('changeOfferTime()', () => {
-    const time = '15:00:00';
+    const time = ParkTime.from('15:00');
     const newOffer = {
       ...offer,
       id: 'changedOfferId',
       offerSetId: 'changedOfferSetId',
       start: new DateTime(TODAY, time),
-      end: new DateTime(TODAY, '16:00:00'),
+      end: new DateTime(TODAY, ParkTime.from('16:00')),
     };
     const changeRes = response({
       updatedPlanningOfferDisplayItem: {
@@ -557,8 +555,8 @@ describe('LLClientWDW', () => {
 
     it('specifies if time was changed', async () => {
       const { updatedPlanningOfferDisplayItem: item } = changeRes.data;
-      const start = new DateTime(TODAY, '15:25:00');
-      const end = new DateTime(TODAY, '16:25:00');
+      const start = new DateTime(TODAY, ParkTime.from('15:25'));
+      const end = new DateTime(TODAY, ParkTime.from('16:25'));
       respond({
         ...changeRes,
         data: {
@@ -790,7 +788,11 @@ describe('LLClientDLR', () => {
       respond(
         response(
           {
-            offer: { ...offerData, startTime: '11:15:00', endTime: '12:15:00' },
+            offer: {
+              ...offerData,
+              startTime: ParkTime.from('11:15'),
+              endTime: ParkTime.from('12:15'),
+            },
             eligibleGuests: offer.guests.eligible.map(apiGuest),
             ineligibleGuests: [],
           },
@@ -799,8 +801,8 @@ describe('LLClientDLR', () => {
       );
       expect(await client.offer(hm, offer.guests.eligible)).toEqual({
         ...dlrOffer,
-        start: new DateTime(TODAY, '11:15:00'),
-        end: new DateTime(TODAY, '12:15:00'),
+        start: new DateTime(TODAY, ParkTime.from('11:15')),
+        end: new DateTime(TODAY, ParkTime.from('12:15')),
         changed: true,
       });
     });

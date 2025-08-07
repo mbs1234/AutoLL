@@ -1,4 +1,4 @@
-import { DateTime, parkDate } from '@/datetime';
+import { DateTime, ParkTime, parkDate } from '@/datetime';
 import kvdb from '@/kvdb';
 
 import { authStore } from './auth';
@@ -40,11 +40,47 @@ interface ApiExperience {
   };
 }
 
+type WithParkTimes<T> = T extends object
+  ? {
+      [K in keyof T]: K extends `${string}Time`
+        ? T[K] extends string | undefined
+          ? ParkTime
+          : WithParkTimes<T[K]>
+        : K extends `${string}Times`
+          ? ParkTime[]
+          : WithParkTimes<T[K]>;
+    }
+  : T;
+
+export function replaceTimeStrings<T extends { [k: string]: any }>(
+  obj: T
+): WithParkTimes<T> {
+  if (typeof obj !== 'object') return obj;
+
+  for (const [k, v] of Object.entries(obj)) {
+    switch (typeof v) {
+      case 'string':
+        if (k.endsWith('Time') && v.match(/^\d{2}:\d{2}:\d{2}$/)) {
+          (obj as any)[k] = ParkTime.from(v);
+        }
+        break;
+      case 'object':
+        (obj as any)[k] = replaceTimeStrings(v);
+        break;
+    }
+  }
+
+  return obj as WithParkTimes<T>;
+}
+
 export type Experience = ExpData &
-  Omit<ApiExperience, 'type' | 'standby' | 'additionalShowTimes'> & {
+  Omit<
+    WithParkTimes<ApiExperience>,
+    'type' | 'standby' | 'additionalShowTimes'
+  > & {
     standby: Standby;
     experienced?: boolean;
-    showTimes?: string[];
+    showTimes?: ParkTime[];
   };
 export type FlexExperience = Experience & Required<Pick<Experience, 'flex'>>;
 
@@ -82,7 +118,7 @@ export type IneligibleReason =
 
 interface GuestEligibility {
   ineligibleReason?: IneligibleReason;
-  eligibleAfter?: string;
+  eligibleAfter?: ParkTime;
 }
 
 export interface OrderDetails {
@@ -124,6 +160,17 @@ export interface GuestsResponse {
 
 export type OfferExperience = Omit<Experience, 'standby'>;
 
+export interface OfferItineraryItem {
+  overlap: { startTime: ParkTime; endTime: ParkTime };
+  facilityId: string;
+  startTime: ParkTime;
+  endTime?: ParkTime;
+  showTimeInfo?: {
+    showStartTime: ParkTime;
+    showEndTime: ParkTime;
+  };
+}
+
 export interface Offer<B = LLMP | undefined> {
   id: string;
   start: DateTime;
@@ -138,7 +185,7 @@ export interface Offer<B = LLMP | undefined> {
   booking: B;
 }
 
-export type HourlyTimes = string[][];
+export type HourlyTimes = ParkTime[][];
 
 export class ModifyNotAllowed extends Error {
   name = 'ModifyNotAllowed';
@@ -168,7 +215,7 @@ export abstract class LLClient extends ApiClient {
     prebook: false,
     timeSelect: false,
   };
-  nextBookTime: string | undefined;
+  nextBookTime: ParkTime | undefined;
   onUnauthorized = () => undefined;
 
   protected partyIds = new Set<Guest['id']>();
@@ -200,19 +247,25 @@ export abstract class LLClient extends ApiClient {
       },
       userId: true,
     });
-    this.nextBookTime = (
+    const nextBookTimeString = (
       data.eligibility?.geniePlusEligibility?.[parkDate()]
         ?.flexEligibilityWindows || []
     ).sort((a, b) => a.time.time.localeCompare(b.time.time))[0]?.time.time;
+    this.nextBookTime = nextBookTimeString
+      ? ParkTime.from(nextBookTimeString)
+      : undefined;
 
     return data.availableExperiences.flatMap(exp => {
       try {
         return {
-          ...exp,
+          ...replaceTimeStrings(exp),
           ...this.resort.experience(exp.id),
           park,
           showTimes: exp.standby?.nextShowTime
-            ? [exp.standby.nextShowTime, ...(exp.additionalShowTimes ?? [])]
+            ? [
+                exp.standby.nextShowTime,
+                ...(exp.additionalShowTimes ?? []),
+              ].map(t => ParkTime.from(t))
             : undefined,
           experienced: this.tracker.experienced(exp),
         };
@@ -239,7 +292,7 @@ export abstract class LLClient extends ApiClient {
 
   abstract changeOfferTime<B extends Offer['booking']>(
     offer: Offer<B>,
-    time: string
+    time: ParkTime
   ): Promise<Offer<B>>;
 
   abstract book<B extends Offer['booking']>(
@@ -258,19 +311,33 @@ export abstract class LLClient extends ApiClient {
 
   protected convertGuest = <T extends ApiGuest>(
     guest: T
-  ): Omit<T, 'id' | 'firstName' | 'lastName' | 'characterId'> & {
+  ): Omit<
+    T,
+    'id' | 'firstName' | 'lastName' | 'characterId' | 'eligibleAfter'
+  > & {
     id: string;
     name: string;
     avatarImageUrl?: string;
+    eligibleAfter?: ParkTime;
   } => {
-    const { id, firstName, lastName, characterId, ...rest } = guest;
+    const {
+      id,
+      firstName,
+      lastName,
+      characterId,
+      eligibleAfter: eligibleAfterString,
+      ...rest
+    } = guest;
+    let eligibleAfter = eligibleAfterString
+      ? ParkTime.from(eligibleAfterString)
+      : undefined;
     const name = `${firstName ?? ''} ${lastName ?? ''}`.trim();
     const avatarImageUrl = avatarUrl(characterId);
     if (this.partyIds.size > 0 && !this.partyIds.has(id)) {
       rest.ineligibleReason = 'NOT_IN_PARTY';
-      delete rest.eligibleAfter;
+      eligibleAfter = undefined;
     }
-    return { ...rest, id, name, avatarImageUrl };
+    return { ...rest, id, name, eligibleAfter, avatarImageUrl };
   };
 
   protected async primaryGuestId() {
@@ -302,9 +369,7 @@ export abstract class LLClient extends ApiClient {
     ineligible.sort((a, b) => {
       const cmp = +!a.primary - +!b.primary || a.name.localeCompare(b.name);
       if (a.eligibleAfter || b.eligibleAfter) {
-        return (
-          (a.eligibleAfter || '9').localeCompare(b.eligibleAfter || '9') || cmp
-        );
+        return +(a.eligibleAfter ?? 86400) - +(b.eligibleAfter ?? 86400) || cmp;
       }
       if (a.ineligibleReason === b.ineligibleReason) return cmp;
       return (
@@ -319,9 +384,9 @@ export abstract class LLClient extends ApiClient {
 
   protected updateLastOffer<O extends Offer>(
     offer: O,
-    expectedTime: string | undefined
+    expectedTime: ParkTime | undefined
   ): O {
-    offer.changed = offer.start.time !== (expectedTime ?? offer.start.time);
+    offer.changed = +offer.start.time !== +(expectedTime ?? offer.start.time);
     this.#lastOffer = offer;
     return offer;
   }

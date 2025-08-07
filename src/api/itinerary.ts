@@ -1,5 +1,5 @@
 import { DEFAULT_THEME } from '@/contexts/ThemeContext';
-import { DateTime, parkDate } from '@/datetime';
+import { DateTime, ParkTime, parkDate } from '@/datetime';
 
 import { authStore } from './auth';
 import { avatarUrl } from './avatar';
@@ -34,8 +34,8 @@ interface BaseBooking {
   name: string;
   park: Park;
   land?: Land;
-  start: { date: string; time?: string };
-  end?: { date?: string; time?: string };
+  start: DateTime | { date: string; time?: ParkTime };
+  end?: DateTime | { date?: string; time?: ParkTime };
   cancellable?: boolean;
   modifiable?: boolean;
   guests: Guest[];
@@ -55,8 +55,9 @@ export interface LightningLane extends BaseBooking {
   subtype: 'MP' | 'SP' | 'OTHER';
   experience: Experience;
   land: Land;
-  end: { date?: string; time?: string };
+  end: { date?: string; time?: ParkTime };
   guests: EntitledGuest[];
+  showTimeInfo?: { showStartTime: ParkTime; showEndTime: ParkTime };
 }
 
 export interface LLMP extends LightningLane {
@@ -140,6 +141,8 @@ interface FastPassItem {
     redemptionsRemaining?: number;
     redemptionsAllowed?: number;
   }[];
+  showStartDateTime?: string;
+  showEndDateTime?: string;
 }
 
 interface ReservationItem {
@@ -288,13 +291,16 @@ export class ItineraryClient extends ApiClient {
         start:
           (item.displayStartDate ?? today) < parkDay
             ? { date: parkDay }
-            : {
-                date: item.displayStartDate ?? today,
-                time: item.displayStartTime,
-              },
+            : item.displayStartTime
+              ? DateTime.from(
+                  `${item.displayStartDate ?? today}T${item.displayStartTime}`
+                )
+              : { date: item.displayStartDate ?? today },
         end: {
           date: item.displayEndDate,
-          time: item.displayEndTime,
+          time: item.displayEndTime
+            ? ParkTime.from(item.displayEndTime)
+            : undefined,
         },
         guests: item.guests
           .filter(g => {
@@ -331,6 +337,12 @@ export class ItineraryClient extends ApiClient {
         modifiable: item.modifiable && isMP,
         id: item.id,
       };
+      if (item.showStartDateTime && item.showEndDateTime) {
+        booking.showTimeInfo = {
+          showStartTime: DateTime.from(item.showStartDateTime).time,
+          showEndTime: DateTime.from(item.showEndDateTime).time,
+        };
+      }
       if (item.multipleExperiences) {
         const origAsset = item.assets.find(a => a.original);
         booking = {
@@ -400,7 +412,7 @@ export class ItineraryClient extends ApiClient {
         facilityId: park.id,
         name: park.name,
         park,
-        start: new DateTime(item.displayStartDate as string, '06:00:00'),
+        start: new DateTime(item.displayStartDate as string, new ParkTime(6)),
         guests: item.guests.map(getGuest),
         id: item.id,
       };
