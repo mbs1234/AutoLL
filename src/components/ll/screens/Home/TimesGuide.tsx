@@ -66,7 +66,12 @@ const Experiences = memo(function Experiences({
         exp.individual?.available ||
         exp.virtualQueue
     )
-    .sort((a, b) => a.land.sort - b.land.sort || a.name.localeCompare(b.name))
+    .sort(
+      (a, b) =>
+        a.land.sort - b.land.sort ||
+        showTimeNum(a) - showTimeNum(b) ||
+        a.name.localeCompare(b.name)
+    )
     .forEach(exp => {
       if (!expsByLand.has(exp.land)) {
         expsByLand.set(exp.land, {
@@ -134,6 +139,8 @@ const Experiences = memo(function Experiences({
     </>
   );
 });
+
+const showTimeNum = (exp: Experience) => +(exp.showTimes?.[0] ?? 86400);
 
 function ExperienceList({
   title,
