@@ -520,16 +520,45 @@ export const experiences: ResortData['experiences'] = {
   },
 
   // Magic Kingdom - Holiday
+  // New Year's Eve
   12248: {
     name: 'Fantasy in the Sky Fireworks',
     land: mainStreet,
     type: 'H',
   },
+  // Fourth of July
   276291: {
     name: 'Fourth of July Fireworks',
     land: mainStreet,
     type: 'H',
   },
+  // Halloween
+  17506082: {
+    name: 'Cadaver Dans Barbershop Quartet',
+    land: frontierland,
+    type: 'H',
+  },
+  18161751: {
+    name: 'Hocus Pocus Villain Spelltacular',
+    land: mainStreet,
+    type: 'H',
+  },
+  8317: {
+    name: "Mickey's Boo-To-You Parade",
+    land: mainStreet,
+    type: 'H',
+  },
+  61265: {
+    name: 'Not-So-Spooky Spectacular',
+    land: mainStreet,
+    type: 'H',
+  },
+  411979827: {
+    name: 'Rusty Cutlass Pirate Band',
+    land: adventureland,
+    type: 'H',
+  },
+  // Christmas
   411854077: {
     name: "Mickey's Most Merriest Celebration",
     land: mainStreet,
@@ -681,6 +710,11 @@ export const experiences: ResortData['experiences'] = {
   },
 
   // EPCOT - Entertainment
+  412442146: {
+    name: 'Acrobatico',
+    land: showcase,
+    type: 'E',
+  },
   80010200: {
     name: 'American Adventure',
     land: showcase,
@@ -984,6 +1018,11 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.3579409, -81.5607914],
     type: 'E',
   },
+  18693119: {
+    name: 'Disney Movie Magic',
+    land: hollywood,
+    type: 'E',
+  },
   412328859: {
     name: 'Disney Villains: Unfairly Ever After',
     land: hollywood,
@@ -1132,6 +1171,11 @@ export const experiences: ResortData['experiences'] = {
     avgWait: 49,
     highlight: true,
   },
+  80010235: {
+    name: 'Wildlife Express Train',
+    land: africa,
+    type: 'A',
+  },
 
   // Animal Kingdom - Entertainment
   412226163: {
@@ -1142,6 +1186,11 @@ export const experiences: ResortData['experiences'] = {
   16235871: {
     name: 'Burudika',
     land: africa,
+    type: 'E',
+  },
+  412380334: {
+    name: 'Celebration Sing-Along',
+    land: discIsland,
     type: 'E',
   },
   19581371: {
@@ -1212,4 +1261,10 @@ export const experiences: ResortData['experiences'] = {
     land: discIsland,
     type: 'H',
   },
+
+  // Ignored
+  412380330: null,
+  412380331: null,
+  412380332: null,
+  412380258: null,
 };
