@@ -353,10 +353,9 @@ interface MinuteButtonProps {
   time: ParkTime;
   code: AvailabilityCode;
   onClick: (time: ParkTime) => Promise<void>;
-  className?: string;
 }
 
-function MinuteButton({ time, code, onClick, className }: MinuteButtonProps) {
+function MinuteButton({ time, code, onClick }: MinuteButtonProps) {
   const theme = use(ThemeContext);
   const classes = {
     A: { div: `${theme.bg} text-white`, button: '' },
@@ -365,9 +364,7 @@ function MinuteButton({ time, code, onClick, className }: MinuteButtonProps) {
   }[code];
   const timeStr = `${time}`;
   return (
-    <div
-      className={`rounded-lg font-semibold overflow-hidden ${classes.div} ${className ?? ''}`}
-    >
+    <div className={`rounded-lg font-semibold overflow-hidden ${classes.div}`}>
       <button
         className={`px-1.75 py-0.75 border border-black/20 rounded-lg ${classes.button}`}
         onClick={() => onClick(ParkTime.from(time))}
