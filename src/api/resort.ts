@@ -30,7 +30,7 @@ export interface Land {
   park: Park;
 }
 
-export type ExperienceType = 'A' | 'E' | 'C' | 'H';
+export type ExperienceType = 'A' | 'E' | 'C' | 'H' | 'P';
 
 export interface Experience {
   id: string;

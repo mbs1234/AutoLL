@@ -532,47 +532,49 @@ export const experiences: ResortData['experiences'] = {
     land: mainStreet,
     type: 'H',
   },
+
+  // Magic Kingdom - Party
   // Halloween
   17506082: {
     name: 'Cadaver Dans Barbershop Quartet',
     land: frontierland,
-    type: 'H',
+    type: 'P',
   },
   18161751: {
     name: 'Hocus Pocus Villain Spelltacular',
     land: mainStreet,
-    type: 'H',
+    type: 'P',
   },
   8317: {
     name: "Mickey's Boo-To-You Parade",
     land: mainStreet,
-    type: 'H',
+    type: 'P',
   },
   61265: {
     name: 'Not-So-Spooky Spectacular',
     land: mainStreet,
-    type: 'H',
+    type: 'P',
   },
   411979827: {
     name: 'Rusty Cutlass Pirate Band',
     land: adventureland,
-    type: 'H',
+    type: 'P',
   },
   // Christmas
   411854077: {
     name: "Mickey's Most Merriest Celebration",
     land: mainStreet,
-    type: 'H',
+    type: 'P',
   },
   411854078: {
     name: "Mickey's Once Upon a Christmastime Parade",
     land: mainStreet,
-    type: 'H',
+    type: 'P',
   },
   411854079: {
     name: "Minnie's Wonderful Christmastime Fireworks",
     land: mainStreet,
-    type: 'H',
+    type: 'P',
   },
 
   // EPCOT - Attractions

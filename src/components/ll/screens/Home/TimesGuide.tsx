@@ -74,12 +74,7 @@ const Experiences = memo(function Experiences({
     )
     .forEach(exp => {
       if (!expsByLand.has(exp.land)) {
-        expsByLand.set(exp.land, {
-          A: [],
-          E: [],
-          C: [],
-          H: [],
-        });
+        expsByLand.set(exp.land, { A: [], E: [], C: [], H: [], P: [] });
       }
       expsByLand.get(exp.land)?.[exp.type]?.push(exp);
     });
@@ -94,30 +89,23 @@ const Experiences = memo(function Experiences({
             {land.name}
           </h2>
           <div className="rounded-sm overflow-hidden">
-            <ExperienceList
-              title="Attractions"
-              land={land}
-              experiences={expsByType.A}
-              onInfoClick={showExpInfo}
-            />
-            <ExperienceList
-              title="Entertainment"
-              land={land}
-              experiences={expsByType.E}
-              onInfoClick={showExpInfo}
-            />
-            <ExperienceList
-              title="Holiday Entertainment"
-              land={land}
-              experiences={expsByType.H}
-              onInfoClick={showExpInfo}
-            />
-            <ExperienceList
-              title="Characters"
-              land={land}
-              experiences={expsByType.C}
-              onInfoClick={showExpInfo}
-            />
+            {(
+              [
+                ['A', 'Attractions'],
+                ['E', 'Entertainment'],
+                ['H', 'Holiday Entertainment'],
+                ['C', 'Characters'],
+                ['P', 'Party Entertainment'],
+              ] as const
+            ).map(([type, title]) => (
+              <ExperienceList
+                title={title}
+                land={land}
+                experiences={expsByType[type]}
+                onInfoClick={showExpInfo}
+                key={type}
+              />
+            ))}
           </div>
         </div>
       ))}
