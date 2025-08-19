@@ -713,7 +713,7 @@ export const experiences: ResortData['experiences'] = {
 
   // EPCOT - Entertainment
   412442146: {
-    name: 'Acrobatico',
+    name: 'Acrobatico (France)',
     land: showcase,
     type: 'E',
   },
