@@ -9,15 +9,15 @@ interface ShowTimesByParkId {
 }
 
 export class LiveDataClient {
-  protected cachedShowTimes: ShowTimesByParkId = {};
+  protected cachedShowTimes: ShowTimesByParkId | undefined;
 
   constructor(protected resort: Resort) {}
 
   async shows(park: Park): Promise<{ [id: string]: Experience }> {
-    if (Object.keys(this.cachedShowTimes).length === 0) {
+    if (!this.cachedShowTimes) {
       this.cachedShowTimes = (await this.request('showtimes')).data;
     }
-    const showTimesByExpId = this.cachedShowTimes[park.id] ?? {};
+    const showTimesByExpId = this.cachedShowTimes?.[park.id] ?? {};
     const now = DateTime.now().time;
     return Object.fromEntries(
       Object.entries(showTimesByExpId).flatMap(([id, showTimes]) => {
