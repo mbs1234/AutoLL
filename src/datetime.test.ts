@@ -191,6 +191,21 @@ describe('parkDate()', () => {
     setTime('03:59:59');
     expect(parkDate()).toBe(YESTERDAY);
   });
+
+  it(`returns given date if time is >= 4 AM`, () => {
+    const dt = { date: '2026-10-01', time: new ParkTime(4) };
+    expect(parkDate(dt)).toBe('2026-10-01');
+  });
+
+  it(`returns prior day's date if time before 4 AM`, () => {
+    const dt = { date: '2026-10-01', time: new ParkTime(0) };
+    expect(parkDate(dt)).toBe('2026-09-30');
+  });
+
+  it('returns given date if time is not specified', () => {
+    setTime('00:00:00');
+    expect(parkDate({ date: '2026-10-01' })).toBe('2026-10-01');
+  });
 });
 
 describe('toDate()', () => {

@@ -189,11 +189,11 @@ export function modifyDate(date: Dateable, days: number) {
 }
 
 /**
- * Returns specified date if time is 4 AM or later, else previous date
+ * Returns park operating date for a given date/time, or the current park date
  */
-export function parkDate(dateTime: { date?: string; time?: ParkTime } = {}) {
-  const now = DateTime.now();
-  const { date = now.date, time = now.time } = dateTime;
+export function parkDate(dateTime?: { date: string; time?: ParkTime }) {
+  dateTime ??= DateTime.now();
+  const { date, time } = { time: ParkTime.dayStart, ...dateTime };
   return `${time}` >= `${ParkTime.dayStart}` ? date : modifyDate(date, -1);
 }
 
