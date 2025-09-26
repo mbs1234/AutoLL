@@ -207,7 +207,6 @@ export class DasClient extends ApiClient {
         };
       }),
       start: DateTime.from(booking.startDateTime),
-      end: {},
       id: booking.id,
     };
   }

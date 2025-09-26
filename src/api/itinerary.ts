@@ -35,7 +35,7 @@ interface BaseBooking {
   park: Park;
   land?: Land;
   start: DateTime | { date: string; time?: ParkTime };
-  end?: DateTime | { date?: string; time?: ParkTime };
+  end?: DateTime | { date: string; time?: ParkTime };
   cancellable?: boolean;
   modifiable?: boolean;
   guests: Guest[];
@@ -45,7 +45,8 @@ interface BaseBooking {
 export interface ParkPass extends BaseBooking {
   type: 'APR';
   subtype?: undefined;
-  start: DateTime;
+  start: { date: string; time?: undefined };
+  end?: undefined;
   cancellable?: undefined;
   modifiable?: undefined;
 }
@@ -55,7 +56,6 @@ export interface LightningLane extends BaseBooking {
   subtype: 'MP' | 'SP' | 'OTHER';
   experience: Experience;
   land: Land;
-  end: { date?: string; time?: ParkTime };
   guests: EntitledGuest[];
   showTimeInfo?: { showStartTime: ParkTime; showEndTime: ParkTime };
 }
@@ -94,7 +94,7 @@ export interface BoardingGroup extends BaseBooking {
   land: Land;
   boardingGroup: number;
   status: BoardingGroupItem['status'];
-  start: DateTime;
+  start: { date: string; time?: undefined };
   cancellable?: undefined;
   modifiable?: undefined;
 }
@@ -297,12 +297,11 @@ export class ItineraryClient extends ApiClient {
                   `${item.displayStartDate ?? today}T${item.displayStartTime}`
                 )
               : { date: item.displayStartDate ?? today },
-        end: {
-          date: item.displayEndDate,
-          time: item.displayEndTime
-            ? ParkTime.from(item.displayEndTime)
+        end: item.displayEndTime
+          ? DateTime.from(`${item.displayEndDate}T${item.displayEndTime}`)
+          : item.displayEndDate
+            ? { date: item.displayEndDate }
             : undefined,
-        },
         guests: item.guests
           .filter(g => {
             if (guestIds.has(g.id)) return false;
@@ -399,7 +398,7 @@ export class ItineraryClient extends ApiClient {
         type: 'BG',
         boardingGroup: item.boardingGroup.id,
         status: item.status,
-        start: DateTime.from(new Date(item.startDateTime)),
+        start: { date: DateTime.from(item.startDateTime).date },
         guests: item.guests.map(getGuest),
         id: item.id,
       };
@@ -413,7 +412,7 @@ export class ItineraryClient extends ApiClient {
         facilityId: park.id,
         name: park.name,
         park,
-        start: new DateTime(item.displayStartDate as string, new ParkTime(6)),
+        start: { date: item.displayStartDate! },
         guests: item.guests.map(getGuest),
         id: item.id,
       };
@@ -429,6 +428,7 @@ export class ItineraryClient extends ApiClient {
       DAS: getDasSelection,
       FDS: getDasSelection,
     };
+    const typeOrder = { APR: 0, BG: 1, DAS: 2, RES: 3, LL: 4 };
     const bookings = items
       .map(item => {
         try {
@@ -443,7 +443,18 @@ export class ItineraryClient extends ApiClient {
           console.error(error);
         }
       })
-      .filter((booking): booking is Booking => !!booking);
+      .filter((booking): booking is Booking => !!booking)
+      .sort((a, b) => {
+        const ast = a.start;
+        const bst = b.start;
+        return (
+          (ast.date < bst.date ? -1 : ast.date > bst.date ? 1 : 0) ||
+          +(ast.time ?? -1) - +(bst.time ?? -1) ||
+          (a.type !== b.type && typeOrder[a.type] - typeOrder[b.type]) ||
+          a.name.localeCompare(b.name) ||
+          (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+        );
+      });
     this.onRefresh(bookings);
     return bookings;
   }

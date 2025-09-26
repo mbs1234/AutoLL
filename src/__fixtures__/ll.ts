@@ -167,7 +167,7 @@ export const multiExp: LightningLane = {
   land: sdd.land,
   park: sdd.park,
   start: new DateTime(TODAY, new ParkTime(15, 15)),
-  end: { date: TODAY, time: undefined },
+  end: { date: TODAY },
   cancellable: false,
   modifiable: false,
   guests: [
@@ -187,8 +187,8 @@ export const allDayExp: LightningLane = {
   experience: wdw.experience(sm.id),
   land: sm.land,
   park: sm.park,
-  start: { date: TODAY, time: undefined },
-  end: { date: undefined, time: undefined },
+  start: { date: TODAY },
+  end: { date: TODAY },
   cancellable: false,
   modifiable: false,
   guests: [{ ...pluto, entitlementId: 'sm_01', redemptions: 2 }].map(
@@ -209,7 +209,7 @@ export const bg: BoardingGroup = {
   boardingGroup: 42,
   status: 'IN_PROGRESS',
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
-  start: new DateTime(TODAY, new ParkTime(7)),
+  start: { date: TODAY },
   id: 'tron_01',
 };
 
@@ -227,7 +227,6 @@ export const lttRes: Reservation = {
   },
   park: mk,
   start: new DateTime(TODAY, new ParkTime(11, 15)),
-  end: undefined,
   guests: [mickey, minnie].map(omitOrderDetails),
   id: '38943;type=DINING',
 };
@@ -237,7 +236,7 @@ export const mkApr: ParkPass = {
   facilityId: mk.id,
   name: mk.name,
   park: mk,
-  start: new DateTime(TODAY, new ParkTime(6)),
+  start: { date: TODAY },
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
   id: 'mk20211001',
 };
@@ -247,7 +246,7 @@ export const akApr: ParkPass = {
   facilityId: ak.id,
   name: ak.name,
   park: ak,
-  start: new DateTime(TOMORROW, new ParkTime(6)),
+  start: { date: TOMORROW },
   guests: [mickey, minnie, pluto].map(omitOrderDetails),
   id: 'ak20211002',
 };

@@ -54,6 +54,5 @@ export const booking: DasBooking = {
     { ...minnie, entitlementId: 'ent2' },
   ],
   start: new DateTime(TODAY, new ParkTime(10, 30)),
-  end: {},
   id: 'hm1030',
 };

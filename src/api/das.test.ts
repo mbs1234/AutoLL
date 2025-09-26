@@ -28,7 +28,6 @@ const booking: DasBooking = {
     },
   ],
   start: new DateTime(TODAY, new ParkTime(10, 30)),
-  end: {},
   id: 'jc1030',
 };
 

@@ -44,77 +44,74 @@ describe('ItineraryClient', () => {
       };
       return response({
         loggedInGuestId: xid(mickey),
-        items: [
-          ...bookings.map(b => ({
-            id: b.id,
-            ...(b.type === 'LL'
+        items: [...bookings].reverse().map(b => ({
+          id: b.id,
+          startDateTime: `${b.start.date}T${b.start.time ?? '00:00:00'}-0400`,
+          ...(b.type === 'LL'
+            ? {
+                type: 'FASTPASS',
+                kind: subtypeToKind[b.subtype],
+                facility: b.choices ? entId(hm) : facilityId(b),
+                displayStartDate: b.start.date,
+                displayStartTime: b.start.time,
+                displayEndDate: b.end?.date,
+                displayEndTime: b.end?.time,
+                guests: [
+                  ...b.guests.map(g => ({
+                    id: xid(g),
+                    entitlementId: g.entitlementId,
+                    bookingId: g.bookingId,
+                    redemptionsRemaining: g.redemptions,
+                    redemptionsAllowed: g.redemptions,
+                  })),
+                ],
+              }
+            : b.type === 'BG'
               ? {
-                  type: 'FASTPASS',
-                  kind: subtypeToKind[b.subtype],
-                  facility: b.choices ? entId(hm) : facilityId(b),
-                  displayStartDate: b.start.date,
-                  displayStartTime: b.start.time,
-                  displayEndDate: b.end.date,
-                  displayEndTime: b.end.time,
-                  guests: [
-                    ...b.guests.map(g => ({
-                      id: xid(g),
-                      entitlementId: g.entitlementId,
-                      bookingId: g.bookingId,
-                      redemptionsRemaining: g.redemptions,
-                      redemptionsAllowed: g.redemptions,
-                    })),
-                  ],
+                  type: 'VIRTUAL_QUEUE_POSITION',
+                  status: b.status,
+                  boardingGroup: { id: b.boardingGroup },
+                  guests: b.guests.map(g => ({ id: xid(g) })),
+                  asset:
+                    '90e81c93-b84c-48e0-a98d-121094fa842e;type=virtual-queue',
                 }
-              : b.type === 'BG'
+              : b.type === 'APR'
                 ? {
-                    type: 'VIRTUAL_QUEUE_POSITION',
-                    status: b.status,
-                    boardingGroup: { id: b.boardingGroup },
-                    startDateTime: `${b.start.date}T${b.start.time}-0400`,
+                    type: 'FASTPASS',
+                    kind: 'PARK_PASS',
+                    displayStartDate: b.start.date,
                     guests: b.guests.map(g => ({ id: xid(g) })),
-                    asset:
-                      '90e81c93-b84c-48e0-a98d-121094fa842e;type=virtual-queue',
+                    facility:
+                      b.facilityId === mk.id
+                        ? entId({ id: 'mk_resort_area' })
+                        : facilityId(b),
                   }
-                : b.type === 'APR'
-                  ? {
-                      type: 'FASTPASS',
-                      kind: 'PARK_PASS',
-                      displayStartDate: b.start.date,
-                      guests: b.guests.map(g => ({ id: xid(g) })),
-                      facility:
-                        b.facilityId === mk.id
-                          ? entId({ id: 'mk_resort_area' })
-                          : facilityId(b),
-                    }
-                  : {
-                      type: 'DINING',
-                      guests: b.guests.map(g => ({ id: xid(g) })),
-                      asset: '90006947;entityType=table-service',
-                      startDateTime: `${b.start.date}T${b.start.time}-0400`,
-                    }),
-            ...(b.type !== 'BG' && {
-              cancellable: b.cancellable,
-              modifiable: b.modifiable,
-              multipleExperiences: !!b.choices,
-              assets: b.choices
-                ? [
-                    {
-                      content: facilityId(b),
-                      excluded: false,
-                      original: true,
-                    },
-                    ...b.choices.map(exp => ({
-                      content: entId(exp),
-                      excluded: false,
-                      original: false,
-                    })),
-                    { content: 'excluded-id', excluded: true, original: false },
-                  ]
-                : undefined,
-            }),
-          })),
-        ],
+                : {
+                    type: 'DINING',
+                    guests: b.guests.map(g => ({ id: xid(g) })),
+                    asset: '90006947;entityType=table-service',
+                  }),
+          ...(b.type !== 'BG' && {
+            cancellable: b.cancellable,
+            modifiable: b.modifiable,
+            multipleExperiences: !!b.choices,
+            assets: b.choices
+              ? [
+                  {
+                    content: facilityId(b),
+                    excluded: false,
+                    original: true,
+                  },
+                  ...b.choices.map(exp => ({
+                    content: entId(exp),
+                    excluded: false,
+                    original: false,
+                  })),
+                  { content: 'excluded-id', excluded: true, original: false },
+                ]
+              : undefined,
+          }),
+        })),
         assets: {
           [entId({ id: 'mk_resort_area' })]: {
             location: entId(mk, 'theme-park'),
@@ -199,8 +196,7 @@ describe('ItineraryClient', () => {
         experience,
         land,
         park,
-        start: { date: TODAY, time: undefined },
-        end: { date: undefined, time: undefined },
+        start: { date: TODAY },
         cancellable: false,
         modifiable: false,
         guests: [
