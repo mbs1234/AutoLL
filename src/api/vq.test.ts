@@ -18,7 +18,23 @@ describe('VQClient', () => {
   });
 
   const queueClosedRes = response({
-    queues: queues.map(({ id, ...q }) => ({ ...q, queueId: id })),
+    queues: [
+      ...queues.map(({ id, park, ...q }) => ({
+        ...q,
+        queueId: id,
+        tabContentId: park?.id ? `${park.id};entityType=theme-park` : 'some-id',
+      })),
+      {
+        queueId: 'test-queue-id',
+        name: 'Test Queue',
+        isAcceptingJoins: false,
+        isAcceptingPartyCreations: false,
+        nextScheduledOpenTime: null,
+        nextScheduledPartyCreationOpenTime: null,
+        maxPartySize: 20,
+        categoryContentId: 'attraction',
+      },
+    ],
   });
 
   describe('getQueues()', () => {

@@ -132,9 +132,9 @@ export class VQClient extends ApiClient {
       resource: 'getQueues',
     });
     if (!Array.isArray(response.data?.queues)) throw new RequestError(response);
-    return response.data.queues
-      .filter(q => !!q.categoryContentId)
-      .map(({ queueId, tabContentId = '', ...queue }) => {
+    return response.data.queues.flatMap(
+      ({ queueId, tabContentId, ...queue }) => {
+        if (!tabContentId || !queue.categoryContentId) return [];
         const q: Queue = { ...queue, id: queueId };
         try {
           q.park = this.resort.park(tabContentId.split(';')[0]!);
@@ -142,7 +142,8 @@ export class VQClient extends ApiClient {
           if (!(error instanceof InvalidId)) throw error;
         }
         return q;
-      });
+      }
+    );
   }
 
   async getQueue(queue: Pick<Queue, 'id'>): Promise<Queue> {
