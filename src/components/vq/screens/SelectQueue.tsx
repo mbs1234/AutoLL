@@ -74,7 +74,7 @@ export default function SelectQueue() {
                       />
                     </>
                   ) : (
-                    'No more openings today'
+                    'Check Disney app for opening times'
                   )}
                 </div>
                 <div className="pl-3">

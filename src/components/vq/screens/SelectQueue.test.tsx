@@ -40,7 +40,7 @@ describe('SelectQueue', () => {
     expect(lis[1]).toHaveTextContent('Available now');
     expect(within(lis[1]).getByText('Join Queue')).toBeEnabled();
     within(lis[2]).getByText(mtwr.name);
-    expect(lis[2]).toHaveTextContent('No more openings today');
+    expect(lis[2]).toHaveTextContent('Check Disney app for opening times');
     expect(within(lis[2]).getByText('Closed')).toBeDisabled();
 
     click(screen.getAllByText('Join Queue')[0]!);
