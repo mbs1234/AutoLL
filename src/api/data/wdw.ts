@@ -818,6 +818,11 @@ export const experiences: ResortData['experiences'] = {
     land: showcase,
     type: 'C',
   },
+  387139: {
+    name: 'Donald Duck (Mexico)',
+    land: showcase,
+    type: 'C',
+  },
   15695444: {
     name: 'Mary Poppins (UK)',
     land: showcase,
@@ -1200,6 +1205,16 @@ export const experiences: ResortData['experiences'] = {
   412380334: {
     name: 'Celebration Sing-Along',
     land: discIsland,
+    type: 'E',
+  },
+  412226019: {
+    name: "Songs You'll Dig - Dino Institute Intern",
+    land: dinoland,
+    type: 'E',
+  },
+  412303521: {
+    name: 'Eco-Rhythmics',
+    land: dinoland,
     type: 'E',
   },
   19581371: {
