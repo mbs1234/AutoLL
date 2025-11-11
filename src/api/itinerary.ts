@@ -197,7 +197,7 @@ export const FALLBACK_EXPS = {
 
 const RES_TYPES = new Set(['ACTIVITY', 'DINING']);
 
-const idNum = (id: string) => id.split(';')[0]!;
+const typelessId = (id: string) => id.split(';')[0]!;
 
 export class ItineraryClient extends ApiClient {
   onRefresh: (bookings: Booking[]) => void = () => {};
@@ -222,11 +222,11 @@ export class ItineraryClient extends ApiClient {
       },
       ignoreUnauth: true,
     });
-    const primaryGuestId = idNum(loggedInGuestId);
+    const primaryGuestId = typelessId(loggedInGuestId);
 
     const getGuest = (g: ReservationItem['guests'][0]) => {
       const { name, avatarId, type } = profiles[g.id]!;
-      const id = idNum(g.id);
+      const id = typelessId(g.id);
       return {
         id,
         name: `${name.firstName ?? ''} ${name.lastName ?? ''}`.trim(),
@@ -262,7 +262,7 @@ export class ItineraryClient extends ApiClient {
       const res: Reservation = {
         type: 'RES',
         subtype: item.type,
-        facilityId: idNum(activityAsset.facility),
+        facilityId: typelessId(activityAsset.facility),
         land,
         park,
         name: activityAsset.name,
@@ -275,7 +275,7 @@ export class ItineraryClient extends ApiClient {
               +!b.transactional - +!a.transactional ||
               a.name.localeCompare(b.name)
           ),
-        id: item.id,
+        id: typelessId(item.id),
       };
       return res;
     };
@@ -320,7 +320,7 @@ export class ItineraryClient extends ApiClient {
               ),
             }),
           })),
-        id: item.id,
+        id: typelessId(item.id),
       };
     };
 
@@ -335,7 +335,6 @@ export class ItineraryClient extends ApiClient {
         ...getFastPass(item),
         cancellable: item.cancellable && isMP,
         modifiable: item.modifiable && isMP,
-        id: item.id,
       };
       if (item.showStartDateTime && item.showEndDateTime) {
         booking.showTimeInfo = {
@@ -400,7 +399,7 @@ export class ItineraryClient extends ApiClient {
         status: item.status,
         start: { date: DateTime.from(item.startDateTime).date },
         guests: item.guests.map(getGuest),
-        id: item.id,
+        id: typelessId(item.id),
       };
     };
 
@@ -414,7 +413,7 @@ export class ItineraryClient extends ApiClient {
         park,
         start: { date: item.displayStartDate! },
         guests: item.guests.map(getGuest),
-        id: item.id,
+        id: typelessId(item.id),
       };
     };
 
@@ -464,7 +463,7 @@ export class ItineraryClient extends ApiClient {
     parkId?: string,
     name: string = 'Experience'
   ) {
-    id = idNum(id);
+    id = typelessId(id);
     let exp: Experience;
     try {
       exp = this.resort.experience(id);
@@ -490,7 +489,7 @@ export class ItineraryClient extends ApiClient {
   }
 
   protected park(id: string): Park {
-    id = idNum(id);
+    id = typelessId(id);
     try {
       return this.resort.park(id);
     } catch (error) {

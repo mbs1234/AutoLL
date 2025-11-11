@@ -228,7 +228,7 @@ export const lttRes: Reservation = {
   park: mk,
   start: new DateTime(TODAY, new ParkTime(11, 15)),
   guests: [mickey, minnie].map(omitOrderDetails),
-  id: '38943;type=DINING',
+  id: '38943',
 };
 
 export const mkApr: ParkPass = {
