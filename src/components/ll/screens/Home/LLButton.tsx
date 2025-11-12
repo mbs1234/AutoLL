@@ -6,7 +6,6 @@ import { Time } from '@/components/Time';
 import NavContext from '@/contexts/NavContext';
 
 import BookExperience from '../BookExperience';
-import LabeledItem from './LabeledItem';
 
 export default function LLButton({
   experience,
@@ -17,20 +16,14 @@ export default function LLButton({
   const { flex, standby } = experience;
 
   return (
-    <LabeledItem label="LL">
-      <span>
-        <Button
-          onClick={() => goTo(<BookExperience experience={experience} />)}
-        >
-          {standby.unavailableReason === 'CLOSED' ? (
-            'Book'
-          ) : flex.nextAvailableTime ? (
-            <Time time={flex.nextAvailableTime} />
-          ) : (
-            'none'
-          )}
-        </Button>
-      </span>
-    </LabeledItem>
+    <Button onClick={() => goTo(<BookExperience experience={experience} />)}>
+      {standby.unavailableReason === 'CLOSED' ? (
+        'Book'
+      ) : flex.nextAvailableTime ? (
+        <Time time={flex.nextAvailableTime} />
+      ) : (
+        'none'
+      )}
+    </Button>
   );
 }

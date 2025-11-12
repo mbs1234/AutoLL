@@ -122,15 +122,17 @@ export class Overlap {
 
 export class LLClientWDW extends LLClient {
   readonly rules = {
+    book: false,
     maxPartySize: 20,
     parkModify: true,
     prebook: true,
-    timeSelect: true,
+    timeSelect: false,
   };
   #closedExpIds: { [dateParkId: string]: Experience['id'][] | undefined } = {};
 
   async experiences(park: Park, date: string): Promise<Experience[]> {
     const exps = await super.experiences(park, date);
+    return exps;
 
     if (date > parkDate() || exps.length === 0) {
       const expIds = new Set(exps.map(exp => exp.id));

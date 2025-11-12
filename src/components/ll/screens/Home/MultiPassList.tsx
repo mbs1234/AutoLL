@@ -28,6 +28,8 @@ import { HomeTabProps } from '../Home';
 import RefreshButton from '../RefreshButton';
 import BookingDateSelect from './BookingDateSelect';
 import LLButton from './LLButton';
+import LLTime from './LLTime';
+import LabeledItem from './LabeledItem';
 import Legend, { Symbol } from './Legend';
 import ParkSelect from './ParkSelect';
 import StandbyTime from './StandbyTime';
@@ -105,6 +107,7 @@ const Experiences = memo(function Experiences({
   park: Park;
   sorter: Sorter;
 }) {
+  const { ll } = use(ClientsContext);
   const { goTo } = use(NavContext);
   const theme = use(ThemeContext);
   const resort = use(ResortContext);
@@ -147,6 +150,8 @@ const Experiences = memo(function Experiences({
       />
     );
   const showBookedDesc = () => goTo(<BookedDesc />);
+
+  const LLButtonOrTime = ll.rules.book ? LLButton : LLTime;
 
   const ExperienceList = ({
     experiences,
@@ -199,7 +204,9 @@ const Experiences = memo(function Experiences({
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
               <StandbyTime experience={exp} average={!isBookingToday} />
-              <LLButton experience={exp} />
+              <LabeledItem label="LL">
+                <LLButtonOrTime experience={exp} />
+              </LabeledItem>
             </div>
           </li>
         );

@@ -10,7 +10,7 @@ export default function LabeledItem({
       <span className="mr-2 text-xs font-semibold uppercase text-gray-500">
         {label}
       </span>{' '}
-      {children}
+      <span>{children}</span>
     </div>
   );
 }

@@ -25,7 +25,10 @@ export default function ModifyButton({ booking, ...buttonProps }: Props) {
 
   const goHome = () => goBack({ screen: Home, props: { tabName: 'LL' } });
 
-  return booking.modifiable && !rebooking.auto && isLLMP(booking) ? (
+  return ll.rules.book &&
+    booking.modifiable &&
+    !rebooking.auto &&
+    isLLMP(booking) ? (
     <Button
       {...buttonProps}
       onClick={async () => {
