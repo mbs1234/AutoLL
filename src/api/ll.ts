@@ -247,10 +247,7 @@ export abstract class LLClient extends ApiClient {
       path: `/tipboard-vas/planning/v1/parks/${encodeURIComponent(
         park.id
       )}/experiences/`,
-      params: {
-        eligibilityGuestIds: await this.primaryGuestId(),
-        date,
-      },
+      params: { date },
       userId: true,
     });
     const nextBookTimeString = (
