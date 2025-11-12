@@ -465,6 +465,11 @@ export const experiences: ResortData['experiences'] = {
     land: mainStreet,
     type: 'E',
   },
+  412478057: {
+    name: "Nola's 8th Note",
+    land: frontierland,
+    type: 'E',
+  },
 
   // Magic Kingdom - Characters
   16874126: {
@@ -560,6 +565,11 @@ export const experiences: ResortData['experiences'] = {
     type: 'P',
   },
   // Christmas
+  412009394: {
+    name: 'Frozen Holiday Surprise',
+    land: mainStreet,
+    type: 'P',
+  },
   411854077: {
     name: "Mickey's Most Merriest Celebration",
     land: mainStreet,
@@ -1063,11 +1073,21 @@ export const experiences: ResortData['experiences'] = {
     land: toyStory,
     type: 'E',
   },
+  412496861: {
+    name: "Hollygroove Swingin'",
+    land: hollywood,
+    type: 'E',
+  },
   136: {
     name: 'Indiana Jones Epic Stunt Spectacular',
     land: echoLake,
     type: 'E',
     geo: [28.3567464, -81.5588053],
+  },
+  412496812: {
+    name: 'Record Setters',
+    land: hollywood,
+    type: 'E',
   },
   19260580: {
     name: 'Wonderful World of Animation',
@@ -1112,6 +1132,33 @@ export const experiences: ResortData['experiences'] = {
     land: echoLake,
     geo: [28.3562836, -81.55906],
     type: 'C',
+  },
+
+  // Hollywood Studios - Party
+  412017439: {
+    name: 'Disney Holidays in Hollywood',
+    land: hollywood,
+    type: 'P',
+  },
+  412239078: {
+    name: 'Glisten (Ice Skating Show)',
+    land: hollywood,
+    type: 'P',
+  },
+  412017741: {
+    name: 'Jingle Bell, Jingle Bam',
+    land: hollywood,
+    type: 'P',
+  },
+  412017440: {
+    name: 'Nightmare Before Christmas Sing-Along',
+    land: hollywood,
+    type: 'P',
+  },
+  412250286: {
+    name: 'Pixar Disco',
+    land: pixar,
+    type: 'P',
   },
 
   // Animal Kingdom - Attractions
@@ -1188,6 +1235,11 @@ export const experiences: ResortData['experiences'] = {
   80010235: {
     name: 'Wildlife Express Train',
     land: africa,
+    type: 'A',
+  },
+  412430582: {
+    name: 'Zootopia: Better Zoogether',
+    land: discovery,
     type: 'A',
   },
 
