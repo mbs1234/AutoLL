@@ -216,7 +216,7 @@ function compareByReason(a: Guest, b: Guest, reason: IneligibleReason) {
 
 export abstract class LLClient extends ApiClient {
   readonly rules = {
-    book: true,
+    book: false,
     maxPartySize: 12,
     parkModify: false,
     prebook: false,
