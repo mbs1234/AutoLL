@@ -570,17 +570,17 @@ export const experiences: ResortData['experiences'] = {
     land: mainStreet,
     type: 'P',
   },
-  411854077: {
+  18524056: {
     name: "Mickey's Most Merriest Celebration",
     land: mainStreet,
     type: 'P',
   },
-  411854078: {
+  8320: {
     name: "Mickey's Once Upon a Christmastime Parade",
     land: mainStreet,
     type: 'P',
   },
-  411854079: {
+  19336036: {
     name: "Minnie's Wonderful Christmastime Fireworks",
     land: mainStreet,
     type: 'P',
