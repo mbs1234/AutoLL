@@ -713,7 +713,7 @@ export const experiences: ResortData['experiences'] = {
     priority: 1.0,
     avgWait: 76,
     highlight: true,
-    dropTimes: ['12:47', '14:47'],
+    dropTimes: ['8:47', '12:47', '14:47', '17:47'],
   },
   62992: {
     name: 'Turtle Talk With Crush',
@@ -1218,7 +1218,7 @@ export const experiences: ResortData['experiences'] = {
     priority: 3.1,
     avgWait: 27,
     highlight: true,
-    dropTimes: ['09:47'],
+    dropTimes: ['09:47', '12:47'],
   },
   80010164: {
     name: 'Maharajah Jungle Trek',
