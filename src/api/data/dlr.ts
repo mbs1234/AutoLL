@@ -152,7 +152,7 @@ export const experiences: ResortData['experiences'] = {
     land: frontierland,
     type: 'A',
     geo: [33.8124801, -117.9205132],
-    priority: 3.3,
+    priority: 2.1,
     highlight: true,
   },
   353301: {
@@ -206,7 +206,7 @@ export const experiences: ResortData['experiences'] = {
     land: newOrleans,
     type: 'A',
     geo: [33.811616, -117.9218924],
-    priority: 1.2,
+    priority: 1.1,
     highlight: true,
   },
   353355: {
@@ -257,7 +257,7 @@ export const experiences: ResortData['experiences'] = {
     land: fantasyland,
     type: 'A',
     geo: [33.8127838, -117.9182386],
-    priority: 3.1,
+    priority: 2.3,
     highlight: true,
   },
   411821333: {
@@ -265,7 +265,7 @@ export const experiences: ResortData['experiences'] = {
     land: toontown,
     type: 'A',
     geo: [33.8154852, -117.9183938],
-    priority: 3.0,
+    priority: 2.2,
     highlight: true,
   },
   19193459: {
@@ -316,7 +316,7 @@ export const experiences: ResortData['experiences'] = {
     land: toontown,
     type: 'A',
     geo: [33.8155682, -117.9181205],
-    priority: 3.2,
+    priority: 3.0,
     highlight: true,
   },
   353429: {
@@ -329,7 +329,7 @@ export const experiences: ResortData['experiences'] = {
     land: tomorrowland,
     type: 'A',
     geo: [33.8112647, -117.9175892],
-    priority: 1.3,
+    priority: 1.2,
     highlight: true,
   },
   18237368: {
@@ -357,7 +357,7 @@ export const experiences: ResortData['experiences'] = {
     land: bayou,
     type: 'A',
     geo: [33.8124171, -117.9222263],
-    priority: 1.1,
+    priority: 2.0,
     highlight: true,
   },
 
@@ -483,7 +483,7 @@ export const experiences: ResortData['experiences'] = {
     land: paradise,
     type: 'A',
     geo: [33.8062523, -117.9228425],
-    priority: 3.3,
+    priority: 3.1,
     highlight: true,
   },
   353345: {
@@ -498,7 +498,7 @@ export const experiences: ResortData['experiences'] = {
     land: avengers,
     type: 'A',
     geo: [33.8068606, -117.9172434],
-    priority: 4.0,
+    priority: 2.0,
     highlight: true,
   },
   18774860: {
@@ -514,7 +514,7 @@ export const experiences: ResortData['experiences'] = {
     land: pixar,
     type: 'A',
     geo: [33.8046948, -117.9207725],
-    priority: 4.2,
+    priority: 4.0,
     highlight: true,
   },
   19285637: {
@@ -537,7 +537,7 @@ export const experiences: ResortData['experiences'] = {
     land: paradise,
     type: 'A',
     geo: [33.8065649, -117.9210374],
-    priority: 4.3,
+    priority: 4.2,
   },
   18343088: {
     name: "Luigi's Rollickin' Roadsters",
@@ -609,7 +609,7 @@ export const experiences: ResortData['experiences'] = {
     land: grizzly,
     type: 'A',
     geo: [33.8085516, -117.9204917],
-    priority: 3.1,
+    priority: 3.0,
     highlight: true,
   },
   19324604: {
@@ -617,7 +617,7 @@ export const experiences: ResortData['experiences'] = {
     land: grizzly,
     type: 'A',
     geo: [33.8085516, -117.9204917],
-    priority: 3.1,
+    priority: 3.0,
     highlight: true,
   },
   353453: {
@@ -625,15 +625,15 @@ export const experiences: ResortData['experiences'] = {
     land: pixar,
     type: 'A',
     geo: [33.804614, -117.9216383],
-    priority: 2.0,
+    priority: 1.0,
     highlight: true,
   },
   19531124: {
-    name: 'WEB SLINGERS',
+    name: 'WEB Slingers',
     land: avengers,
     type: 'A',
     geo: [33.8067598, -117.91849],
-    priority: 3.0,
+    priority: 2.1,
     highlight: true,
   },
 
