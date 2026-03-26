@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en-US">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BG1 Start</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; margin: 2rem; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.2rem; margin-top: 2rem; }
+  a { display: block; margin: 0.5rem 0; padding: 1rem; background: #1a73e8;
+      color: #fff; text-align: center; text-decoration: none; border-radius: 8px; }
+  .bm-code { display: block; margin: 1em 0; border: 1px solid #000; padding: .8em;
+             font-size: 0.8rem; overflow-wrap: break-word; user-select: all; }
+</style>
+
+<h1>BG1 Start</h1>
+
+<p id="bm-info">Bookmarklet code: <code class="bm-code"></code></p>
+
+<h2>Walt Disney World</h2>
+<a href="https://disneyworld.disney.go.com/vas/">Lightning Lane</a>
+<a href="https://vqguest-svc-wdw.wdprapps.disney.com/application/v1/guest/getQueues">Virtual Queue</a>
+
+<h2>Disneyland</h2>
+<a href="https://disneyland.disney.go.com/vas/">Lightning Lane</a>
+<a href="https://vqguest-svc.wdprapps.disney.com/application/v1/guest/getQueues">Virtual Queue</a>
+
+<script>
+  const u = location.href.replace(/[^/]*$/, '');
+  const code = `(()=>{var u='${u}',d=document;if(origin.match(/https:\\/\\/.+\\.disney(?:\\.go)?\\.com/)){d.open();d.write('<!doctype html><link rel=stylesheet href="'+u+'bg1.css"><body>');var s=d.createElement('script');s.type='module';s.src=u+'bg1.js';d.head.appendChild(s)}else{location.href=u}})()`;
+  document.querySelectorAll('.bm-code').forEach(el => {
+    el.textContent = 'javascript:' + encodeURIComponent(code);
+  });
+</script>
+</html>
