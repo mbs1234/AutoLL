@@ -126,7 +126,7 @@ export class LLClientWDW extends LLClient {
     maxPartySize: 20,
     parkModify: true,
     prebook: true,
-    timeSelect: false,
+    timeSelect: true,
   };
   #closedExpIds: { [dateParkId: string]: Experience['id'][] | undefined } = {};
 

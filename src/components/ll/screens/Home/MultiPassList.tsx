@@ -172,6 +172,11 @@ const Experiences = memo(function Experiences({
               <h3 className="flex-1 mt-0 text-lg font-semibold leading-tight truncate">
                 {exp.name}
               </h3>
+              {exp.tier !== undefined && (
+                <span className="text-xs font-semibold text-gray-400">
+                  T{exp.tier}
+                </span>
+              )}
               {exp.lp ? (
                 <InfoButton
                   name={LIGHTNING_PICK}

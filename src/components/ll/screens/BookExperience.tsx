@@ -211,7 +211,14 @@ export default function BookExperience({
         </>
       }
     >
-      <h2>{experience.name}</h2>
+      <h2>
+        {experience.name}
+        {experience.tier !== undefined && (
+          <span className="ml-2 text-sm font-normal text-gray-500">
+            Tier {experience.tier}
+          </span>
+        )}
+      </h2>
       <LandLine land={experience.land} />
       {party ? (
         <PartyContext value={party}>
