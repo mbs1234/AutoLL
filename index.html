@@ -27,7 +27,7 @@
 
 <script>
   const u = location.href.replace(/[^/]*$/, '');
-  const code = `(()=>{var u='${u}',v='?v='+Date.now(),d=document;if(origin.match(/https:\\/\\/.+\\.disney(?:\\.go)?\\.com/)){d.open();d.write('<!doctype html><link rel=stylesheet href="'+u+'bg1.css'+v+'"><body>');var s=d.createElement('script');s.type='module';s.src=u+'bg1.js'+v;d.head.appendChild(s)}else{location.href=u}})()`;
+  const code = `(()=>{var u='${u}',d=document;if(origin.match(/https:\\/\\/.+\\.disney(?:\\.go)?\\.com/)){d.open();d.write('<!doctype html><link rel=stylesheet href="'+u+'bg1.css"><body>');var s=d.createElement('script');s.type='module';s.src=u+'bg1.js';d.head.appendChild(s)}else{location.href=u}})()`;
   document.querySelectorAll('.bm-code').forEach(el => {
     el.textContent = 'javascript:' + encodeURIComponent(code);
   });
