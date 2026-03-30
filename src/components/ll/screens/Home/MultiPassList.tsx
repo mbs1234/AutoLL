@@ -252,9 +252,54 @@ const Experiences = memo(function Experiences({
     .filter(isExperienced)
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Group unexperienced rides by tier, sorted by earliest available within each
+  const hasTiers = unexperienced.some(exp => exp.tier !== undefined);
+  const tierGroups = hasTiers
+    ? (() => {
+        const groups = new Map<number | undefined, ExtFlexExp[]>();
+        for (const exp of unexperienced) {
+          const tier = exp.tier;
+          if (!groups.has(tier)) groups.set(tier, []);
+          groups.get(tier)!.push(exp);
+        }
+        // Sort within each group: starred first, then by earliest available
+        for (const exps of groups.values()) {
+          exps.sort(
+            (a, b) =>
+              +!a.starred - +!b.starred ||
+              +!a.lp - +!b.lp ||
+              +(a?.flex?.nextAvailableTime ?? 86400) -
+                +(b?.flex?.nextAvailableTime ?? 86400)
+          );
+        }
+        // Sort groups by tier number (numbered tiers first, then undefined)
+        return new Map(
+          [...groups].sort(
+            ([a], [b]) => (a ?? Infinity) - (b ?? Infinity)
+          )
+        );
+      })()
+    : null;
+
   return (
     <>
-      <ExperienceList experiences={unexperienced} type="unexperienced" />
+      {tierGroups ? (
+        [...tierGroups].map(([tier, exps]) => (
+          <div key={tier ?? 'none'}>
+            <div
+              className={`-mx-3 px-3 py-1 text-sm uppercase text-center font-semibold ${theme.bg} text-white`}
+            >
+              {tier !== undefined ? `Tier ${tier}` : 'Other'}
+            </div>
+            <ExperienceList
+              experiences={exps}
+              type={`tier-${tier ?? 'none'}`}
+            />
+          </div>
+        ))
+      ) : (
+        <ExperienceList experiences={unexperienced} type="unexperienced" />
+      )}
       {experienced.length > 0 && (
         <>
           <h2

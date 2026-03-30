@@ -30,10 +30,22 @@ const getExperiences = (
   testId: 'experienced' | 'unexperienced' = 'unexperienced'
 ) => {
   const list = screen.queryByTestId(testId);
-  if (!list) return null;
-  return within(list)
-    .getAllByRole('heading')
-    .map(h => h.textContent);
+  if (list) {
+    return within(list)
+      .getAllByRole('heading')
+      .map(h => h.textContent);
+  }
+  // With tier grouping, find all tier group lists
+  if (testId === 'unexperienced') {
+    const tierLists = document.querySelectorAll('[data-testid^="tier-"]');
+    if (tierLists.length === 0) return null;
+    return [...tierLists].flatMap(list =>
+      within(list as HTMLElement)
+        .getAllByRole('heading')
+        .map(h => h.textContent)
+    );
+  }
+  return null;
 };
 
 const names = (exps: { name: string }[]) => exps.map(({ name }) => name);
@@ -127,7 +139,8 @@ describe('MultiPassList', () => {
     see(sm.name, 'heading');
     await goBack();
 
-    expect(getExperiences()).toEqual(names([bz, sm, hm]));
+    // Tier grouping: Tier 1 rides first, then Other (no tier)
+    expect(getExperiences()).toEqual(names([sm, bz, hm]));
     expect(getExperiences('experienced')).toEqual(names([db, jc]));
 
     click('Remove from Favorites');

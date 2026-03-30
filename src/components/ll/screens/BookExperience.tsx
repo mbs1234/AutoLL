@@ -6,14 +6,16 @@ import FloatingButton from '@/components/FloatingButton';
 import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
 import Spinner from '@/components/Spinner';
+import { Time } from '@/components/Time';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ClientsContext from '@/contexts/ClientsContext';
+import ExperiencesContext from '@/contexts/ExperiencesContext';
 import NavContext from '@/contexts/NavContext';
 import PartyContext, { Party } from '@/contexts/PartyContext';
 import PlansContext from '@/contexts/PlansContext';
 import RebookingContext from '@/contexts/RebookingContext';
 import ResortContext from '@/contexts/ResortContext';
-import { parkDate } from '@/datetime';
+import { parkDate, upcomingTimes } from '@/datetime';
 import useDataLoader from '@/hooks/useDataLoader';
 import useScreenState from '@/hooks/useScreenState';
 import { ping } from '@/ping';
@@ -37,9 +39,11 @@ export default function BookExperience({
   const { isActiveScreen } = useScreenState();
   const resort = use(ResortContext);
   const { ll } = use(ClientsContext);
+  const { experiences } = use(ExperiencesContext);
   const { plans, plansLoaded, refreshPlans } = use(PlansContext);
   const { bookingDate } = use(BookingDateContext);
   const rebooking = use(RebookingContext);
+  const fullExp = experiences.find(e => e.id === experience.id);
   const [party, setParty] = useState<Party>();
   const [offer, setOffer] = useState<Offer | null | undefined>();
   const { loadData, loaderElem } = useDataLoader();
@@ -220,6 +224,37 @@ export default function BookExperience({
         )}
       </h2>
       <LandLine land={experience.land} />
+      {(fullExp?.standby || experience.dropTimes) && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
+          {fullExp?.standby.available && fullExp.standby.waitTime !== undefined && (
+            <span>
+              Standby:{' '}
+              <span className="font-semibold">
+                {fullExp.standby.waitTime} min
+              </span>
+            </span>
+          )}
+          {fullExp?.standby.available && fullExp.standby.waitTime === undefined && (
+            <span>
+              Standby: <span className="font-semibold">now</span>
+            </span>
+          )}
+          {experience.dropTimes && experience.dropTimes.length > 0 && (() => {
+            const upcoming = upcomingTimes(experience.dropTimes!);
+            return upcoming.length > 0 ? (
+              <span>
+                Drop: {upcoming.map((t, i) => (
+                  <span key={+t}>
+                    {i > 0 && ', '}
+                    <Time time={t} className={i === 0 ? 'font-semibold' : ''} />
+                  </span>
+                ))}
+              </span>
+            ) : null;
+          })()}
+        </div>
+      )}
+      <ExistingBookings experience={experience} />
       {party ? (
         <PartyContext value={party}>
           {noGuestsFound ? (
