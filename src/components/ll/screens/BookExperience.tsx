@@ -21,6 +21,7 @@ import useScreenState from '@/hooks/useScreenState';
 import { ping } from '@/ping';
 
 import BookingDate from '../BookingDate';
+import ExistingBookings from '../ExistingBookings';
 import RebookingHeader from '../RebookingHeader';
 import YourDayButton from '../YourDayButton';
 import NoEligibleGuests from './BookExperience/NoEligibleGuests';
