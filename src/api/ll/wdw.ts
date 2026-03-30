@@ -122,7 +122,7 @@ export class Overlap {
 
 export class LLClientWDW extends LLClient {
   readonly rules = {
-    book: false,
+    book: true,
     maxPartySize: 20,
     parkModify: true,
     prebook: true,
