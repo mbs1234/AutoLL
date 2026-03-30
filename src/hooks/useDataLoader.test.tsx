@@ -103,7 +103,7 @@ describe('useDataLoader()', () => {
 
     await clickFlash('404', 'Page not found');
 
-    await clickFlash('500', 'Network request failed');
+    await clickFlash('500', 'Network request failed (404)');
 
     expect(console.error).toHaveBeenCalledTimes(0);
     await clickFlash('Fail', 'Unknown error occurred');

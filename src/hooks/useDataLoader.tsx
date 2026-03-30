@@ -50,7 +50,23 @@ export default function useDataLoader(): {
             if (error instanceof Error && msgs[name]) {
               setFlashArgs(msgs[name], 'error');
             } else if (Number.isInteger(status)) {
-              setFlashArgs(msgs[status] ? msgs[status] : msgs.request, 'error');
+              if (msgs[status]) {
+                setFlashArgs(msgs[status], 'error');
+              } else {
+                const path = error?.path;
+                const endpoint = path
+                  ? path.split('/').pop()
+                  : undefined;
+                const detail = [status, endpoint]
+                  .filter(Boolean)
+                  .join(' ');
+                setFlashArgs(
+                  detail
+                    ? `${msgs.request} (${detail})`
+                    : msgs.request,
+                  'error'
+                );
+              }
             } else {
               console.error(error);
               setFlashArgs(msgs.error, 'error');

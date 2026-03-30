@@ -14,7 +14,8 @@ export class RequestError extends Error {
 
   constructor(
     public response: Awaited<ReturnType<typeof fetchJson>>,
-    message = 'Request failed'
+    message = 'Request failed',
+    public path?: string
   ) {
     super(`${message}: ${JSON.stringify(response)}`);
   }
@@ -82,6 +83,6 @@ export abstract class ApiClient {
         return { ...res, data: key ? res.data[key] : res.data };
       }
     }
-    throw new RequestError(res);
+    throw new RequestError(res, 'Request failed', request.path);
   }
 }
