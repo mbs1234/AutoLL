@@ -165,8 +165,23 @@ const Experiences = memo(function Experiences({
         const nextDropTime = isBookingToday
           ? upcomingTimes(exp.dropTimes ?? [])[0]
           : exp.dropTimes?.[0];
+        const bookedTime = bookedTimes.get(exp.id);
+        const { nextAvailableTime } = exp.flex ?? {};
+        const tierLatest =
+          exp.tier !== undefined
+            ? latestBookedByTier.get(exp.tier)
+            : undefined;
+        const earlierThanBooked =
+          isBookingToday &&
+          !exp.booked &&
+          nextAvailableTime &&
+          tierLatest !== undefined &&
+          +nextAvailableTime < tierLatest;
         return (
-          <li key={exp.id + (exp.starred ? '*' : '')}>
+          <li
+            key={exp.id + (exp.starred ? '*' : '')}
+            className={earlierThanBooked ? 'border-l-3 border-green-500 pl-1' : ''}
+          >
             <div className="flex items-center gap-x-2">
               <StarButton experience={exp} toggleStar={toggleStar} />
               <h3 className="flex-1 mt-0 text-lg font-semibold leading-tight truncate">
@@ -212,6 +227,13 @@ const Experiences = memo(function Experiences({
               <LabeledItem label="LL">
                 <LLButtonOrTime experience={exp} />
               </LabeledItem>
+              {bookedTime && (
+                <LabeledItem label="Booked">
+                  <span className="text-xs font-semibold text-green-700">
+                    <Time time={bookedTime} />
+                  </span>
+                </LabeledItem>
+              )}
             </div>
           </li>
         );
@@ -219,12 +241,23 @@ const Experiences = memo(function Experiences({
     </ul>
   );
 
-  const bookedIds = new Set(
-    plans
-      .filter(isLLMP)
-      .filter(b => b.start.date === bookingDate)
-      .map(b => b.experience.id)
+  const todayBookings = plans
+    .filter(isLLMP)
+    .filter(b => b.start.date === bookingDate);
+  const bookedIds = new Set(todayBookings.map(b => b.experience.id));
+  // Map experience ID to its booking start time
+  const bookedTimes = new Map(
+    todayBookings.map(b => [b.experience.id, b.start.time])
   );
+  // Find the latest booked start time per tier
+  const latestBookedByTier = new Map<number, number>();
+  for (const b of todayBookings) {
+    const tier = b.experience.tier;
+    if (tier !== undefined) {
+      const existing = latestBookedByTier.get(tier) ?? 0;
+      latestBookedByTier.set(tier, Math.max(existing, +b.start.time));
+    }
+  }
   const flexExps: ExtFlexExp[] = experiences
     .filter((exp): exp is FlexExperience => !!exp.flex)
     .map(exp => {
