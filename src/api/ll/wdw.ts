@@ -184,6 +184,7 @@ export class LLClientWDW extends LLClient {
           ? this.resort.experience(experience.id).park.id
           : this.resort.parks[0]!.id,
       },
+      sensorData: true,
     });
     return this.parseGuestData(data);
   }
@@ -215,6 +216,7 @@ export class LLClientWDW extends LLClient {
               experienceIds: [experience.id],
             }),
       },
+      sensorData: true,
     });
     const party = this.parseGuestData(data.party);
 
@@ -297,6 +299,7 @@ export class LLClientWDW extends LLClient {
         experienceIdsToIgnore: [],
         originalOrderItemId: null,
       },
+      sensorData: true,
     });
     return data.hourSegmentGroups.map(group =>
       group.inventorySlotsAvailability.map(s => ParkTime.from(s.startTime))
@@ -329,6 +332,7 @@ export class LLClientWDW extends LLClient {
         targetSlot: { startTime: time, endTime: time },
         experienceIdsToIgnore: [],
       },
+      sensorData: true,
     });
     return this.updateLastOffer(
       {
@@ -362,6 +366,7 @@ export class LLClientWDW extends LLClient {
             ...ids,
           })),
       },
+      sensorData: true,
     });
     return this.createLLFromResponse(offer.experience, data);
   }
@@ -392,6 +397,7 @@ export class LLClientWDW extends LLClient {
             ...g.orderDetails,
           })),
       },
+      sensorData: true,
     });
     return this.createLLFromResponse(offer.experience, {
       entitlementExperiences: [data.booking],

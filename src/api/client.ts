@@ -3,6 +3,7 @@ import { RateLimit } from '@/ratelimit';
 
 import { authStore } from './auth';
 import { Resort } from './resort';
+import { getSensorData, resetSensorData } from './sensor-data';
 
 export class InvalidOrigin extends Error {
   name = 'InvalidOrigin';
@@ -50,6 +51,7 @@ export abstract class ApiClient {
     data?: unknown;
     key?: string;
     ignoreUnauth?: boolean;
+    sensorData?: boolean;
   }): Promise<JsonOK<T>> {
     this.rateLimit.enforce();
     const { swid, accessToken } = authStore.getData();
@@ -62,9 +64,17 @@ export abstract class ApiClient {
         'Accept-Language': 'en-US',
         Authorization: `BEARER ${accessToken}`,
         'x-user-id': swid,
+        ...(request.sensorData
+          ? {
+              'x-acf-sensor-data': await getSensorData(),
+              'x-app-id': 'ANDROID',
+            }
+          : {}),
       },
     });
-    if (res.status === 401 && !request.ignoreUnauth) {
+    if (request.sensorData && res.status === 403) {
+      resetSensorData();
+    } else if (res.status === 401 && !request.ignoreUnauth) {
       setTimeout(() => authStore.deleteData());
     } else {
       const { key } = request;
