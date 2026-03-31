@@ -63,26 +63,33 @@ export default function BookExperience({
   async function book() {
     if (!offer || !party) return;
     loadData(
-      async () => {
-        const booking = await ll.book(offer, party.selected);
-        rebooking.end();
-        const selectedIds = new Set(party.selected.map(g => g.id));
-        const guestsToCancel = booking.guests.filter(
-          g => !selectedIds.has(g.id)
-        );
-        if (guestsToCancel.length > 0) {
-          await ll.cancelBooking(guestsToCancel);
-          booking.guests = booking.guests.filter(g => selectedIds.has(g.id));
+      async flash => {
+        try {
+          const booking = await ll.book(offer, party.selected);
+          rebooking.end();
+          const selectedIds = new Set(party.selected.map(g => g.id));
+          const guestsToCancel = booking.guests.filter(
+            g => !selectedIds.has(g.id)
+          );
+          if (guestsToCancel.length > 0) {
+            await ll.cancelBooking(guestsToCancel);
+            booking.guests = booking.guests.filter(g => selectedIds.has(g.id));
+          }
+          goTo(<BookingDetails booking={booking} isNew={true} />, {
+            replace: true,
+          });
+          refreshPlans();
+          ping(resort, 'G');
+        } catch (error: any) {
+          const status = error?.response?.status;
+          if (status === 410) {
+            flash('Offer expired — refreshing…', 'error');
+            setOffer(undefined); // triggers auto-refresh
+          } else {
+            throw error; // let useDataLoader handle other errors
+          }
         }
-        goTo(<BookingDetails booking={booking} isNew={true} />, {
-          replace: true,
-        });
-        refreshPlans();
-        ping(resort, 'G');
       },
-      {
-        messages: { 410: 'Offer expired' },
-      }
     );
   }
 
