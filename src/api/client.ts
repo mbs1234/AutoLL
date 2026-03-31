@@ -56,6 +56,14 @@ export abstract class ApiClient {
   }): Promise<JsonOK<T>> {
     this.rateLimit.enforce();
     const { swid, accessToken } = authStore.getData();
+    let sensorHeaders: Record<string, string> = {};
+    if (request.sensorData) {
+      const sd = getSensorData();
+      sensorHeaders = {
+        'x-acf-sensor-data': typeof sd === 'string' ? sd : await sd,
+        'x-app-id': 'ANDROID',
+      };
+    }
     const url = this.origin + request.path;
     const res = await fetchJson(url, {
       method: request.method,
@@ -65,12 +73,7 @@ export abstract class ApiClient {
         'Accept-Language': 'en-US',
         Authorization: `BEARER ${accessToken}`,
         'x-user-id': swid,
-        ...(request.sensorData
-          ? {
-              'x-acf-sensor-data': await getSensorData(),
-              'x-app-id': 'ANDROID',
-            }
-          : {}),
+        ...sensorHeaders,
       },
     });
     if (request.sensorData && res.status === 403) {

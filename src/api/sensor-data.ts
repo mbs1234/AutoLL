@@ -1,22 +1,28 @@
 interface SensorDataModule {
-  getSensorData(): Promise<string>;
+  getSensorData(): Promise<string> | string;
   resetSensorData(): void;
 }
 
 let mod: SensorDataModule | undefined;
+let loadPromise: Promise<void> | undefined;
 
-async function loadModule(): Promise<SensorDataModule> {
-  if (!mod) {
-    const base = new URL('.', import.meta.url).href;
-    mod = (await import(/* @vite-ignore */ base + 'sensor-data.js')) as SensorDataModule;
+function ensureLoaded(): Promise<void> | void {
+  if (mod) return;
+  if (!loadPromise) {
+    const url = import.meta.url.replace(/[^/]*$/, 'sensor-data.js');
+    loadPromise = import(/* @vite-ignore */ url).then(m => {
+      mod = m as SensorDataModule;
+    });
   }
-  return mod!;
+  return loadPromise;
 }
 
-export async function getSensorData(): Promise<string> {
-  return (await loadModule()).getSensorData();
+export function getSensorData(): Promise<string> | string {
+  const pending = ensureLoaded();
+  if (pending) return pending.then(() => mod!.getSensorData());
+  return mod!.getSensorData();
 }
 
-export async function resetSensorData(): Promise<void> {
-  (await loadModule()).resetSensorData();
+export function resetSensorData(): void {
+  mod?.resetSensorData();
 }

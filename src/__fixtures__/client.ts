@@ -2,6 +2,7 @@ import { authStore } from '@/api/auth';
 import { fetchJson } from '@/fetch';
 
 jest.mock('@/fetch');
+jest.mock('@/api/sensor-data');
 
 export const accessToken = 'ACCESS_TOKEN';
 export const swid = 'SWID';

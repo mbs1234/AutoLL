@@ -225,7 +225,7 @@ export default function BookExperience({
         )}
       </h2>
       <LandLine land={experience.land} />
-      {(fullExp?.standby || experience.dropTimes) && (
+      {(fullExp?.standby || experience.dropTimes || experience.flex?.nextAvailableTime) && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
           {fullExp?.standby.available && fullExp.standby.waitTime !== undefined && (
             <span>
@@ -238,6 +238,12 @@ export default function BookExperience({
           {fullExp?.standby.available && fullExp.standby.waitTime === undefined && (
             <span>
               Standby: <span className="font-semibold">now</span>
+            </span>
+          )}
+          {experience.flex?.nextAvailableTime && (
+            <span>
+              Next LL:{' '}
+              <Time time={experience.flex.nextAvailableTime} className="font-semibold" />
             </span>
           )}
           {experience.dropTimes && experience.dropTimes.length > 0 && (() => {

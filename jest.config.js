@@ -4,6 +4,7 @@ module.exports = {
     '^.+\\.tsx?$': ['ts-jest'],
   },
   moduleNameMapper: {
+    '.*/sensor-data$': '<rootDir>/src/api/__mocks__/sensor-data.ts',
     '^@/(.*)': '<rootDir>/src/$1',
   },
   testEnvironment: 'jsdom',
