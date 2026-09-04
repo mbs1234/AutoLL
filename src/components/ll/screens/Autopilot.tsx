@@ -1,6 +1,7 @@
 import { use } from 'react';
 
 import { Experience } from '@/api/ll';
+import { LEARNED_MIN_DAYS } from '@/autopilot/learned';
 import { PollerStatus } from '@/autopilot/usePoller';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
@@ -365,9 +366,11 @@ export default function Autopilot() {
           <h3>Learned drop times</h3>
           <p className="text-xs text-gray-600">
             Autopilot records when availability actually appears while it runs,
-            and compares that with the built-in drop schedule. Absence is only
-            reported for times it was actually watching. {observationCount}{' '}
-            observation{observationCount === 1 ? '' : 's'} so far.
+            and compares that with the built-in drop schedule. A drop seen on{' '}
+            {LEARNED_MIN_DAYS} or more days is added to the times Autopilot
+            speeds up for. Absence is only reported for times it was actually
+            watching. {observationCount} observation
+            {observationCount === 1 ? '' : 's'} so far.
           </p>
           <ul className="text-sm">
             {learned.map(d => (
@@ -381,7 +384,11 @@ export default function Autopilot() {
                         {i > 0 && ', '}
                         <Time time={o.time} />{' '}
                         <span className="text-gray-500">
-                          ({o.days} day{o.days === 1 ? '' : 's'})
+                          ({o.days} day{o.days === 1 ? '' : 's'}
+                          {o.days >= LEARNED_MIN_DAYS
+                            ? ', used for timing'
+                            : ''}
+                          )
                         </span>
                       </span>
                     ))}

@@ -1,4 +1,4 @@
-import { use, useCallback, useEffect, useRef, useState } from 'react';
+import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Guests } from '@/api/ll';
 import {
@@ -24,6 +24,7 @@ import {
   attemptAutoSwap,
   heldMPToday,
 } from '@/autopilot/autoswap';
+import { learnedDropTimes, mergeDropTimes } from '@/autopilot/learned';
 import {
   Coverage,
   DropSummary,
@@ -91,7 +92,7 @@ export default function AutopilotProvider({
   const { park } = use(ParkContext);
   const { ll } = use(ClientsContext);
   const { bookingDate } = use(BookingDateContext);
-  const { pollExperiences } = use(ExperiencesContext);
+  const { experiences, pollExperiences } = use(ExperiencesContext);
   const { plans, pollPlans } = use(PlansContext);
 
   // Deliberately not persisted. A poller that resumes on page load has no
@@ -474,6 +475,23 @@ export default function AutopilotProvider({
     }
   }, [pollExperiences, pollPlans, ll, guestsFor, clock, logOutcome, bumpSkip]);
 
+  // The schedule the poller actually times itself to: the hardcoded drop
+  // times plus any learned from observation on enough distinct days, for the
+  // attractions in this park. This is what makes learning actionable -- a
+  // drop the built-in table lacks gets burst for once it has been seen twice.
+  const parkExperienceIds = useMemo(
+    () => new Set(experiences.map(exp => exp.id)),
+    [experiences]
+  );
+  const effectiveDropTimes = useMemo(
+    () =>
+      mergeDropTimes(
+        park.dropTimes,
+        learnedDropTimes(dropSummaries, parkExperienceIds)
+      ),
+    [park, dropSummaries, parkExperienceIds]
+  );
+
   // Drops and the next-booking window are day-of phenomena. When the user is
   // watching a future date -- improving pre-booked selections before the trip
   // -- bursting at 09:47 for a day next week is pure waste, so the cadence
@@ -483,7 +501,7 @@ export default function AutopilotProvider({
   const status = usePoller({
     enabled,
     onTick,
-    dropTimes: watchingToday ? park.dropTimes : undefined,
+    dropTimes: watchingToday ? effectiveDropTimes : undefined,
     // Set as a side effect of ll.experiences(), so it is current as of the
     // last poll. Read fresh each tick by usePoller.
     nextBookTime: watchingToday ? ll.nextBookTime : undefined,

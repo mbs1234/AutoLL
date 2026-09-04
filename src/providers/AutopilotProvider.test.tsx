@@ -5,7 +5,11 @@ import { mk, wdw } from '@/__fixtures__/resort';
 import { Booking } from '@/api/itinerary';
 import { Experience, FlexExperience } from '@/api/ll';
 import { fireAlert, primeAudio } from '@/autopilot/alert';
-import { loadCoverage, loadDropEvents } from '@/autopilot/observe';
+import {
+  appendDropEvents,
+  loadCoverage,
+  loadDropEvents,
+} from '@/autopilot/observe';
 import { loadBookingLog, saveSettings } from '@/autopilot/storage';
 import { saveWatchList } from '@/autopilot/watchlist';
 import AutopilotContext from '@/contexts/AutopilotContext';
@@ -948,5 +952,106 @@ describe('AutopilotProvider drop learning', () => {
     await enable();
     await waitFor(() => expect(pollExperiences).toHaveBeenCalled());
     await waitFor(() => expect(Object.keys(loadCoverage())).toContain(TODAY));
+  });
+});
+
+describe('AutopilotProvider learned timing', () => {
+  // Every earlier test in this file advances fake time, so by now the clock is
+  // well past the 09:00 pinned at module load -- outside any burst window.
+  // Re-pin so "a drop at 09:00" is genuinely happening now.
+  beforeEach(() => setTime('09:00'));
+
+  // A drop seen on two earlier days at this minute should put the poller into
+  // burst mode now, even though the built-in schedule has nothing here.
+  it('bursts for a drop learned on enough prior days', async () => {
+    // The clock is pinned to 09:00 TODAY; teach a 09:00 drop from two days.
+    appendDropEvents([
+      { experienceId: BZ, date: '2021-09-28', time: '09:00', kind: 'appeared' },
+      { experienceId: BZ, date: '2021-09-29', time: '09:00', kind: 'appeared' },
+    ]);
+    const bz = available(BZ, new ParkTime(11));
+    const pollExperiences = jest.fn(async (): Promise<Experience[]> => [bz]);
+    render(
+      <BookingDateContext
+        value={{ bookingDate: TODAY, setBookingDate: () => {} }}
+      >
+        <ClientsContext value={{ ll: { nextBookTime: undefined } } as Clients}>
+          <ParkContext
+            value={{ park: { ...mk, dropTimes: [] }, setPark: () => {} }}
+          >
+            <ExperiencesContext
+              value={{
+                // The park filter reads the current tipboard.
+                experiences: [bz],
+                refreshExperiences: () => {},
+                pollExperiences,
+                loaderElem: null,
+              }}
+            >
+              <PlansContext
+                value={{
+                  plans: [],
+                  refreshPlans: () => {},
+                  pollPlans: async () => undefined,
+                  loaderElem: null,
+                }}
+              >
+                <AutopilotProvider>
+                  <Probe />
+                </AutopilotProvider>
+              </PlansContext>
+            </ExperiencesContext>
+          </ParkContext>
+        </ClientsContext>
+      </BookingDateContext>
+    );
+    await enable();
+    await waitFor(() =>
+      expect(screen.getByTestId('mode')).toHaveTextContent('burst')
+    );
+  });
+
+  it('does not burst for a drop seen on only one day', async () => {
+    appendDropEvents([
+      { experienceId: BZ, date: '2021-09-28', time: '09:00', kind: 'appeared' },
+    ]);
+    const bz = available(BZ, new ParkTime(11));
+    render(
+      <BookingDateContext
+        value={{ bookingDate: TODAY, setBookingDate: () => {} }}
+      >
+        <ClientsContext value={{ ll: { nextBookTime: undefined } } as Clients}>
+          <ParkContext
+            value={{ park: { ...mk, dropTimes: [] }, setPark: () => {} }}
+          >
+            <ExperiencesContext
+              value={{
+                experiences: [bz],
+                refreshExperiences: () => {},
+                pollExperiences: async () => [bz],
+                loaderElem: null,
+              }}
+            >
+              <PlansContext
+                value={{
+                  plans: [],
+                  refreshPlans: () => {},
+                  pollPlans: async () => undefined,
+                  loaderElem: null,
+                }}
+              >
+                <AutopilotProvider>
+                  <Probe />
+                </AutopilotProvider>
+              </PlansContext>
+            </ExperiencesContext>
+          </ParkContext>
+        </ClientsContext>
+      </BookingDateContext>
+    );
+    await enable();
+    await waitFor(() =>
+      expect(screen.getByTestId('mode')).toHaveTextContent('idle')
+    );
   });
 });

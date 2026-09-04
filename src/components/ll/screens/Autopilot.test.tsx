@@ -560,3 +560,23 @@ describe('Autopilot screen learned drops', () => {
     expect(screen.getByText('elsewhere')).toBeVisible();
   });
 });
+
+describe('Autopilot screen learned timing', () => {
+  it('marks drops seen on enough days as used for timing', () => {
+    setup({
+      dropSummaries: [
+        {
+          experienceId: BZ,
+          observed: [
+            { time: new ParkTime(9, 47), days: 2, count: 2 },
+            { time: new ParkTime(14, 17), days: 1, count: 1 },
+          ],
+          scheduled: [],
+        },
+      ],
+    });
+    const entry = screen.getByText(/Seen:/).closest('li')!;
+    expect(within(entry).getByText(/2 days, used for timing/)).toBeVisible();
+    expect(within(entry).getByText(/\(1 day\)/)).toBeVisible();
+  });
+});
