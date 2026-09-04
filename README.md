@@ -58,7 +58,7 @@ Autopilot can book for you instead of only telling you. It is **opt-in per attra
 3. Set a time window for that attraction if you care when the return time is. With no window, any offered time is acceptable.
 4. Turn autopilot on. When the attraction appears, it books without asking and notifies you with the return time it got.
 
-If two armed attractions become available at once, the better one is booked first, ranked by the same priority order the LL list's **Priority** sort uses. And when a higher-ranked Tier 1 attraction is armed and still has a drop ahead of it, Autopilot will pass on a lesser Tier 1 offer rather than spend the party's Tier 1 slot on it — releasing that hold on its own once the better attraction's drops have passed.
+If two armed attractions become available at once, the better one is booked first, ranked by the same priority order the LL list's **Priority** sort uses. And when a higher-ranked Tier 1 attraction is armed and still has a drop ahead of it, Autopilot will pass on a lesser Tier 1 offer rather than spend the party's Tier 1 slot on it — releasing that hold on its own once the better attraction's drops have passed, **or as soon as your party redeems its first Lightning Lane of the day**, since the one-Tier-1 limit only applies until then.
 
 The screen shows a **Booking activity** log of what was booked and anything that failed.
 
@@ -66,8 +66,8 @@ The screen shows a **Booking activity** log of what was booked and anything that
 
 **Other safety limits**
 
-- **Three actions per session** — bookings and moves share one budget — so a bug in matching cannot burn a whole day of Lightning Lanes. The count resets only on reload.
-- **One attempt per attraction.** The attempt is recorded *before* the request goes out: a booking request that times out may still have succeeded server-side, so retrying risks double-booking.
+- **Three actions per session** — bookings, moves, and swaps share one budget — so a bug in matching cannot burn a whole day of Lightning Lanes. The count resets only on reload.
+- **One attempt per action per attraction.** Booking, moving, and swapping are each tried at most once per attraction per session. Each attempt is recorded *before* the request goes out: a request that times out may still have succeeded server-side, so retrying risks doing it twice.
 - **A fresh allowance and empty cache every time you turn autopilot on**, so a stale eligibility result cannot drive a booking.
 - **Arming persists, running does not.** Your auto-book choices are saved, but autopilot itself is always off after a reload — nothing can book until you deliberately turn it on again.
 
@@ -85,10 +85,30 @@ Autopilot can also move a reservation you **already hold** to a better time. Sep
 - **Never moves you later.** A modify offer can come back with a different time than the tipboard advertised, including a worse one. The real time is re-checked before anything is committed, so it will not trade an 11am return for a 7pm one — a failure mode plain booking does not have.
 - **At least 30 minutes better,** or it does not bother. Swapping 7:10pm for 6:55pm is not worth putting a held reservation through a round trip.
 - **Stays inside your window,** same as booking.
-- **One action per attraction per session,** shared with the booking cap — so it will not thrash a reservation back and forth as availability shifts.
+- **One move per attraction per session,** sharing the overall action cap — so it will not thrash a reservation back and forth as availability shifts. A move is tracked separately from a booking, which is what lets *book then move* work.
 - **Skips reservations Disney marks unmodifiable.**
 
 If you hold a reservation and have both toggles on, moving takes precedence — booking a second one for the same attraction would just be rejected.
+
+### Book then move
+
+The strategy Thrill Data's Wait Magic recommends: **start wide, then narrow in.** A wide search finds availability far more often than a narrow one, and holding *something* beats holding nothing while you wait for the perfect time.
+
+Tap **Book then move off** next to a watched attraction so it reads **Book then move on**. While you hold nothing for that attraction, Autopilot books the first time offered — **even outside your window** — so you have a reservation. Once you hold one, your window becomes the goal, and Autopilot moves the reservation into it when a qualifying time appears (same 30-minute-gain and never-later rules as re-timing). It implies both booking and moving; you don't need the other toggles on.
+
+### Pause
+
+**Pause** keeps an attraction watched and alerting but takes no action on it — no booking, moving, or swapping. Use it to control order by hand: pause the lesser attractions so a higher-priority one gets booked first, then resume them. A paused attraction also stops making Autopilot hold the Tier 1 slot for it, since pausing it means "not now."
+
+### Swap in
+
+When **all three** Multi Pass slots are taken and a watched attraction marked **Swap in** appears, Autopilot gives up your **lowest-priority** reservation for it — preferring to let go of a non-Tier-1, which is easier to claim again later, and never giving up anything ranked equal to or better than the incoming attraction.
+
+This is the safe form of "don't be afraid to cancel." The swap is a **single request**: Disney releases the old reservation only if the new one is secured, so there is no moment where you hold nothing. With a slot free, it simply books instead. The offered time is still checked against your window before anything is committed.
+
+### Improving pre-booked selections before your trip
+
+Auto-move works on future dates too. Select a later date in the LL tab's date picker, watch the attractions you pre-booked, and turn on **Auto-move**; Autopilot will improve those return times as cancellations open up. Drop times are a day-of phenomenon, so on a future date it polls at its slow steady rate rather than bursting. Reservations are matched to the specific park day being watched, so watching today never touches tomorrow's selections.
 
 ### Faster booking
 
