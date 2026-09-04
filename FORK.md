@@ -49,6 +49,15 @@ goofy  (static) ──► overlay index/start/news/contact/autoloader/icon/css
 | `repository` field | `package.json` | Points at this fork. |
 | Deploy workflow added | `.github/workflows/deploy.yml` | Upstream has no CI; it builds and commits to `goofy` by hand. |
 
+## Verified
+
+Login works from this fork's own origin (confirmed on device 2026-09-04).
+Disney's OneID does **not** allowlist the `responderPage` redirect URI, so
+`https://mbs1234.github.io/bg1/responder.html` authenticates normally. This was
+the main risk in forking at all -- had OneID validated redirect URIs against a
+registered allowlist, no amount of build fixing would have produced a working
+fork.
+
 Deliberately left pointing at upstream infrastructure:
 
 - `src/timesync.ts` → `bg1.joelface.com/t` — reads a server `Date` header to
