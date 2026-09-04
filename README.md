@@ -41,7 +41,7 @@ Autopilot also uses the **drift-corrected clock** that upstream computes in `src
 
 **Limits worth knowing**
 
-- **Multi Pass only.** Matching reads the `flex` field, and BG1 has no Single Pass booking flow. Most famous headliners — TRON, Rise of the Resistance, Seven Dwarfs Mine Train, Guardians, Flight of Passage — are Single Pass and cannot be watched here. Slinky Dog Dash is Multi Pass.
+- **Multi Pass only, by design.** Matching reads the `flex` field, and BG1 has no Single Pass booking flow. Most famous headliners — TRON, Rise of the Resistance, Seven Dwarfs Mine Train, Guardians, Flight of Passage — are Single Pass and are deliberately *not* watchable here; Slinky Dog Dash is the one Multi Pass headliner. This is settled scope rather than a missing feature: Single Pass is a separate paid-per-ride product, and watching something this app cannot book would be worse than not offering it.
 - **Must stay foregrounded.** Mobile browsers heavily throttle timers in background tabs.
 - **Off after a reload,** by design: a watcher resuming with no user gesture behind it cannot unlock audio, and silently issuing requests on page load is a surprising default. Your watch list persists; the on/off state does not.
 - **On iOS,** notifications require adding the page to your Home Screen. Without that you still get the chime.
