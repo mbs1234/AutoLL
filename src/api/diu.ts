@@ -21,7 +21,11 @@
  * Use `npm run build:fork` to build without deleting this file.
  */
 export default async function diu(
-  _offerId: string
+  offerId: string
 ): Promise<Record<string, string>> {
+  // The parameter is part of the real module's contract but unused here.
+  // `void` marks it consumed: this config sets no argsIgnorePattern, so a
+  // leading underscore does not exempt it from no-unused-vars.
+  void offerId;
   return {};
 }

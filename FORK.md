@@ -72,6 +72,36 @@ Not copied from `goofy`: `diu.js` (obfuscated private module),
 `sensor-data.js` (bot-detection payload, referenced by no page),
 `google*.html` (upstream's site-verification token).
 
+## Testing
+
+Upstream ships a **red test suite**. Verified against a clean worktree of
+upstream `mickey` (f1f022a): 8 suites / 11 tests fail there, and the same 8
+suites fail here. `src/api/ll.test.ts` additionally cannot load upstream at all
+— it imports the unpublished `./diu` — so its ~27 stale failures were invisible
+until this fork's stub made the file runnable. They are genuinely stale
+fixtures, e.g. `experiences()` reads `data.availableExperiences`, which the
+test's mocked response no longer provides.
+
+| Command | Scope | Status |
+| --- | --- | --- |
+| `npm run test:ci` | excludes upstream's broken suites | **green** (53 suites / 190 tests) |
+| `npm test` | everything | 8 suites / 38 tests fail (pre-existing) |
+| `npm run lint` | | green |
+| `npm run typecheck` | | green |
+
+CI gates on `test:ci` so it stays a real signal; the full suite also runs, as
+`continue-on-error`, to keep the pre-existing count visible. The exclusion list
+lives in `jest.ci.config.js` — delete an entry if that suite gets repaired.
+Note two of the excluded suites (`Home.test.tsx`, `Home/MultiPassList.test.tsx`)
+cover screens this fork will modify, so new work there needs new tests rather
+than relying on existing coverage.
+
+## Local toolchain
+
+Node is installed via Homebrew at `/opt/homebrew` (node 26.x). `brew shellenv`
+was appended to `~/.zprofile` and `~/.zshrc`. CI pins Node 22, so a
+version-specific failure can differ between local and CI.
+
 ## Syncing upstream
 
 ```bash
