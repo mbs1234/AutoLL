@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { use } from 'react';
 
 import { mk, wdw } from '@/__fixtures__/resort';
+import { Booking } from '@/api/itinerary';
 import { Experience, FlexExperience } from '@/api/ll';
 import { fireAlert, primeAudio } from '@/autopilot/alert';
 import { saveWatchList } from '@/autopilot/watchlist';
@@ -98,6 +99,84 @@ beforeEach(() => {
   localStorage.clear();
   jest.clearAllMocks();
 });
+
+const party = { eligible: [{ id: 'g1', name: 'A' }], ineligible: [] };
+
+function offerAt(hour: number) {
+  return {
+    id: 'offer-1',
+    offerSetId: 'set-1',
+    start: new DateTime('2026-09-04', new ParkTime(hour)),
+    end: new DateTime('2026-09-04', new ParkTime(hour + 1)),
+    guests: party,
+    itinerary: [],
+    booking: undefined,
+  };
+}
+
+function setupBooking({
+  offerHour = 11,
+  experiences = [available(BZ, new ParkTime(11))],
+  plans = [] as Booking[],
+} = {}) {
+  const guests = jest.fn(async () => party);
+  // Records which attraction was offered, in order -- clearer than indexing
+  // into mock.calls, and it keeps the parameter typed and used.
+  const offeredIds: string[] = [];
+  // Also records the options argument, which is what distinguishes the two
+  // paths: a fresh booking passes { date }, a modification passes { booking }.
+  const offerOptions: Record<string, unknown>[] = [];
+  const offer = jest.fn(
+    async (
+      experience: { id: string },
+      guests: unknown,
+      options: Record<string, unknown>
+    ) => {
+      offeredIds.push(experience.id);
+      offerOptions.push(options);
+      void guests;
+      return offerAt(offerHour);
+    }
+  );
+  const book = jest.fn(async () => ({ id: 'ent-1' }));
+  const pollPlans = jest.fn(async () => undefined);
+  render(
+    <ClientsContext
+      // Two-step cast: with the jest.Mock members present this no longer
+      // merely omits properties from Clients, it conflicts with them.
+      value={
+        {
+          ll: { nextBookTime: undefined, guests, offer, book },
+        } as unknown as Clients
+      }
+    >
+      <ParkContext value={{ park: mk, setPark: () => {} }}>
+        <ExperiencesContext
+          value={{
+            experiences: [],
+            refreshExperiences: () => {},
+            pollExperiences: async () => experiences,
+            loaderElem: null,
+          }}
+        >
+          <PlansContext
+            value={{
+              plans,
+              refreshPlans: () => {},
+              pollPlans,
+              loaderElem: null,
+            }}
+          >
+            <AutopilotProvider>
+              <Probe />
+            </AutopilotProvider>
+          </PlansContext>
+        </ExperiencesContext>
+      </ParkContext>
+    </ClientsContext>
+  );
+  return { guests, offer, book, pollPlans, offeredIds, offerOptions };
+}
 
 describe('AutopilotProvider', () => {
   it('polls nothing until enabled', async () => {
@@ -223,72 +302,6 @@ describe('AutopilotProvider', () => {
 });
 
 describe('AutopilotProvider auto-booking', () => {
-  const party = { eligible: [{ id: 'g1', name: 'A' }], ineligible: [] };
-
-  function offerAt(hour: number) {
-    return {
-      id: 'offer-1',
-      offerSetId: 'set-1',
-      start: new DateTime('2026-09-04', new ParkTime(hour)),
-      end: new DateTime('2026-09-04', new ParkTime(hour + 1)),
-      guests: party,
-      itinerary: [],
-      booking: undefined,
-    };
-  }
-
-  function setupBooking({
-    offerHour = 11,
-    experiences = [available(BZ, new ParkTime(11))],
-  } = {}) {
-    const guests = jest.fn(async () => party);
-    // Records which attraction was offered, in order -- clearer than indexing
-    // into mock.calls, and it keeps the parameter typed and used.
-    const offeredIds: string[] = [];
-    const offer = jest.fn(async (experience: { id: string }) => {
-      offeredIds.push(experience.id);
-      return offerAt(offerHour);
-    });
-    const book = jest.fn(async () => ({ id: 'ent-1' }));
-    const pollPlans = jest.fn(async () => undefined);
-    render(
-      <ClientsContext
-        // Two-step cast: with the jest.Mock members present this no longer
-        // merely omits properties from Clients, it conflicts with them.
-        value={
-          {
-            ll: { nextBookTime: undefined, guests, offer, book },
-          } as unknown as Clients
-        }
-      >
-        <ParkContext value={{ park: mk, setPark: () => {} }}>
-          <ExperiencesContext
-            value={{
-              experiences: [],
-              refreshExperiences: () => {},
-              pollExperiences: async () => experiences,
-              loaderElem: null,
-            }}
-          >
-            <PlansContext
-              value={{
-                plans: [],
-                refreshPlans: () => {},
-                pollPlans,
-                loaderElem: null,
-              }}
-            >
-              <AutopilotProvider>
-                <Probe />
-              </AutopilotProvider>
-            </PlansContext>
-          </ExperiencesContext>
-        </ParkContext>
-      </ClientsContext>
-    );
-    return { guests, offer, book, pollPlans, offeredIds };
-  }
-
   it('books a watched attraction that is armed', async () => {
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     const { book } = setupBooking();
@@ -430,5 +443,91 @@ describe('AutopilotProvider auto-booking', () => {
     await enable();
     await waitFor(() => expect(offer).toHaveBeenCalled());
     expect(offeredIds[0]).toBe(BZ);
+  });
+});
+
+describe('AutopilotProvider auto-move', () => {
+  /** An existing Multi Pass reservation for BZ at `hour`. */
+  function heldAt(hour: number): Booking {
+    return {
+      type: 'LL',
+      subtype: 'MP',
+      id: 'ent-1',
+      facilityId: BZ,
+      name: 'Held',
+      start: new DateTime('2026-09-04', new ParkTime(hour)),
+      end: new DateTime('2026-09-04', new ParkTime(hour + 1)),
+      modifiable: true,
+      guests: [],
+    } as unknown as Booking;
+  }
+
+  it('moves an existing reservation to a much better time', async () => {
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
+    const { book, offerOptions } = setupBooking({
+      offerHour: 11,
+      plans: [heldAt(19)],
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    // Proves the modify endpoint was used, not a fresh booking: offer() gets
+    // the existing reservation rather than a date.
+    expect(offerOptions[0]).toHaveProperty('booking');
+    expect(offerOptions[0]).not.toHaveProperty('date');
+  });
+
+  it('leaves a reservation alone when auto-move is off', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book, offer } = setupBooking({ plans: [heldAt(19)] });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // The failure mode plain booking does not have.
+  it('never moves a reservation to a later time', async () => {
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
+    const { book } = setupBooking({ offerHour: 22, plans: [heldAt(19)] });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  it('ignores a gain below the threshold', async () => {
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
+    // Holding 11:00, offered 10:45 -- only 15 minutes better.
+    const { book } = setupBooking({
+      offerHour: 10,
+      experiences: [available(BZ, new ParkTime(10, 45))],
+      plans: [heldAt(11)],
+    });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // Holding a reservation makes a second booking pointless, so the modify
+  // path takes precedence even when both toggles are on.
+  it('modifies rather than books when a reservation is held', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true, autoModify: true }]);
+    const { book } = setupBooking({ offerHour: 11, plans: [heldAt(19)] });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+  });
+
+  it('books normally when nothing is held', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true, autoModify: true }]);
+    const { book, offerOptions } = setupBooking({ offerHour: 11, plans: [] });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    expect(offerOptions[0]).toHaveProperty('date');
+    expect(offerOptions[0]).not.toHaveProperty('booking');
   });
 });

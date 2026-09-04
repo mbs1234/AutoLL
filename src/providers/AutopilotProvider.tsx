@@ -13,6 +13,11 @@ import {
   AutoBookOutcome,
   attemptAutoBook,
 } from '@/autopilot/autobook';
+import {
+  ModifyOutcome,
+  attemptAutoModify,
+  findExistingLL,
+} from '@/autopilot/automodify';
 import { GuestCache, prewarmGuests } from '@/autopilot/prewarm';
 import { orderByPriority, shouldHoldTierSlot } from '@/autopilot/priority';
 import { syncedParkTime } from '@/autopilot/schedule';
@@ -61,7 +66,7 @@ export default function AutopilotProvider({
   const { ll } = use(ClientsContext);
   const { bookingDate } = use(BookingDateContext);
   const { pollExperiences } = use(ExperiencesContext);
-  const { pollPlans } = use(PlansContext);
+  const { plans, pollPlans } = use(PlansContext);
 
   // Deliberately not persisted. A poller that resumes on page load has no
   // user gesture behind it, so it could not play sound, and silently issuing
@@ -80,6 +85,10 @@ export default function AutopilotProvider({
   targetsRef.current = targets;
   const bookingDateRef = useRef(bookingDate);
   bookingDateRef.current = bookingDate;
+  // Read at tick time: setState from a plans poll has not re-rendered yet
+  // when the booking loop runs immediately afterwards.
+  const plansRef = useRef(plans);
+  plansRef.current = plans;
 
   const cacheRef = useRef(new GuestCache());
   const ledgerRef = useRef(new AutoBookLedger());
@@ -109,22 +118,31 @@ export default function AutopilotProvider({
     [ll, clock]
   );
 
-  const logOutcome = useCallback((name: string, outcome: AutoBookOutcome) => {
-    setBookingLog(prev =>
-      [
-        {
-          name,
-          at: syncedParkTime(),
-          ...(outcome.status === 'booked'
-            ? { status: 'booked' as const, returnTime: outcome.returnTime }
-            : outcome.status === 'failed'
-              ? { status: 'failed' as const, detail: outcome.error }
-              : { status: 'skipped' as const, detail: outcome.reason }),
-        },
-        ...prev,
-      ].slice(0, 20)
-    );
-  }, []);
+  const logOutcome = useCallback(
+    (name: string, outcome: AutoBookOutcome | ModifyOutcome) => {
+      setBookingLog(prev =>
+        [
+          {
+            name,
+            at: syncedParkTime(),
+            ...(outcome.status === 'booked'
+              ? { status: 'booked' as const, returnTime: outcome.returnTime }
+              : outcome.status === 'modified'
+                ? {
+                    status: 'modified' as const,
+                    fromTime: outcome.from,
+                    returnTime: outcome.to,
+                  }
+                : outcome.status === 'failed'
+                  ? { status: 'failed' as const, detail: outcome.error }
+                  : { status: 'skipped' as const, detail: outcome.reason }),
+          },
+          ...prev,
+        ].slice(0, 20)
+      );
+    },
+    []
+  );
 
   const onTick = useCallback(async () => {
     // Let this reject: the poller needs the failure to drive backoff.
@@ -162,42 +180,67 @@ export default function AutopilotProvider({
       });
     }
 
-    // Every armed target paired with its current tipboard entry, for the tier
-    // decision below -- which has to reason about attractions that have *not*
-    // become available yet, so it cannot work from `hits` alone.
     const expsById = new Map(experiences.map(exp => [exp.id, exp]));
+    const nowTime = syncedParkTime();
+
+    // Targets that could still consume a Tier 1 slot: armed for booking, and
+    // not already held. The tier hold has to reason about attractions that
+    // have *not* become available yet, so it cannot work from `hits` alone,
+    // and an attraction already booked is no reason to hold anything back.
     const armed = targetsRef.current.flatMap(target => {
       if (!target.autoBook) return [];
+      if (findExistingLL(plansRef.current, target.experienceId)) return [];
       const experience = expsById.get(target.experienceId);
       return experience ? [{ target, experience }] : [];
     });
-    const nowTime = syncedParkTime();
 
-    // Booking comes before prewarming: when a drop lands, the good return
+    // Acting comes before prewarming: when a drop lands, the good return
     // times are gone within a minute, so nothing may sit ahead of it.
     //
     // Ordered by priority rather than tipboard order. The first booking
     // constrains what the next can be, so when two attractions drop in the
     // same tick the order is the decision, not an implementation detail.
     for (const hit of orderByPriority(hits)) {
-      if (!hit.target.autoBook) continue;
-      if (ledgerRef.current.hasAttempted(hit.experience.id)) continue;
+      const { target, experience } = hit;
+      if (!target.autoBook && !target.autoModify) continue;
+      if (ledgerRef.current.hasAttempted(experience.id)) continue;
       if (ledgerRef.current.remaining <= 0) break;
-      // Pass on a Tier 1 offer while a better armed Tier 1 could still show
-      // up, since booking this one may consume the party's only Tier 1 slot.
-      if (shouldHoldTierSlot(hit, armed, nowTime)) continue;
 
-      let outcome: AutoBookOutcome;
+      // Holding a reservation already makes booking a second one pointless --
+      // Disney would reject it -- so the only useful action is re-timing.
+      const existing = findExistingLL(plansRef.current, experience.id);
+
+      let outcome: AutoBookOutcome | ModifyOutcome;
       try {
-        outcome = await attemptAutoBook(hit.target, hit.experience, {
-          createOffer: (experience, guests) =>
-            ll.offer(experience, guests, { date: bookingDateRef.current }),
-          book: offer => ll.book(offer),
-          guests: await guestsFor(hit.experience.id),
-          ledger: ledgerRef.current,
-        });
+        if (existing) {
+          outcome = await attemptAutoModify(
+            target,
+            experience,
+            existing,
+            hit.returnTime,
+            {
+              createModifyOffer: (exp, guests, booking) =>
+                ll.offer(exp, guests, { booking }),
+              book: offer => ll.book(offer),
+              guests: await guestsFor(experience.id),
+              ledger: ledgerRef.current,
+            }
+          );
+        } else {
+          // Only new bookings can spend the party's Tier 1 slot; re-timing one
+          // already held does not, which is why this guard sits on this branch.
+          if (shouldHoldTierSlot(hit, armed, nowTime)) continue;
+          outcome = await attemptAutoBook(target, experience, {
+            createOffer: (exp, guests) =>
+              ll.offer(exp, guests, { date: bookingDateRef.current }),
+            book: offer => ll.book(offer),
+            guests: await guestsFor(experience.id),
+            ledger: ledgerRef.current,
+          });
+        }
       } catch (error) {
-        // Only guestsFor can throw out here; attemptAutoBook handles its own.
+        // Only guestsFor can throw out here; the attempt helpers handle their
+        // own failures.
         console.error(error);
         outcome = {
           status: 'failed',
@@ -206,20 +249,26 @@ export default function AutopilotProvider({
       }
 
       // Skips are the common case mid-drop and would swamp the log.
-      if (outcome.status !== 'skipped') {
-        logOutcome(hit.experience.name, outcome);
-      }
+      if (outcome.status !== 'skipped') logOutcome(experience.name, outcome);
 
-      if (outcome.status === 'booked') {
-        // A booking shifts eligibility across every experience at once via
+      if (outcome.status === 'booked' || outcome.status === 'modified') {
+        // Any change shifts eligibility across every experience at once via
         // party, tier and overlap limits, so the whole cache is invalid.
         cacheRef.current.clear();
         setBookedCount(ledgerRef.current.bookedCount);
-        fireAlert({
-          title: `Booked ${hit.experience.name}`,
-          body: `Return time ${formatTime(outcome.returnTime)}`,
-          tag: `bg1-autopilot-booked-${hit.experience.id}`,
-        });
+        fireAlert(
+          outcome.status === 'booked'
+            ? {
+                title: `Booked ${experience.name}`,
+                body: `Return time ${formatTime(outcome.returnTime)}`,
+                tag: `bg1-autopilot-booked-${experience.id}`,
+              }
+            : {
+                title: `Moved ${experience.name} earlier`,
+                body: `${formatTime(outcome.from)} to ${formatTime(outcome.to)}`,
+                tag: `bg1-autopilot-booked-${experience.id}`,
+              }
+        );
         try {
           await pollPlans();
         } catch (error) {
@@ -234,7 +283,7 @@ export default function AutopilotProvider({
     // drop lands. Limiting it to auto-book targets bounds the extra requests,
     // and prewarmGuests skips anything already warm.
     const toWarm = targetsRef.current
-      .filter(t => t.autoBook)
+      .filter(t => t.autoBook || t.autoModify)
       .map(t => ({ id: t.experienceId }));
     if (toWarm.length > 0) {
       await prewarmGuests(toWarm, bookingDateRef.current, {
@@ -301,6 +350,16 @@ export default function AutopilotProvider({
     );
   }, []);
 
+  const toggleAutoModify = useCallback((experienceId: string) => {
+    setTargets(prev =>
+      prev.map(t =>
+        t.experienceId === experienceId
+          ? { ...t, autoModify: !t.autoModify }
+          : t
+      )
+    );
+  }, []);
+
   return (
     <AutopilotContext
       value={{
@@ -312,6 +371,7 @@ export default function AutopilotProvider({
         addTarget,
         removeTarget,
         toggleAutoBook,
+        toggleAutoModify,
         notifications,
         lastHit,
         bookingLog,

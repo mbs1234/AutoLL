@@ -17,6 +17,15 @@ export interface WatchTarget {
    * while booking is not, so the two are deliberately separate decisions.
    */
   autoBook?: boolean;
+  /**
+   * Move an existing reservation for this attraction to a better time.
+   *
+   * Separate from `autoBook` on purpose. Booking risks spending an
+   * entitlement you did not have; modifying puts one you already hold through
+   * a round trip, and a bad modify can leave the day worse than before. Some
+   * people will want one and not the other.
+   */
+  autoModify?: boolean;
 }
 
 export interface WatchHit {
@@ -111,6 +120,7 @@ interface StoredTarget {
    * until the user turns it on again, in person, after a reload.
    */
   autoBook?: boolean;
+  autoModify?: boolean;
 }
 
 /** `ParkTime.from` throws on garbage; treat an unparseable bound as absent. */
@@ -150,6 +160,7 @@ export function loadWatchList(): WatchTarget[] {
         // a truthy string, a number from a hand-edited value -- reads as off,
         // since the failure mode of guessing wrong is an unwanted booking.
         ...(t.autoBook === true ? { autoBook: true } : {}),
+        ...(t.autoModify === true ? { autoModify: true } : {}),
       },
     ];
   });
@@ -163,6 +174,7 @@ export function saveWatchList(targets: WatchTarget[]): void {
       ...(t.after ? { after: String(t.after) } : {}),
       ...(t.before ? { before: String(t.before) } : {}),
       ...(t.autoBook ? { autoBook: true } : {}),
+      ...(t.autoModify ? { autoModify: true } : {}),
     }))
   );
 }

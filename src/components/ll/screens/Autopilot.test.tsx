@@ -49,6 +49,7 @@ function setup({
   const addTarget = jest.fn();
   const removeTarget = jest.fn();
   const toggleAutoBook = jest.fn();
+  const toggleAutoModify = jest.fn();
   render(
     <ParkContext value={{ park: mk, setPark: () => {} }}>
       <ExperiencesContext
@@ -69,6 +70,7 @@ function setup({
             addTarget,
             removeTarget,
             toggleAutoBook,
+            toggleAutoModify,
             notifications,
             bookingLog: [],
             bookedCount: 0,
@@ -81,7 +83,13 @@ function setup({
       </ExperiencesContext>
     </ParkContext>
   );
-  return { setEnabled, addTarget, removeTarget, toggleAutoBook };
+  return {
+    setEnabled,
+    addTarget,
+    removeTarget,
+    toggleAutoBook,
+    toggleAutoModify,
+  };
 }
 
 describe('Autopilot screen', () => {
@@ -254,5 +262,64 @@ describe('Autopilot screen', () => {
       },
     });
     expect(screen.getByText(/Big Thunder/)).toBeVisible();
+  });
+});
+
+describe('Autopilot screen auto-move', () => {
+  it('shows auto-move as off by default', () => {
+    setup({ watched: [BZ] });
+    expect(
+      screen.getByTitle(`Auto-move ${wdw.experience(BZ).name}`)
+    ).toHaveTextContent('Auto-move off');
+  });
+
+  it('toggles auto-move independently of auto-book', () => {
+    const { toggleAutoModify, toggleAutoBook } = setup({ watched: [BZ] });
+    screen.getByTitle(`Auto-move ${wdw.experience(BZ).name}`).click();
+    expect(toggleAutoModify).toHaveBeenCalledWith(BZ);
+    expect(toggleAutoBook).not.toHaveBeenCalled();
+  });
+
+  it('reflects auto-move already on', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoModify: true }],
+    });
+    expect(
+      screen.getByTitle(`Stop auto-moving ${wdw.experience(BZ).name}`)
+    ).toHaveTextContent('Auto-move on');
+  });
+
+  // Moving a reservation you already hold can leave the day worse, so the
+  // guarantees are spelled out.
+  it('explains the auto-move guarantees', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoModify: true }],
+    });
+    expect(screen.getByText(/Auto-move is on/)).toBeVisible();
+    expect(screen.getByText(/at least 30 minutes/)).toBeVisible();
+    expect(screen.getByText(/never to a later time/)).toBeVisible();
+  });
+
+  it('says nothing about auto-move when nothing is armed for it', () => {
+    setup({ watched: [BZ] });
+    expect(screen.queryByText(/Auto-move is on/)).not.toBeInTheDocument();
+  });
+
+  it('logs a moved reservation with both times', () => {
+    setup({
+      bookingLog: [
+        {
+          name: 'Slinky Dog Dash',
+          at: new ParkTime(9, 47),
+          status: 'modified',
+          fromTime: new ParkTime(19, 10),
+          returnTime: new ParkTime(11, 20),
+        },
+      ],
+    });
+    expect(screen.getByText(/moved/)).toBeVisible();
+    expect(screen.getByText(/Slinky Dog Dash/)).toBeVisible();
   });
 });

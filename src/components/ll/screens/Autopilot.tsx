@@ -71,6 +71,7 @@ export default function Autopilot() {
     addTarget,
     removeTarget,
     toggleAutoBook,
+    toggleAutoModify,
     notifications,
     lastHit,
     bookingLog,
@@ -83,6 +84,7 @@ export default function Autopilot() {
   const targetFor = (experienceId: string) =>
     targets.find(t => t.experienceId === experienceId);
   const anyAutoBook = targets.some(t => t.autoBook);
+  const anyAutoModify = targets.some(t => t.autoModify);
 
   // Only Multi Pass attractions can be watched: matching reads the `flex`
   // field, and bg1 has no Single Pass booking flow, so offering Single Pass
@@ -142,32 +144,56 @@ export default function Autopilot() {
       ) : (
         <ul>
           {watched.map(exp => {
-            const autoBook = !!targetFor(exp.id)?.autoBook;
+            const target = targetFor(exp.id);
+            const autoBook = !!target?.autoBook;
+            const autoModify = !!target?.autoModify;
             return (
-              <li key={exp.id} className="flex items-center gap-2 py-1">
-                <Button
-                  title={`Stop watching ${exp.name}`}
-                  onClick={() => removeTarget(exp.id)}
-                >
-                  <StarIcon />
-                </Button>
-                <span className="flex-1 font-semibold">{exp.name}</span>
-                <Button
-                  type="small"
-                  title={
-                    autoBook
-                      ? `Stop auto-booking ${exp.name}`
-                      : `Auto-book ${exp.name}`
-                  }
-                  color={
-                    autoBook
-                      ? 'bg-red-700 text-white'
-                      : 'bg-gray-200 text-black'
-                  }
-                  onClick={() => toggleAutoBook(exp.id)}
-                >
-                  {autoBook ? 'Auto-book on' : 'Auto-book off'}
-                </Button>
+              <li key={exp.id} className="py-1.5">
+                <div className="flex items-center gap-2">
+                  <Button
+                    title={`Stop watching ${exp.name}`}
+                    onClick={() => removeTarget(exp.id)}
+                  >
+                    <StarIcon />
+                  </Button>
+                  <span className="flex-1 font-semibold">{exp.name}</span>
+                </div>
+                {/* Toggles on their own row: three controls plus a long
+                    attraction name do not fit one phone-width line. */}
+                <div className="mt-1 ml-11 flex flex-wrap gap-2">
+                  <Button
+                    type="small"
+                    title={
+                      autoBook
+                        ? `Stop auto-booking ${exp.name}`
+                        : `Auto-book ${exp.name}`
+                    }
+                    color={
+                      autoBook
+                        ? 'bg-red-700 text-white'
+                        : 'bg-gray-200 text-black'
+                    }
+                    onClick={() => toggleAutoBook(exp.id)}
+                  >
+                    {autoBook ? 'Auto-book on' : 'Auto-book off'}
+                  </Button>
+                  <Button
+                    type="small"
+                    title={
+                      autoModify
+                        ? `Stop auto-moving ${exp.name}`
+                        : `Auto-move ${exp.name}`
+                    }
+                    color={
+                      autoModify
+                        ? 'bg-red-700 text-white'
+                        : 'bg-gray-200 text-black'
+                    }
+                    onClick={() => toggleAutoModify(exp.id)}
+                  >
+                    {autoModify ? 'Auto-move on' : 'Auto-move off'}
+                  </Button>
+                </div>
               </li>
             );
           })}
@@ -185,6 +211,16 @@ export default function Autopilot() {
         </p>
       )}
 
+      {anyAutoModify && (
+        <p className="mt-2 text-sm">
+          <span className="font-semibold">Auto-move is on.</span> For
+          attractions marked above that you already hold a reservation for,
+          Autopilot will move it earlier when a better time appears &mdash; but
+          only if the gain is at least 30 minutes, and never to a later time
+          than you already have.
+        </p>
+      )}
+
       {bookingLog.length > 0 && (
         <>
           <h3>Booking activity</h3>
@@ -199,6 +235,17 @@ export default function Autopilot() {
                       <>
                         {' '}
                         for <Time time={entry.returnTime} />
+                      </>
+                    )}
+                  </>
+                ) : entry.status === 'modified' ? (
+                  <>
+                    moved <b>{entry.name}</b>
+                    {entry.fromTime && entry.returnTime && (
+                      <>
+                        {' '}
+                        from <Time time={entry.fromTime} /> to{' '}
+                        <Time time={entry.returnTime} />
                       </>
                     )}
                   </>

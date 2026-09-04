@@ -15,9 +15,11 @@ export interface AutopilotHit {
 export interface BookingLogEntry {
   name: string;
   at: ParkTime;
-  status: 'booked' | 'failed' | 'skipped';
+  status: 'booked' | 'modified' | 'failed' | 'skipped';
   /** Return time for a booking. */
   returnTime?: ParkTime;
+  /** Previous return time, for a modification. */
+  fromTime?: ParkTime;
   /** Error message or skip reason. */
   detail?: string;
 }
@@ -36,6 +38,8 @@ export interface AutopilotState {
   removeTarget: (experienceId: string) => void;
   /** Turn automatic booking on or off for one watched attraction. */
   toggleAutoBook: (experienceId: string) => void;
+  /** Turn automatic re-timing of an existing reservation on or off. */
+  toggleAutoModify: (experienceId: string) => void;
   notifications: AlertPermission;
   /** The most recent alert, for showing what was found without a toast. */
   lastHit?: AutopilotHit;
@@ -54,6 +58,7 @@ export default createContext<AutopilotState>({
   addTarget: () => undefined,
   removeTarget: () => undefined,
   toggleAutoBook: () => undefined,
+  toggleAutoModify: () => undefined,
   notifications: 'unsupported',
   bookingLog: [],
   bookedCount: 0,
