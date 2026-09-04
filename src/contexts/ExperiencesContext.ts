@@ -19,14 +19,19 @@ interface ExperiencesState {
    * This resolves once the data has landed and rejects if the Lightning Lane
    * request fails. Live show times are still treated as supplementary -- a
    * `shows` failure is logged and ignored rather than failing the poll.
+   *
+   * Returns the fetched list rather than only setting state. A background
+   * caller needs to act on what it just fetched, and reading `experiences`
+   * from context immediately after awaiting would still see the previous
+   * render's value.
    */
-  pollExperiences: () => Promise<void>;
+  pollExperiences: () => Promise<Experience[]>;
   loaderElem: ReturnType<typeof useDataLoader>['loaderElem'];
 }
 
 export default createContext<ExperiencesState>({
   experiences: [],
   refreshExperiences: () => undefined,
-  pollExperiences: () => Promise.resolve(),
+  pollExperiences: () => Promise.resolve([]),
   loaderElem: null,
 });

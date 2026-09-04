@@ -38,12 +38,16 @@ export default function ExperiencesProvider({
       (await ll.experiences(park, bookingDate)).map(exp => [exp.id, exp])
     );
     // Lightning Lane data wins over live show data on key collisions.
-    setExperiences(Object.values({ ...(await showsPromise), ...exps }));
+    const merged = Object.values({ ...(await showsPromise), ...exps });
+    setExperiences(merged);
+    return merged;
   }, [park, bookingDate, ll, liveData]);
 
   const refreshExperiences = useThrottleable(
     useCallback(() => {
-      loadData(fetchExperiences);
+      // Discard the returned list: loadData's callback must resolve to void,
+      // and the visible path reads the state this already set.
+      loadData(async () => void (await fetchExperiences()));
     }, [fetchExperiences, loadData])
   );
 

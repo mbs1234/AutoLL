@@ -93,7 +93,7 @@ function renderComponent({
           value={{
             experiences,
             refreshExperiences,
-            pollExperiences: async () => {},
+            pollExperiences: async () => [],
             loaderElem: null,
           }}
         >
