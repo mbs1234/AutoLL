@@ -58,16 +58,37 @@ Autopilot can book for you instead of only telling you. It is **opt-in per attra
 3. Set a time window for that attraction if you care when the return time is. With no window, any offered time is acceptable.
 4. Turn autopilot on. When the attraction appears, it books without asking and notifies you with the return time it got.
 
+If two armed attractions become available at once, the better one is booked first, ranked by the same priority order the LL list's **Priority** sort uses. And when a higher-ranked Tier 1 attraction is armed and still has a drop ahead of it, Autopilot will pass on a lesser Tier 1 offer rather than spend the party's Tier 1 slot on it — releasing that hold on its own once the better attraction's drops have passed.
+
 The screen shows a **Booking activity** log of what was booked and anything that failed.
 
 **The guard that matters.** Matching runs against the return time the tipboard advertises, but the offer that actually comes back can carry a *later* time — inventory moves between the two requests, and Disney sometimes places a third Lightning Lane between two you already hold. So the real return time is re-checked against your window before booking, and an offer outside it is abandoned rather than booked. A Lightning Lane is not free to undo, so handing you a time you explicitly excluded would be the worst outcome. An abandoned offer stays retryable — the next check is about a second away.
 
 **Other safety limits**
 
-- **Three bookings per session**, so a bug in matching cannot burn a whole day of Lightning Lanes. The count resets only on reload.
+- **Three actions per session** — bookings and moves share one budget — so a bug in matching cannot burn a whole day of Lightning Lanes. The count resets only on reload.
 - **One attempt per attraction.** The attempt is recorded *before* the request goes out: a booking request that times out may still have succeeded server-side, so retrying risks double-booking.
 - **A fresh allowance and empty cache every time you turn autopilot on**, so a stale eligibility result cannot drive a booking.
 - **Arming persists, running does not.** Your auto-book choices are saved, but autopilot itself is always off after a reload — nothing can book until you deliberately turn it on again.
+
+### Automatic re-timing
+
+Autopilot can also move a reservation you **already hold** to a better time. Separate per-attraction toggle from booking, because the risks differ: booking spends an entitlement you did not have, while moving puts one you already hold through a round trip.
+
+**How to use it**
+
+1. Watch the attraction, then tap **Auto-move off** next to it so it reads **Auto-move on**.
+2. Turn autopilot on. If a much better return time appears for something you hold, it moves the reservation and tells you both times.
+
+**What it guarantees**
+
+- **Never moves you later.** A modify offer can come back with a different time than the tipboard advertised, including a worse one. The real time is re-checked before anything is committed, so it will not trade an 11am return for a 7pm one — a failure mode plain booking does not have.
+- **At least 30 minutes better,** or it does not bother. Swapping 7:10pm for 6:55pm is not worth putting a held reservation through a round trip.
+- **Stays inside your window,** same as booking.
+- **One action per attraction per session,** shared with the booking cap — so it will not thrash a reservation back and forth as availability shifts.
+- **Skips reservations Disney marks unmodifiable.**
+
+If you hold a reservation and have both toggles on, moving takes precedence — booking a second one for the same attraction would just be rejected.
 
 ### Faster booking
 
