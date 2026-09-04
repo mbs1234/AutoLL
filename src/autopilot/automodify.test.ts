@@ -75,12 +75,12 @@ function deps(
 describe('findExistingLL()', () => {
   it('finds a Multi Pass reservation by attraction', () => {
     const plans = [existingLL(at(19))] as Booking[];
-    expect(findExistingLL(plans, BZ)?.facilityId).toBe(BZ);
+    expect(findExistingLL(plans, BZ, DATE)?.facilityId).toBe(BZ);
   });
 
   it('returns nothing for a different attraction', () => {
     const plans = [existingLL(at(19))] as Booking[];
-    expect(findExistingLL(plans, DB)).toBeUndefined();
+    expect(findExistingLL(plans, DB, DATE)).toBeUndefined();
   });
 
   it('ignores non-Multi-Pass bookings', () => {
@@ -88,11 +88,32 @@ describe('findExistingLL()', () => {
       { ...existingLL(at(19)), subtype: 'SP' },
       { type: 'APR', facilityId: BZ },
     ] as unknown as Booking[];
-    expect(findExistingLL(plans, BZ)).toBeUndefined();
+    expect(findExistingLL(plans, BZ, DATE)).toBeUndefined();
   });
 
   it('handles an empty itinerary', () => {
-    expect(findExistingLL([], BZ)).toBeUndefined();
+    expect(findExistingLL([], BZ, DATE)).toBeUndefined();
+  });
+
+  // The itinerary request has a start date but no end date, so pre-booked
+  // selections for later days arrive alongside today's. Without the date
+  // filter, watching today could try to "improve" tomorrow's reservation.
+  it('ignores a reservation on a different park day', () => {
+    const tomorrow = {
+      ...existingLL(at(19)),
+      start: new DateTime('2026-09-05', at(19)),
+    } as unknown as Booking;
+    expect(findExistingLL([tomorrow], BZ, DATE)).toBeUndefined();
+    expect(findExistingLL([tomorrow], BZ, '2026-09-05')).toBeDefined();
+  });
+
+  // A 1am return time belongs to the previous park day.
+  it('assigns an after-midnight reservation to the previous park day', () => {
+    const lateNight = {
+      ...existingLL(at(1)),
+      start: new DateTime('2026-09-05', at(1)),
+    } as unknown as Booking;
+    expect(findExistingLL([lateNight], BZ, DATE)).toBeDefined();
   });
 });
 

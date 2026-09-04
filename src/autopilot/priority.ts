@@ -72,8 +72,15 @@ export interface ArmedExperience {
 export function shouldHoldTierSlot(
   candidate: WatchHit,
   armed: ArmedExperience[],
-  now: ParkTime
+  now: ParkTime,
+  redeemedToday = false
 ): boolean {
+  // The one-Tier-1-at-a-time rule applies only until the party's first
+  // redemption of the day. After that, multiple Tier 1 selections can be held
+  // at once, so there is no slot left to protect and holding would only block
+  // bookings. The caller derives this from the tipboard's `experienced` flag,
+  // which LLTracker sets for redeemed attractions.
+  if (redeemedToday) return false;
   if (!isTier1(candidate.experience)) return false;
   const candidateRank = candidate.experience.priority || Infinity;
   return armed.some(

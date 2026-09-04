@@ -1,6 +1,6 @@
 import { Booking, LLMP, isLLMP } from '@/api/itinerary';
 import { Guest, Guests, Offer, OfferError, OfferExperience } from '@/api/ll';
-import { ParkTime } from '@/datetime';
+import { ParkTime, parkDate } from '@/datetime';
 
 import { AutoBookLedger } from './autobook';
 import { WatchTarget, inWindow } from './watchlist';
@@ -30,14 +30,27 @@ export type ModifyOutcome =
   | { status: 'skipped'; reason: ModifySkipReason }
   | { status: 'failed'; error: string };
 
-/** The party's existing Multi Pass reservation for an attraction, if any. */
+/**
+ * The party's existing Multi Pass reservation for an attraction on a given
+ * park day, if any.
+ *
+ * The date filter is not optional in practice. The itinerary request sends a
+ * start date with no end date, so pre-booked selections for later days come
+ * back alongside today's -- without this, watching Slinky Dog today could
+ * match tomorrow's reservation and try to "improve" it with today's offer.
+ * `parkDate` rather than the raw date: a 1am return time belongs to the
+ * previous park day.
+ */
 export function findExistingLL(
   plans: Booking[],
-  experienceId: string
+  experienceId: string,
+  date: string
 ): LLMP | undefined {
   return plans.find(
     (booking): booking is LLMP =>
-      isLLMP(booking) && booking.facilityId === experienceId
+      isLLMP(booking) &&
+      booking.facilityId === experienceId &&
+      parkDate(booking.start) === date
   );
 }
 

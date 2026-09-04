@@ -38,7 +38,7 @@ import ClientsContext from '@/contexts/ClientsContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
-import { formatTime } from '@/datetime';
+import { formatTime, parkDate } from '@/datetime';
 import { now as syncedNow } from '@/timesync';
 
 /**
@@ -182,6 +182,14 @@ export default function AutopilotProvider({
 
     const expsById = new Map(experiences.map(exp => [exp.id, exp]));
     const nowTime = syncedParkTime();
+    const date = bookingDateRef.current;
+
+    // The one-Tier-1-at-a-time rule lifts after the party's first redemption
+    // of the day. LLTracker marks a redeemed attraction `experienced` (its
+    // booking turns cancellable-but-not-modifiable, or it disappears with
+    // EXPERIENCE_LIMIT_REACHED), and the tipboard carries that flag, so this
+    // is readable right here without another request.
+    const redeemedToday = experiences.some(exp => exp.experienced);
 
     // Targets that could still consume a Tier 1 slot: armed for booking, and
     // not already held. The tier hold has to reason about attractions that
@@ -189,7 +197,9 @@ export default function AutopilotProvider({
     // and an attraction already booked is no reason to hold anything back.
     const armed = targetsRef.current.flatMap(target => {
       if (!target.autoBook) return [];
-      if (findExistingLL(plansRef.current, target.experienceId)) return [];
+      if (findExistingLL(plansRef.current, target.experienceId, date)) {
+        return [];
+      }
       const experience = expsById.get(target.experienceId);
       return experience ? [{ target, experience }] : [];
     });
@@ -208,7 +218,7 @@ export default function AutopilotProvider({
 
       // Holding a reservation already makes booking a second one pointless --
       // Disney would reject it -- so the only useful action is re-timing.
-      const existing = findExistingLL(plansRef.current, experience.id);
+      const existing = findExistingLL(plansRef.current, experience.id, date);
 
       let outcome: AutoBookOutcome | ModifyOutcome;
       try {
@@ -229,7 +239,7 @@ export default function AutopilotProvider({
         } else {
           // Only new bookings can spend the party's Tier 1 slot; re-timing one
           // already held does not, which is why this guard sits on this branch.
-          if (shouldHoldTierSlot(hit, armed, nowTime)) continue;
+          if (shouldHoldTierSlot(hit, armed, nowTime, redeemedToday)) continue;
           outcome = await attemptAutoBook(target, experience, {
             createOffer: (exp, guests) =>
               ll.offer(exp, guests, { date: bookingDateRef.current }),
@@ -294,13 +304,19 @@ export default function AutopilotProvider({
     }
   }, [pollExperiences, pollPlans, ll, guestsFor, clock, logOutcome]);
 
+  // Drops and the next-booking window are day-of phenomena. When the user is
+  // watching a future date -- improving pre-booked selections before the trip
+  // -- bursting at 09:47 for a day next week is pure waste, so the cadence
+  // policy sees no targets and stays at its slow, steady rate. Availability
+  // on future dates comes from cancellations, which have no schedule.
+  const watchingToday = bookingDate === parkDate();
   const status = usePoller({
     enabled,
     onTick,
-    dropTimes: park.dropTimes,
+    dropTimes: watchingToday ? park.dropTimes : undefined,
     // Set as a side effect of ll.experiences(), so it is current as of the
     // last poll. Read fresh each tick by usePoller.
-    nextBookTime: ll.nextBookTime,
+    nextBookTime: watchingToday ? ll.nextBookTime : undefined,
   });
 
   const setEnabled = useCallback((on: boolean) => {

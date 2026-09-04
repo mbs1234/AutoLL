@@ -163,6 +163,20 @@ describe('shouldHoldTierSlot()', () => {
     expect(shouldHoldTierSlot(hit(worse), [], at(9))).toBe(false);
   });
 
+  // Wait Magic's FAQ: once any selection is redeemed, the party is no longer
+  // limited to a single Tier 1, so there is no slot left to protect.
+  it('never holds once the party has redeemed today', () => {
+    expect(shouldHoldTierSlot(hit(worse), [armed(better)], at(9), true)).toBe(
+      false
+    );
+  });
+
+  it('still holds before any redemption', () => {
+    expect(shouldHoldTierSlot(hit(worse), [armed(better)], at(9), false)).toBe(
+      true
+    );
+  });
+
   it('holds if any one of several armed targets qualifies', () => {
     const irrelevant = exp('irr', { priority: 4.1 });
     expect(

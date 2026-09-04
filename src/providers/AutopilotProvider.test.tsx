@@ -7,11 +7,13 @@ import { Experience, FlexExperience } from '@/api/ll';
 import { fireAlert, primeAudio } from '@/autopilot/alert';
 import { saveWatchList } from '@/autopilot/watchlist';
 import AutopilotContext from '@/contexts/AutopilotContext';
+import BookingDateContext from '@/contexts/BookingDateContext';
 import ClientsContext, { Clients } from '@/contexts/ClientsContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
 import { DateTime, ParkTime } from '@/datetime';
+import { TODAY, TOMORROW, setTime } from '@/testing';
 
 import AutopilotProvider, { PLANS_EVERY_N_TICKS } from './AutopilotProvider';
 
@@ -25,7 +27,10 @@ jest.mock('@/autopilot/alert', () => ({
   fireAlert: jest.fn(),
 }));
 jest.mock('@/timesync');
-jest.useFakeTimers();
+// Pins the clock to the repo's canonical TODAY (see @/testing). The earlier
+// version of this file hardcoded a real calendar date and passed only because
+// the suite happened to run on that day.
+setTime('09:00');
 
 const BZ = '80010114';
 const DB = '80010129';
@@ -60,31 +65,35 @@ function setup(experiences: Experience[]) {
   const pollExperiences = jest.fn(async () => experiences);
   const pollPlans = jest.fn(async () => undefined);
   render(
-    <ClientsContext value={{ ll: { nextBookTime: undefined } } as Clients}>
-      <ParkContext value={{ park: mk, setPark: () => {} }}>
-        <ExperiencesContext
-          value={{
-            experiences: [],
-            refreshExperiences: () => {},
-            pollExperiences,
-            loaderElem: null,
-          }}
-        >
-          <PlansContext
+    <BookingDateContext
+      value={{ bookingDate: TODAY, setBookingDate: () => {} }}
+    >
+      <ClientsContext value={{ ll: { nextBookTime: undefined } } as Clients}>
+        <ParkContext value={{ park: mk, setPark: () => {} }}>
+          <ExperiencesContext
             value={{
-              plans: [],
-              refreshPlans: () => {},
-              pollPlans,
+              experiences: [],
+              refreshExperiences: () => {},
+              pollExperiences,
               loaderElem: null,
             }}
           >
-            <AutopilotProvider>
-              <Probe />
-            </AutopilotProvider>
-          </PlansContext>
-        </ExperiencesContext>
-      </ParkContext>
-    </ClientsContext>
+            <PlansContext
+              value={{
+                plans: [],
+                refreshPlans: () => {},
+                pollPlans,
+                loaderElem: null,
+              }}
+            >
+              <AutopilotProvider>
+                <Probe />
+              </AutopilotProvider>
+            </PlansContext>
+          </ExperiencesContext>
+        </ParkContext>
+      </ClientsContext>
+    </BookingDateContext>
   );
   return { pollExperiences, pollPlans };
 }
@@ -106,8 +115,8 @@ function offerAt(hour: number) {
   return {
     id: 'offer-1',
     offerSetId: 'set-1',
-    start: new DateTime('2026-09-04', new ParkTime(hour)),
-    end: new DateTime('2026-09-04', new ParkTime(hour + 1)),
+    start: new DateTime(TODAY, new ParkTime(hour)),
+    end: new DateTime(TODAY, new ParkTime(hour + 1)),
     guests: party,
     itinerary: [],
     booking: undefined,
@@ -141,39 +150,43 @@ function setupBooking({
   const book = jest.fn(async () => ({ id: 'ent-1' }));
   const pollPlans = jest.fn(async () => undefined);
   render(
-    <ClientsContext
-      // Two-step cast: with the jest.Mock members present this no longer
-      // merely omits properties from Clients, it conflicts with them.
-      value={
-        {
-          ll: { nextBookTime: undefined, guests, offer, book },
-        } as unknown as Clients
-      }
+    <BookingDateContext
+      value={{ bookingDate: TODAY, setBookingDate: () => {} }}
     >
-      <ParkContext value={{ park: mk, setPark: () => {} }}>
-        <ExperiencesContext
-          value={{
-            experiences: [],
-            refreshExperiences: () => {},
-            pollExperiences: async () => experiences,
-            loaderElem: null,
-          }}
-        >
-          <PlansContext
+      <ClientsContext
+        // Two-step cast: with the jest.Mock members present this no longer
+        // merely omits properties from Clients, it conflicts with them.
+        value={
+          {
+            ll: { nextBookTime: undefined, guests, offer, book },
+          } as unknown as Clients
+        }
+      >
+        <ParkContext value={{ park: mk, setPark: () => {} }}>
+          <ExperiencesContext
             value={{
-              plans,
-              refreshPlans: () => {},
-              pollPlans,
+              experiences: [],
+              refreshExperiences: () => {},
+              pollExperiences: async () => experiences,
               loaderElem: null,
             }}
           >
-            <AutopilotProvider>
-              <Probe />
-            </AutopilotProvider>
-          </PlansContext>
-        </ExperiencesContext>
-      </ParkContext>
-    </ClientsContext>
+            <PlansContext
+              value={{
+                plans,
+                refreshPlans: () => {},
+                pollPlans,
+                loaderElem: null,
+              }}
+            >
+              <AutopilotProvider>
+                <Probe />
+              </AutopilotProvider>
+            </PlansContext>
+          </ExperiencesContext>
+        </ParkContext>
+      </ClientsContext>
+    </BookingDateContext>
   );
   return { guests, offer, book, pollPlans, offeredIds, offerOptions };
 }
@@ -258,33 +271,37 @@ describe('AutopilotProvider', () => {
     const experiences: Experience[] = [];
     const pollExperiences = jest.fn(async () => experiences);
     render(
-      <ClientsContext value={{ ll: { nextBookTime: undefined } } as Clients}>
-        <ParkContext value={{ park: mk, setPark: () => {} }}>
-          <ExperiencesContext
-            value={{
-              experiences: [],
-              refreshExperiences: () => {},
-              pollExperiences,
-              loaderElem: null,
-            }}
-          >
-            <PlansContext
+      <BookingDateContext
+        value={{ bookingDate: TODAY, setBookingDate: () => {} }}
+      >
+        <ClientsContext value={{ ll: { nextBookTime: undefined } } as Clients}>
+          <ParkContext value={{ park: mk, setPark: () => {} }}>
+            <ExperiencesContext
               value={{
-                plans: [],
-                refreshPlans: () => {},
-                pollPlans: async () => {
-                  throw new Error('plans down');
-                },
+                experiences: [],
+                refreshExperiences: () => {},
+                pollExperiences,
                 loaderElem: null,
               }}
             >
-              <AutopilotProvider>
-                <Probe />
-              </AutopilotProvider>
-            </PlansContext>
-          </ExperiencesContext>
-        </ParkContext>
-      </ClientsContext>
+              <PlansContext
+                value={{
+                  plans: [],
+                  refreshPlans: () => {},
+                  pollPlans: async () => {
+                    throw new Error('plans down');
+                  },
+                  loaderElem: null,
+                }}
+              >
+                <AutopilotProvider>
+                  <Probe />
+                </AutopilotProvider>
+              </PlansContext>
+            </ExperiencesContext>
+          </ParkContext>
+        </ClientsContext>
+      </BookingDateContext>
     );
     await enable();
     await act(async () => {
@@ -421,6 +438,38 @@ describe('AutopilotProvider auto-booking', () => {
     expect(offer).not.toHaveBeenCalled();
   });
 
+  // Wait Magic's FAQ: after the party's first redemption of the day the
+  // single-Tier-1 limit no longer applies, so there is nothing to hold for.
+  it('drops the Tier 1 hold once the party has redeemed today', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true },
+      { experienceId: DB, autoBook: true },
+    ]);
+    const { offer, offeredIds } = setupBooking({
+      experiences: [
+        available(BZ, new ParkTime(11), { tier: 1, priority: 2.3 }),
+        {
+          ...available(DB, new ParkTime(11)),
+          tier: 1,
+          priority: 1.0,
+          flex: { available: false },
+          dropTimes: [new ParkTime(23, 59)],
+        } as FlexExperience,
+        // A redeemed attraction: LLTracker marks it experienced.
+        // Spread from a real fixture (unknown ids throw InvalidId), then
+        // re-id so it does not collide with DB above.
+        {
+          ...available(DB, new ParkTime(11)),
+          id: 'redeemed',
+          experienced: true,
+        },
+      ],
+    });
+    await enable();
+    await waitFor(() => expect(offer).toHaveBeenCalled());
+    expect(offeredIds[0]).toBe(BZ);
+  });
+
   // Self-releasing, so a held slot cannot deadlock for the rest of the day.
   it('releases the Tier 1 hold once the better drop has passed', async () => {
     saveWatchList([
@@ -447,16 +496,16 @@ describe('AutopilotProvider auto-booking', () => {
 });
 
 describe('AutopilotProvider auto-move', () => {
-  /** An existing Multi Pass reservation for BZ at `hour`. */
-  function heldAt(hour: number): Booking {
+  /** An existing Multi Pass reservation for BZ at `hour` on `date`. */
+  function heldAt(hour: number, date = TODAY): Booking {
     return {
       type: 'LL',
       subtype: 'MP',
       id: 'ent-1',
       facilityId: BZ,
       name: 'Held',
-      start: new DateTime('2026-09-04', new ParkTime(hour)),
-      end: new DateTime('2026-09-04', new ParkTime(hour + 1)),
+      start: new DateTime(date, new ParkTime(hour)),
+      end: new DateTime(date, new ParkTime(hour + 1)),
       modifiable: true,
       guests: [],
     } as unknown as Booking;
@@ -520,6 +569,21 @@ describe('AutopilotProvider auto-move', () => {
     const { book } = setupBooking({ offerHour: 11, plans: [heldAt(19)] });
     await enable();
     await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+  });
+
+  // The itinerary returns future pre-booked selections too. Watching today
+  // must not treat tomorrow's reservation as something to improve.
+  it('ignores a reservation for a different day', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true, autoModify: true }]);
+    const { book, offerOptions } = setupBooking({
+      offerHour: 11,
+      plans: [heldAt(19, TOMORROW)],
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    // Nothing held *today*, so this is a fresh booking, not a modification.
+    expect(offerOptions[0]).toHaveProperty('date');
+    expect(offerOptions[0]).not.toHaveProperty('booking');
   });
 
   it('books normally when nothing is held', async () => {
