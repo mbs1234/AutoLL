@@ -16,14 +16,14 @@ export interface AutopilotHit {
 export interface BookingLogEntry {
   name: string;
   at: ParkTime;
-  status: 'booked' | 'modified' | 'swapped' | 'failed' | 'skipped';
+  status: 'booked' | 'modified' | 'swapped' | 'failed' | 'skipped' | 'dry-run';
   /** Return time for a booking. */
   returnTime?: ParkTime;
   /** Previous return time, for a modification. */
   fromTime?: ParkTime;
   /** The reservation given up, for a swap. */
   replacedName?: string;
-  /** Error message or skip reason. */
+  /** Error message, skip reason, or for a dry run the action rehearsed. */
   detail?: string;
 }
 
@@ -59,6 +59,9 @@ export interface AutopilotState {
   /** Act only when every party member is eligible. Persisted. */
   requireWholeParty: boolean;
   setRequireWholeParty: (on: boolean) => void;
+  /** Rehearse every guard but commit nothing. Persisted. */
+  dryRun: boolean;
+  setDryRun: (on: boolean) => void;
   /**
    * How often each reason stopped an action this session. Skips are the
    * ordinary outcome and are kept out of the log, so this is where "why did
@@ -92,6 +95,8 @@ export default createContext<AutopilotState>({
   bookingsRemaining: DEFAULT_MAX_PER_SESSION,
   requireWholeParty: false,
   setRequireWholeParty: () => undefined,
+  dryRun: false,
+  setDryRun: () => undefined,
   skipCounts: {},
   dropSummaries: [],
 });

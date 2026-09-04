@@ -815,7 +815,7 @@ describe('AutopilotProvider whole-party guard', () => {
   // A Lightning Lane for part of the group splits the party and spends the
   // slot; when asked to, autopilot refuses rather than booking a subset.
   it('refuses to book when a party member is ineligible and the guard is on', async () => {
-    saveSettings({ requireWholeParty: true });
+    saveSettings({ requireWholeParty: true, dryRun: false });
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     const { book, offer } = setupBooking({ guestsResult: partyMemberLeftOut });
     await enable();
@@ -828,7 +828,7 @@ describe('AutopilotProvider whole-party guard', () => {
 
   // Guests outside the saved party are not "the party".
   it('still books when only outsiders are ineligible', async () => {
-    saveSettings({ requireWholeParty: true });
+    saveSettings({ requireWholeParty: true, dryRun: false });
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     const { book } = setupBooking({ guestsResult: onlyOutsiders });
     await enable();
@@ -1053,5 +1053,62 @@ describe('AutopilotProvider learned timing', () => {
     await waitFor(() =>
       expect(screen.getByTestId('mode')).toHaveTextContent('idle')
     );
+  });
+});
+
+describe('AutopilotProvider dry run', () => {
+  it('runs the guards and logs, but never offers or books', async () => {
+    saveSettings({ requireWholeParty: false, dryRun: true });
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { offer, book, guests } = setupBooking();
+    await enable();
+    // Eligibility is still checked -- a faithful rehearsal.
+    await waitFor(() => expect(guests).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(loadBookingLog().some(e => e.status === 'dry-run')).toBe(true)
+    );
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000 * 3);
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+    expect(loadBookingLog()[0]).toMatchObject({
+      status: 'dry-run',
+      detail: 'book',
+    });
+  });
+
+  // Once per attraction per action, not once per tick.
+  it('logs a rehearsed action only once', async () => {
+    saveSettings({ requireWholeParty: false, dryRun: true });
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    setupBooking();
+    await enable();
+    await waitFor(() =>
+      expect(loadBookingLog().some(e => e.status === 'dry-run')).toBe(true)
+    );
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000 * 5);
+    });
+    expect(loadBookingLog().filter(e => e.status === 'dry-run')).toHaveLength(
+      1
+    );
+  });
+
+  // The whole point: the guards still gate what gets logged.
+  it('still honors the whole-party guard while rehearsing', async () => {
+    saveSettings({ requireWholeParty: true, dryRun: true });
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    setupBooking({
+      guestsResult: {
+        eligible: [{ id: 'g1', name: 'A' }],
+        ineligible: [{ id: 'g2', name: 'B', ineligibleReason: 'TOO_EARLY' }],
+      },
+    });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(loadBookingLog()).toEqual([]);
   });
 });

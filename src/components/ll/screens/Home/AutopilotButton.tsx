@@ -16,7 +16,7 @@ import Autopilot, { AUTOPILOT } from '../Autopilot';
  */
 export default function AutopilotButton() {
   const { goTo } = use(NavContext);
-  const { enabled, status, targets } = use(AutopilotContext);
+  const { enabled, status, targets, dryRun } = use(AutopilotContext);
   const running = enabled && status.mode !== 'stopped';
   const attention = enabled && status.mode === 'stopped';
 
@@ -24,18 +24,22 @@ export default function AutopilotButton() {
     <Button
       title={
         running
-          ? `${AUTOPILOT} on, watching ${targets.length}`
+          ? `${AUTOPILOT} on${dryRun ? ' (dry run)' : ''}, watching ${targets.length}`
           : attention
             ? `${AUTOPILOT} stopped after errors`
             : `${AUTOPILOT} off`
       }
       onClick={() => goTo(<Autopilot />)}
+      // Yellow while rehearsing, so a forgotten dry run is visible from the
+      // header rather than discovered when nothing gets booked.
       color={
         attention
           ? 'bg-red-700 text-white'
-          : running
-            ? 'bg-green-700 text-white'
-            : undefined
+          : running && dryRun
+            ? 'bg-yellow-600 text-white'
+            : running
+              ? 'bg-green-700 text-white'
+              : undefined
       }
     >
       <ClockIcon />

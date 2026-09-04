@@ -33,6 +33,7 @@ const STATUSES = new Set<BookingLogEntry['status']>([
   'swapped',
   'failed',
   'skipped',
+  'dry-run',
 ]);
 
 /**
@@ -93,9 +94,23 @@ export interface AutopilotSettings {
    * bookings for the guarantee that the group is never split.
    */
   requireWholeParty: boolean;
+  /**
+   * Rehearse without acting.
+   *
+   * Every guard runs -- eligibility, whole-party, Tier 1 hold, windows -- and
+   * the log records what *would* have been booked, moved or swapped, but no
+   * offer is generated and nothing is committed. For a first park day with a
+   * tool that spends real entitlements, watching it be right before letting it
+   * act is worth a day of not acting. Persisted, and shown prominently while
+   * on, so it cannot be quietly forgotten.
+   */
+  dryRun: boolean;
 }
 
-export const DEFAULT_SETTINGS: AutopilotSettings = { requireWholeParty: false };
+export const DEFAULT_SETTINGS: AutopilotSettings = {
+  requireWholeParty: false,
+  dryRun: false,
+};
 
 /** Not day-scoped: a preference about the party, not about a visit. */
 export function loadSettings(): AutopilotSettings {
@@ -104,6 +119,7 @@ export function loadSettings(): AutopilotSettings {
     ...DEFAULT_SETTINGS,
     // Only a literal true enables it; anything else stored reads as off.
     requireWholeParty: stored?.requireWholeParty === true,
+    dryRun: stored?.dryRun === true,
   };
 }
 

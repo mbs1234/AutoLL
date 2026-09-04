@@ -98,6 +98,8 @@ export default function Autopilot() {
     bookingsRemaining,
     requireWholeParty,
     setRequireWholeParty,
+    dryRun,
+    setDryRun,
     skipCounts,
     dropSummaries,
   } = use(AutopilotContext);
@@ -153,7 +155,26 @@ export default function Autopilot() {
         <StatusRow status={status} />
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      {dryRun && (
+        <p className="mt-3 rounded-sm bg-yellow-100 p-2 text-sm font-semibold text-yellow-900">
+          Dry run is on. Autopilot will watch, alert, and run every check, and
+          the activity log will show what it <em>would</em> have booked, moved,
+          or swapped &mdash; but nothing will actually be booked. Turn it off
+          when you are ready for it to act.
+        </p>
+      )}
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button
+          type="small"
+          title={
+            dryRun ? 'Let autopilot act for real' : 'Rehearse without booking'
+          }
+          color={dryRun ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-black'}
+          onClick={() => setDryRun(!dryRun)}
+        >
+          {dryRun ? 'Dry run: on' : 'Dry run: off'}
+        </Button>
         <Button
           type="small"
           title={
@@ -448,6 +469,22 @@ export default function Autopilot() {
                 {entry.status === 'booked' ? (
                   <>
                     booked <b>{entry.name}</b>
+                    {entry.returnTime && (
+                      <>
+                        {' '}
+                        for <Time time={entry.returnTime} />
+                      </>
+                    )}
+                  </>
+                ) : entry.status === 'dry-run' ? (
+                  <>
+                    <span className="text-yellow-700">would have</span>{' '}
+                    {entry.detail === 'modify'
+                      ? 'moved'
+                      : entry.detail === 'swap'
+                        ? 'swapped in'
+                        : 'booked'}{' '}
+                    <b>{entry.name}</b>
                     {entry.returnTime && (
                       <>
                         {' '}

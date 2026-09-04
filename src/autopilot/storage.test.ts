@@ -44,6 +44,13 @@ describe('booking log persistence', () => {
         returnTime: at(12),
       },
       { name: 'E', at: at(9, 50), status: 'failed', detail: 'boom' },
+      {
+        name: 'F',
+        at: at(9, 51),
+        status: 'dry-run',
+        detail: 'book',
+        returnTime: at(11),
+      },
     ];
     saveBookingLog(entries);
     expect(loadBookingLog()).toEqual(entries);
@@ -96,8 +103,17 @@ describe('settings persistence', () => {
   });
 
   it('round-trips', () => {
-    saveSettings({ requireWholeParty: true });
-    expect(loadSettings()).toEqual({ requireWholeParty: true });
+    saveSettings({ requireWholeParty: true, dryRun: true });
+    expect(loadSettings()).toEqual({ requireWholeParty: true, dryRun: true });
+  });
+
+  it('defaults dry run to off', () => {
+    expect(DEFAULT_SETTINGS.dryRun).toBe(false);
+  });
+
+  it('treats a non-boolean dry-run value as off', () => {
+    kvdb.set(SETTINGS_KEY, { dryRun: 1 });
+    expect(loadSettings().dryRun).toBe(false);
   });
 
   // Guessing wrong here means booking for a subset when the user asked never

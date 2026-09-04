@@ -54,6 +54,7 @@ function setup({
   const togglePaused = jest.fn();
   const toggleAutoSwap = jest.fn();
   const setRequireWholeParty = jest.fn();
+  const setDryRun = jest.fn();
   render(
     <ParkContext value={{ park: mk, setPark: () => {} }}>
       <ExperiencesContext
@@ -81,6 +82,8 @@ function setup({
             notifications,
             requireWholeParty: false,
             setRequireWholeParty,
+            dryRun: false,
+            setDryRun,
             skipCounts: {},
             dropSummaries: [],
             bookingLog: [],
@@ -104,6 +107,7 @@ function setup({
     togglePaused,
     toggleAutoSwap,
     setRequireWholeParty,
+    setDryRun,
   };
 }
 
@@ -578,5 +582,62 @@ describe('Autopilot screen learned timing', () => {
     const entry = screen.getByText(/Seen:/).closest('li')!;
     expect(within(entry).getByText(/2 days, used for timing/)).toBeVisible();
     expect(within(entry).getByText(/\(1 day\)/)).toBeVisible();
+  });
+});
+
+describe('Autopilot screen dry run', () => {
+  it('shows dry run as off by default with no banner', () => {
+    setup();
+    expect(screen.getByTitle('Rehearse without booking')).toHaveTextContent(
+      'Dry run: off'
+    );
+    expect(screen.queryByText(/Dry run is on/)).not.toBeInTheDocument();
+  });
+
+  it('toggles dry run', () => {
+    const { setDryRun } = setup();
+    screen.getByTitle('Rehearse without booking').click();
+    expect(setDryRun).toHaveBeenCalledWith(true);
+  });
+
+  // A forgotten dry run would look like a broken booker, so it is loud.
+  it('shows a prominent banner while on', () => {
+    setup({ dryRun: true });
+    expect(screen.getByText(/Dry run is on/)).toBeVisible();
+    expect(screen.getByTitle('Let autopilot act for real')).toHaveTextContent(
+      'Dry run: on'
+    );
+  });
+
+  it('logs what would have happened, per action', () => {
+    setup({
+      bookingLog: [
+        {
+          name: 'A',
+          at: new ParkTime(9),
+          status: 'dry-run',
+          detail: 'book',
+          returnTime: new ParkTime(11),
+        },
+        {
+          name: 'B',
+          at: new ParkTime(9, 1),
+          status: 'dry-run',
+          detail: 'modify',
+        },
+        {
+          name: 'C',
+          at: new ParkTime(9, 2),
+          status: 'dry-run',
+          detail: 'swap',
+        },
+      ],
+    });
+    const items = screen
+      .getAllByRole('listitem')
+      .map(li => li.textContent ?? '');
+    expect(items.some(t => /would have booked A/.test(t))).toBe(true);
+    expect(items.some(t => /would have moved B/.test(t))).toBe(true);
+    expect(items.some(t => /would have swapped in C/.test(t))).toBe(true);
   });
 });

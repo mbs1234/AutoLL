@@ -9,6 +9,7 @@ import {
   requestAlertPermission,
 } from '@/autopilot/alert';
 import {
+  ActionKind,
   AutoBookLedger,
   AutoBookOutcome,
   attemptAutoBook,
@@ -65,7 +66,7 @@ import ClientsContext from '@/contexts/ClientsContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
-import { formatTime, parkDate } from '@/datetime';
+import { ParkTime, formatTime, parkDate } from '@/datetime';
 import { now as syncedNow } from '@/timesync';
 
 /**
@@ -170,8 +171,17 @@ export default function AutopilotProvider({
     [ll, clock]
   );
 
+  type DryRunOutcome = {
+    status: 'dry-run';
+    kind: ActionKind;
+    returnTime: ParkTime;
+  };
+
   const logOutcome = useCallback(
-    (name: string, outcome: AutoBookOutcome | ModifyOutcome | SwapOutcome) => {
+    (
+      name: string,
+      outcome: AutoBookOutcome | ModifyOutcome | SwapOutcome | DryRunOutcome
+    ) => {
       setBookingLog(prev =>
         [
           {
@@ -192,9 +202,18 @@ export default function AutopilotProvider({
                       fromTime: outcome.replaced.time,
                       returnTime: outcome.to,
                     }
-                  : outcome.status === 'failed'
-                    ? { status: 'failed' as const, detail: outcome.error }
-                    : { status: 'skipped' as const, detail: outcome.reason }),
+                  : outcome.status === 'dry-run'
+                    ? {
+                        status: 'dry-run' as const,
+                        detail: outcome.kind,
+                        returnTime: outcome.returnTime,
+                      }
+                    : outcome.status === 'failed'
+                      ? { status: 'failed' as const, detail: outcome.error }
+                      : {
+                          status: 'skipped' as const,
+                          detail: outcome.reason,
+                        }),
           },
           ...prev,
         ].slice(0, 20)
@@ -362,6 +381,31 @@ export default function AutopilotProvider({
           continue;
         }
 
+        // Only new bookings can spend the party's Tier 1 slot; re-timing or
+        // swapping one already held does not. Checked here, ahead of the
+        // branches, so a dry run rehearses it as well.
+        if (
+          kind === 'book' &&
+          shouldHoldTierSlot(hit, armed, nowTime, redeemedToday)
+        ) {
+          bumpSkip('tier-hold');
+          continue;
+        }
+
+        // Dry run: every guard above has passed, which is exactly what a real
+        // run would have needed. Record the action that would have happened
+        // and stop before generating an offer. Marked attempted so it logs
+        // once per attraction per action rather than on every tick.
+        if (settingsRef.current.dryRun) {
+          ledgerRef.current.markAttempted(experience.id, kind);
+          logOutcome(experience.name, {
+            status: 'dry-run',
+            kind,
+            returnTime: hit.returnTime,
+          });
+          continue;
+        }
+
         if (kind === 'swap') {
           // Atomic on Disney's side: the mod endpoint takes both the new
           // experience and the one being given up, so the old reservation is
@@ -388,12 +432,6 @@ export default function AutopilotProvider({
             }
           );
         } else {
-          // Only new bookings can spend the party's Tier 1 slot; re-timing one
-          // already held does not, which is why this guard sits on this branch.
-          if (shouldHoldTierSlot(hit, armed, nowTime, redeemedToday)) {
-            bumpSkip('tier-hold');
-            continue;
-          }
           // The effective target: window stripped under book-then-move.
           outcome = await attemptAutoBook(hit.target, experience, {
             createOffer: (exp, g) =>
@@ -602,6 +640,8 @@ export default function AutopilotProvider({
         requireWholeParty: settings.requireWholeParty,
         setRequireWholeParty: on =>
           setSettings(prev => ({ ...prev, requireWholeParty: on })),
+        dryRun: settings.dryRun,
+        setDryRun: on => setSettings(prev => ({ ...prev, dryRun: on })),
         skipCounts,
         dropSummaries,
       }}
