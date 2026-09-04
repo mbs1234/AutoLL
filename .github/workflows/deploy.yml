@@ -1,0 +1,119 @@
+name: Build and deploy BG1
+
+# The app bundle and the static site around it live on two different
+# branches with no shared history:
+#
+#   mickey - TypeScript/React source. `vite build` emits ONLY bg1.js,
+#            bg1.css, responder.html and their chunks (see the
+#            rollupOptions.input list in vite.config.mts).
+#   goofy  - upstream's published Pages output. It is the only place the
+#            surrounding site exists: index.html (which generates the
+#            bookmarklet), start.html, news.html, contact.html,
+#            autoloader.user.js, icon.png, index.css.
+#
+# Building mickey alone gives you an app with no way to install or launch
+# it. This workflow builds fresh code from mickey, then overlays the static
+# pages from goofy, then repoints upstream URLs at this fork.
+
+on:
+  push:
+    branches: [mickey]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it midway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Origin this fork is served from. Must match `base` in vite.config.mts
+  # and the responderPage URL in src/components/LoginForm.tsx.
+  PAGES_ORIGIN: https://mbs1234.github.io/bg1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source (mickey)
+        uses: actions/checkout@v4
+
+      - name: Check out static site (goofy)
+        uses: actions/checkout@v4
+        with:
+          ref: goofy
+          path: goofy-static
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # build:fork is `vite build` without upstream's `rm -f src/api/diu.ts`,
+      # which would delete our stub and break the DLR dynamic import.
+      - name: Build app bundle
+        run: npm run build:fork
+
+      - name: Overlay static site from goofy
+        run: |
+          set -euo pipefail
+          # Only files the mickey build does not emit. Build outputs
+          # (bg1.js, bg1.css, responder.html, wdw.js, dlr.js, chunks) are
+          # deliberately not copied, so freshly built code always wins.
+          #
+          # Also deliberately skipped:
+          #   diu.js         - obfuscated private module; our stub's chunk
+          #                    is emitted by the build instead
+          #   sensor-data.js - bot-detection payload, referenced by no page
+          #   google*.html   - upstream's Google site-verification token
+          for f in index.html index.css icon.png start.html news.html \
+                   contact.html autoloader.user.js; do
+            if [ -f "goofy-static/$f" ]; then
+              cp "goofy-static/$f" "dist/$f"
+              echo "overlaid $f"
+            else
+              echo "::warning::goofy-static/$f not found, skipped"
+            fi
+          done
+
+      - name: Repoint upstream URLs at this fork
+        run: |
+          set -euo pipefail
+          # index.html and autoloader.user.js hardcode joelface.github.io/bg1.
+          # Left unrewritten, the bookmarklet would silently load upstream's
+          # build instead of this one.
+          find dist -type f \( -name '*.html' -o -name '*.js' -o -name '*.css' \) -print0 \
+            | xargs -0 --no-run-if-empty \
+                sed -i "s|https://joelface\.github\.io/bg1|$PAGES_ORIGIN|g"
+          echo "--- remaining 'joelface' references ---"
+          echo "(github.com/joelface/bg1 source links are expected and kept:"
+          echo " GPL-3.0 attribution. bg1.joelface.com is the upstream time-sync"
+          echo " and live-data host, still in use.)"
+          grep -rn 'joelface' dist || echo "none"
+
+      - name: Show what will be deployed
+        run: ls -la dist
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

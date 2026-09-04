@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "description": "An unofficial, experimental boarding group client",
   "license": "GPL-3.0-only",
-  "repository": "github:joelface/bg1",
+  "repository": "github:mbs1234/bg1",
   "dependencies": {
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
@@ -44,6 +44,7 @@
   "scripts": {
     "start": "vite",
     "build": "rm -f src/api/diu.ts && vite build",
+    "build:fork": "vite build",
     "preview": "vite preview",
     "checkall": "npm test && npm run lint && npm run typecheck",
     "test": "TZ=UTC jest",
