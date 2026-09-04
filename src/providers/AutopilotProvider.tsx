@@ -13,17 +13,20 @@ import {
   AutoBookLedger,
   AutoBookOutcome,
   attemptAutoBook,
+  shouldAttempt,
 } from '@/autopilot/autobook';
 import {
   ModifyOutcome,
   attemptAutoModify,
   findExistingLL,
+  shouldModify,
 } from '@/autopilot/automodify';
 import {
   MAX_HELD_MP,
   SwapOutcome,
   attemptAutoSwap,
   heldMPToday,
+  shouldSwap,
 } from '@/autopilot/autoswap';
 import { learnedDropTimes, mergeDropTimes } from '@/autopilot/learned';
 import {
@@ -392,11 +395,28 @@ export default function AutopilotProvider({
           continue;
         }
 
-        // Dry run: every guard above has passed, which is exactly what a real
-        // run would have needed. Record the action that would have happened
-        // and stop before generating an offer. Marked attempted so it logs
-        // once per attraction per action rather than on every tick.
+        // Dry run: rehearse the same pre-offer guards the real action applies
+        // -- not-modifiable, the improvement threshold, no worse reservation to
+        // give up -- so the log only claims what the live run would actually
+        // have attempted. The one thing that cannot be rehearsed is the re-check
+        // of the offer's real time, since that needs the offer. Marked attempted
+        // so it logs once per attraction per action rather than on every tick.
         if (settingsRef.current.dryRun) {
+          const pre =
+            kind === 'swap'
+              ? shouldSwap(target, experience, allHeldToday, ledgerRef.current)
+              : kind === 'modify'
+                ? shouldModify(
+                    target,
+                    existing,
+                    hit.returnTime,
+                    ledgerRef.current
+                  )
+                : shouldAttempt(hit.target, ledgerRef.current);
+          if (!pre.ok) {
+            bumpSkip(pre.reason);
+            continue;
+          }
           ledgerRef.current.markAttempted(experience.id, kind);
           logOutcome(experience.name, {
             status: 'dry-run',

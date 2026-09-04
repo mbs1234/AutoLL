@@ -1095,6 +1095,63 @@ describe('AutopilotProvider dry run', () => {
     );
   });
 
+  // A rehearsal that logged "would have moved" for a 15-minute gain, when the
+  // live run refuses anything under 30, would teach the user the wrong thing.
+  it('applies the improvement threshold while rehearsing a move', async () => {
+    saveSettings({ requireWholeParty: false, dryRun: true });
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
+    setupBooking({
+      // Holding 11:00, offered 10:45 -- only 15 minutes better.
+      experiences: [available(BZ, new ParkTime(10, 45))],
+      plans: [
+        {
+          type: 'LL',
+          subtype: 'MP',
+          id: 'ent-1',
+          facilityId: BZ,
+          name: 'Held',
+          start: new DateTime(TODAY, new ParkTime(11)),
+          end: new DateTime(TODAY, new ParkTime(12)),
+          modifiable: true,
+          guests: [],
+        } as unknown as Booking,
+      ],
+    });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(loadBookingLog()).toEqual([]);
+  });
+
+  it('does rehearse a move that clears the threshold', async () => {
+    saveSettings({ requireWholeParty: false, dryRun: true });
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
+    setupBooking({
+      experiences: [available(BZ, new ParkTime(11))],
+      plans: [
+        {
+          type: 'LL',
+          subtype: 'MP',
+          id: 'ent-1',
+          facilityId: BZ,
+          name: 'Held',
+          start: new DateTime(TODAY, new ParkTime(19)),
+          end: new DateTime(TODAY, new ParkTime(20)),
+          modifiable: true,
+          guests: [],
+        } as unknown as Booking,
+      ],
+    });
+    await enable();
+    await waitFor(() =>
+      expect(loadBookingLog()[0]).toMatchObject({
+        status: 'dry-run',
+        detail: 'modify',
+      })
+    );
+  });
+
   // The whole point: the guards still gate what gets logged.
   it('still honors the whole-party guard while rehearsing', async () => {
     saveSettings({ requireWholeParty: true, dryRun: true });

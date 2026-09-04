@@ -244,7 +244,7 @@ export default function Autopilot() {
                   </Button>
                   <span className="flex-1 font-semibold">{exp.name}</span>
                 </div>
-                {/* Toggles on their own row: three controls plus a long
+                {/* Toggles on their own row: five controls plus a long
                     attraction name do not fit one phone-width line. */}
                 <div className="mt-1 ml-11 flex flex-wrap gap-2">
                   <Button
