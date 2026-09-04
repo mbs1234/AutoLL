@@ -388,7 +388,16 @@ export const experiences: ResortData['experiences'] = {
     priority: 2.1,
     avgWait: 40,
     highlight: true,
-    dropTimes: ['09:47', '11:47', '13:47', '15:47', '17:47', '19:47', '21:47'],
+    dropTimes: [
+      '09:47',
+      '11:47',
+      '13:47',
+      '14:17',
+      '15:47',
+      '17:47',
+      '19:47',
+      '21:47',
+    ],
   },
   80010222: {
     name: 'Tomorrowland Speedway',
@@ -1195,7 +1204,7 @@ export const experiences: ResortData['experiences'] = {
     priority: 3.0,
     avgWait: 28,
     highlight: true,
-    dropTimes: ['08:47', '12:47'],
+    dropTimes: ['08:47', '12:47', '15:47'],
   },
   80010175: {
     name: 'Gorilla Falls Exploration Trail',
