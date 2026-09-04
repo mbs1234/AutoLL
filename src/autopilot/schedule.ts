@@ -121,6 +121,32 @@ export function cadence({
 }
 
 /**
+ * Consecutive failures after which the poller stops rather than retrying.
+ *
+ * A stuck poller is worse than a stopped one: `ApiClient.request()` clears the
+ * auth store on a 401, so a loop that keeps firing against expired
+ * credentials generates noise and gets nowhere. Stopping surfaces the problem
+ * instead of hiding it behind an endless retry.
+ */
+export const MAX_CONSECUTIVE_FAILURES = 8;
+export const BACKOFF_BASE_MS = 2000;
+export const BACKOFF_CAP_MS = 60_000;
+
+/**
+ * Delay before the next attempt after `consecutiveFailures` failures.
+ *
+ * Doubles from 2s, capped at 60s. The cap matters: without one, backoff after
+ * a handful of failures would exceed the length of a drop window entirely.
+ */
+export function backoffMs(consecutiveFailures: number): number {
+  if (consecutiveFailures <= 0) return 0;
+  return Math.min(
+    BACKOFF_CAP_MS,
+    BACKOFF_BASE_MS * 2 ** (consecutiveFailures - 1)
+  );
+}
+
+/**
  * Spread an interval by +/-20% so the request pattern has no fixed period.
  *
  * `rand` is injectable purely so tests can be deterministic.

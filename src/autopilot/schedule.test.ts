@@ -2,9 +2,12 @@ import { ParkTime } from '@/datetime';
 
 import {
   APPROACH_INTERVAL_MS,
+  BACKOFF_BASE_MS,
+  BACKOFF_CAP_MS,
   BURST_INTERVAL_MS,
   IDLE_INTERVAL_MS,
   MIN_INTERVAL_MS,
+  backoffMs,
   cadence,
   secondsUntil,
   withJitter,
@@ -112,6 +115,32 @@ describe('cadence()', () => {
       dropTimes: [at(9, 47), at(11, 47), at(13, 47)],
     });
     expect(c.mode).toBe('idle');
+  });
+});
+
+describe('backoffMs()', () => {
+  it('is zero when nothing has failed', () => {
+    expect(backoffMs(0)).toBe(0);
+    expect(backoffMs(-1)).toBe(0);
+  });
+
+  it('doubles from the base delay', () => {
+    expect(backoffMs(1)).toBe(BACKOFF_BASE_MS);
+    expect(backoffMs(2)).toBe(BACKOFF_BASE_MS * 2);
+    expect(backoffMs(3)).toBe(BACKOFF_BASE_MS * 4);
+  });
+
+  // Without a cap, a handful of failures would push the next attempt past the
+  // length of an entire drop window.
+  it('caps the delay', () => {
+    expect(backoffMs(20)).toBe(BACKOFF_CAP_MS);
+    expect(backoffMs(1000)).toBe(BACKOFF_CAP_MS);
+  });
+
+  it('never exceeds the cap at any failure count', () => {
+    for (let i = 0; i <= 50; ++i) {
+      expect(backoffMs(i)).toBeLessThanOrEqual(BACKOFF_CAP_MS);
+    }
   });
 });
 
