@@ -5,6 +5,7 @@ import { mk, wdw } from '@/__fixtures__/resort';
 import { Booking } from '@/api/itinerary';
 import { Experience, FlexExperience } from '@/api/ll';
 import { fireAlert, primeAudio } from '@/autopilot/alert';
+import { loadCoverage, loadDropEvents } from '@/autopilot/observe';
 import { loadBookingLog, saveSettings } from '@/autopilot/storage';
 import { saveWatchList } from '@/autopilot/watchlist';
 import AutopilotContext from '@/contexts/AutopilotContext';
@@ -855,5 +856,97 @@ describe('AutopilotProvider persistence and diagnostics', () => {
     // The Probe does not render skipCounts; check the effect on the log
     // instead -- skips must never reach it.
     expect(loadBookingLog()).toEqual([]);
+  });
+});
+
+describe('AutopilotProvider drop learning', () => {
+  function setupSequence(polls: Experience[][]) {
+    // Explicit return type: an inferred `async () => []` is Promise<never[]>,
+    // which rejects the real experiences queued below.
+    const pollExperiences = jest.fn(async (): Promise<Experience[]> => []);
+    for (const exps of polls) pollExperiences.mockResolvedValueOnce(exps);
+    // After the scripted polls, keep returning the last one.
+    pollExperiences.mockResolvedValue(polls[polls.length - 1] ?? []);
+    const pollPlans = jest.fn(async () => undefined);
+    render(
+      <BookingDateContext
+        value={{ bookingDate: TODAY, setBookingDate: () => {} }}
+      >
+        <ClientsContext value={{ ll: { nextBookTime: undefined } } as Clients}>
+          <ParkContext value={{ park: mk, setPark: () => {} }}>
+            <ExperiencesContext
+              value={{
+                experiences: [],
+                refreshExperiences: () => {},
+                pollExperiences,
+                loaderElem: null,
+              }}
+            >
+              <PlansContext
+                value={{
+                  plans: [],
+                  refreshPlans: () => {},
+                  pollPlans,
+                  loaderElem: null,
+                }}
+              >
+                <AutopilotProvider>
+                  <Probe />
+                </AutopilotProvider>
+              </PlansContext>
+            </ExperiencesContext>
+          </ParkContext>
+        </ClientsContext>
+      </BookingDateContext>
+    );
+    return { pollExperiences };
+  }
+
+  const unavailable = (id: string): Experience =>
+    ({
+      ...wdw.experience(id),
+      park: mk,
+      standby: { available: true, waitTime: 30 },
+      flex: { available: false },
+    }) as Experience;
+
+  it('records an attraction becoming available between polls', async () => {
+    const { pollExperiences } = setupSequence([
+      [unavailable(BZ)],
+      [available(BZ, new ParkTime(11))],
+    ]);
+    await enable();
+    await waitFor(() => expect(pollExperiences).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    await waitFor(() =>
+      expect(loadDropEvents().some(e => e.experienceId === BZ)).toBe(true)
+    );
+    expect(loadDropEvents()[0]).toMatchObject({
+      kind: 'appeared',
+      date: TODAY,
+    });
+  });
+
+  // The first poll of a run is a baseline; seeing something available on it
+  // is not a drop.
+  it('does not treat the first poll as a drop', async () => {
+    const { pollExperiences } = setupSequence([
+      [available(BZ, new ParkTime(11))],
+    ]);
+    await enable();
+    await waitFor(() => expect(pollExperiences).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(loadDropEvents()).toEqual([]);
+  });
+
+  it('records that the poller was watching', async () => {
+    const { pollExperiences } = setupSequence([[unavailable(BZ)]]);
+    await enable();
+    await waitFor(() => expect(pollExperiences).toHaveBeenCalled());
+    await waitFor(() => expect(Object.keys(loadCoverage())).toContain(TODAY));
   });
 });

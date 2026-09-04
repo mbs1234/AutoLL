@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 
 import { mk, wdw } from '@/__fixtures__/resort';
 import { Experience } from '@/api/ll';
@@ -82,6 +82,7 @@ function setup({
             requireWholeParty: false,
             setRequireWholeParty,
             skipCounts: {},
+            dropSummaries: [],
             bookingLog: [],
             bookedCount: 0,
             bookingsRemaining: 3,
@@ -481,5 +482,81 @@ describe('Autopilot screen party and diagnostics', () => {
     expect(
       screen.queryByText('Why nothing was booked')
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('Autopilot screen learned drops', () => {
+  it('hides the section with nothing learned', () => {
+    setup();
+    expect(screen.queryByText('Learned drop times')).not.toBeInTheDocument();
+  });
+
+  it('shows observed drops with how many days they were seen', () => {
+    setup({
+      dropSummaries: [
+        {
+          experienceId: BZ,
+          observed: [{ time: new ParkTime(9, 47), days: 3, count: 4 }],
+          scheduled: [],
+        },
+      ],
+    });
+    expect(screen.getByText('Learned drop times')).toBeVisible();
+    // Scope to the learned entry: the same attraction is also listed further
+    // down as watchable, so the bare name appears twice on the screen.
+    const entry = screen.getByText(/Seen:/).closest('li')!;
+    expect(within(entry).getByText(wdw.experience(BZ).name)).toBeVisible();
+    expect(within(entry).getByText(/3 days/)).toBeVisible();
+    expect(screen.getByText(/4 observations/)).toBeVisible();
+  });
+
+  // Absence is evidence only when the poller was watching.
+  it('flags a scheduled drop that was watched for but never seen', () => {
+    setup({
+      dropSummaries: [
+        {
+          experienceId: BZ,
+          observed: [],
+          scheduled: [
+            { time: new ParkTime(9, 47), observedDays: 2, coveredDays: 2 },
+            { time: new ParkTime(15, 47), observedDays: 0, coveredDays: 3 },
+            { time: new ParkTime(19, 47), observedDays: 0, coveredDays: 0 },
+          ],
+        },
+      ],
+    });
+    expect(screen.getByText(/seen 2 of 2 watched/)).toBeVisible();
+    const missing = screen.getByText(/seen 0 of 3 watched/);
+    expect(missing).toBeVisible();
+    expect(missing).toHaveClass('text-red-700');
+    expect(screen.getByText(/not watched yet/)).toBeVisible();
+  });
+
+  it('omits attractions with schedule entries that were never watched', () => {
+    setup({
+      dropSummaries: [
+        {
+          experienceId: BZ,
+          observed: [],
+          scheduled: [
+            { time: new ParkTime(9, 47), observedDays: 0, coveredDays: 0 },
+          ],
+        },
+      ],
+    });
+    expect(screen.queryByText('Learned drop times')).not.toBeInTheDocument();
+  });
+
+  it("falls back to the id for an attraction not on today's tipboard", () => {
+    setup({
+      dropSummaries: [
+        {
+          experienceId: 'elsewhere',
+          observed: [{ time: new ParkTime(13, 17), days: 1, count: 1 }],
+          scheduled: [],
+        },
+      ],
+    });
+    expect(screen.getByText('elsewhere')).toBeVisible();
   });
 });

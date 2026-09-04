@@ -2,6 +2,7 @@ import { createContext } from 'react';
 
 import { AlertPermission } from '@/autopilot/alert';
 import { DEFAULT_MAX_PER_SESSION } from '@/autopilot/autobook';
+import { DropSummary } from '@/autopilot/observe';
 import { PollerStatus } from '@/autopilot/usePoller';
 import { WatchTarget } from '@/autopilot/watchlist';
 import { ParkTime } from '@/datetime';
@@ -64,6 +65,12 @@ export interface AutopilotState {
    * nothing get booked?" gets answered.
    */
   skipCounts: Record<string, number>;
+  /**
+   * What the poller has learned about when drops really happen, per
+   * attraction, checked against the hardcoded schedule. Accumulates across
+   * visits; only meaningful while watching today's date.
+   */
+  dropSummaries: DropSummary[];
 }
 
 export default createContext<AutopilotState>({
@@ -86,4 +93,5 @@ export default createContext<AutopilotState>({
   requireWholeParty: false,
   setRequireWholeParty: () => undefined,
   skipCounts: {},
+  dropSummaries: [],
 });

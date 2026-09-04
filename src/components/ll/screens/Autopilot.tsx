@@ -98,6 +98,7 @@ export default function Autopilot() {
     requireWholeParty,
     setRequireWholeParty,
     skipCounts,
+    dropSummaries,
   } = use(AutopilotContext);
   const { experiences } = use(ExperiencesContext);
   const { park } = use(ParkContext);
@@ -109,6 +110,18 @@ export default function Autopilot() {
   const anyBookThenMove = targets.some(t => t.bookThenMove);
   const pausedCount = targets.filter(t => t.paused).length;
   const anyAutoSwap = targets.some(t => t.autoSwap);
+
+  const nameOf = (experienceId: string) =>
+    experiences.find(e => e.id === experienceId)?.name ?? experienceId;
+  // Only attractions with something to say: an observation, or a scheduled
+  // time the poller has actually watched for at least once.
+  const learned = dropSummaries.filter(
+    d => d.observed.length > 0 || d.scheduled.some(c => c.coveredDays > 0)
+  );
+  const observationCount = dropSummaries.reduce(
+    (n, d) => n + d.observed.reduce((m, o) => m + o.count, 0),
+    0
+  );
 
   // Only Multi Pass attractions can be watched: matching reads the `flex`
   // field, and bg1 has no Single Pass booking flow, so offering Single Pass
@@ -345,6 +358,61 @@ export default function Autopilot() {
           request, so the old reservation is only released if the new one is
           secured. With a slot free it simply books instead.
         </p>
+      )}
+
+      {learned.length > 0 && (
+        <>
+          <h3>Learned drop times</h3>
+          <p className="text-xs text-gray-600">
+            Autopilot records when availability actually appears while it runs,
+            and compares that with the built-in drop schedule. Absence is only
+            reported for times it was actually watching. {observationCount}{' '}
+            observation{observationCount === 1 ? '' : 's'} so far.
+          </p>
+          <ul className="text-sm">
+            {learned.map(d => (
+              <li key={d.experienceId} className="py-1">
+                <div className="font-semibold">{nameOf(d.experienceId)}</div>
+                {d.observed.length > 0 && (
+                  <div>
+                    Seen:{' '}
+                    {d.observed.map((o, i) => (
+                      <span key={String(o.time)}>
+                        {i > 0 && ', '}
+                        <Time time={o.time} />{' '}
+                        <span className="text-gray-500">
+                          ({o.days} day{o.days === 1 ? '' : 's'})
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {d.scheduled.length > 0 && (
+                  <div>
+                    Scheduled:{' '}
+                    {d.scheduled.map((c, i) => (
+                      <span key={String(c.time)}>
+                        {i > 0 && ', '}
+                        <Time time={c.time} />{' '}
+                        <span
+                          className={
+                            c.coveredDays > 0 && c.observedDays === 0
+                              ? 'text-red-700'
+                              : 'text-gray-500'
+                          }
+                        >
+                          {c.coveredDays === 0
+                            ? '(not watched yet)'
+                            : `(seen ${c.observedDays} of ${c.coveredDays} watched)`}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       {Object.keys(skipCounts).length > 0 && (

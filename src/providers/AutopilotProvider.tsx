@@ -24,6 +24,19 @@ import {
   attemptAutoSwap,
   heldMPToday,
 } from '@/autopilot/autoswap';
+import {
+  Coverage,
+  DropSummary,
+  Snapshot,
+  appendDropEvents,
+  detectDropEvents,
+  loadCoverage,
+  loadDropEvents,
+  recordCoverage,
+  saveCoverage,
+  snapshotOf,
+  summarizeDrops,
+} from '@/autopilot/observe';
 import { wholePartyEligible } from '@/autopilot/party';
 import { GuestCache, prewarmGuests } from '@/autopilot/prewarm';
 import { orderByPriority, shouldHoldTierSlot } from '@/autopilot/priority';
@@ -111,6 +124,15 @@ export default function AutopilotProvider({
 
   const cacheRef = useRef(new GuestCache());
   const ledgerRef = useRef(new AutoBookLedger());
+
+  // Drop learning: the previous tipboard state, plus what the poller has seen
+  // and when it was looking. Events and coverage accumulate across visits.
+  const snapshotRef = useRef<Snapshot>(new Map());
+  const coverageRef = useRef<Coverage>(loadCoverage());
+  const [dropSummaries, setDropSummaries] = useState<DropSummary[]>(() => {
+    // Whatever was learned on earlier visits, before today's first poll.
+    return summarizeDrops(loadDropEvents(), coverageRef.current, new Map());
+  });
   const [bookedCount, setBookedCount] = useState(0);
 
   // Block body on purpose: an expression body would return saveWatchList's
@@ -183,6 +205,38 @@ export default function AutopilotProvider({
   const onTick = useCallback(async () => {
     // Let this reject: the poller needs the failure to drive backoff.
     const experiences = await pollExperiences();
+
+    // Learn from what just came back. Only on the current park day: a future
+    // date's tipboard changes with cancellations, which are not drops, and its
+    // times would be filed under the wrong day.
+    if (bookingDateRef.current === parkDate()) {
+      const observedAt = syncedParkTime();
+      const obsDate = bookingDateRef.current;
+      const next = snapshotOf(experiences);
+      const events = detectDropEvents(
+        snapshotRef.current,
+        next,
+        observedAt,
+        obsDate
+      );
+      snapshotRef.current = next;
+      const cov = recordCoverage(coverageRef.current, obsDate, observedAt);
+      if (cov.changed) {
+        coverageRef.current = cov.coverage;
+        saveCoverage(cov.coverage);
+      }
+      // Recompute only when something is new -- a drop, or a first look at a
+      // 5-minute window -- never on the ordinary tick.
+      if (events.length > 0 || cov.changed) {
+        const all = appendDropEvents(events);
+        const schedule = new Map(
+          experiences
+            .filter(exp => exp.dropTimes && exp.dropTimes.length > 0)
+            .map(exp => [exp.id, exp.dropTimes!])
+        );
+        setDropSummaries(summarizeDrops(all, coverageRef.current, schedule));
+      }
+    }
 
     if (tickCountRef.current++ % PLANS_EVERY_N_TICKS === 0) {
       try {
@@ -452,6 +506,9 @@ export default function AutopilotProvider({
       cacheRef.current.clear();
       setBookedCount(0);
       setSkipCounts({});
+      // Fresh baseline: the first poll of a run sees everything as "new", and
+      // that must read as a baseline rather than a drop.
+      snapshotRef.current = new Map();
     }
     setEnabledState(on);
   }, []);
@@ -528,6 +585,7 @@ export default function AutopilotProvider({
         setRequireWholeParty: on =>
           setSettings(prev => ({ ...prev, requireWholeParty: on })),
         skipCounts,
+        dropSummaries,
       }}
     >
       {children}
