@@ -1,6 +1,6 @@
 # BG1 — personal fork
 
-A personal fork of **[joelface/bg1](https://github.com/joelface/bg1)** by Joel Face, the original author of everything this is built on. All of the Lightning Lane, virtual queue, DAS and itinerary work is his; this fork adds an availability watcher on top and fixes a few things needed to build and run it independently. Licensed **GPL-3.0-only**, same as upstream.
+A personal fork of **[joelface/bg1](https://github.com/joelface/bg1)** by Joel Face, the original author of everything this is built on. All of the Lightning Lane, virtual queue, DAS and itinerary work is his; this fork adds an availability watcher, optional automatic booking, and fixes for a few things needed to build and run it independently. Licensed **GPL-3.0-only**, same as upstream.
 
 Deployed at **<https://mbs1234.github.io/bg1/>**.
 
@@ -46,6 +46,39 @@ Autopilot also uses the **drift-corrected clock** that upstream computes in `src
 - **Off after a reload,** by design: a watcher resuming with no user gesture behind it cannot unlock audio, and silently issuing requests on page load is a surprising default. Your watch list persists; the on/off state does not.
 - **On iOS,** notifications require adding the page to your Home Screen. Without that you still get the chime.
 - Alerts are edge-triggered per attraction: one alert when it becomes available, then silence until it goes away and comes back.
+
+### Automatic booking
+
+Autopilot can book for you instead of only telling you. It is **opt-in per attraction and off by default**, because alerting is cheap to get wrong and booking is not.
+
+**How to use it**
+
+1. Add an attraction to your watch list as above.
+2. On the Autopilot screen, tap **Auto-book off** next to it — it flips to **Auto-book on**.
+3. Set a time window for that attraction if you care when the return time is. With no window, any offered time is acceptable.
+4. Turn autopilot on. When the attraction appears, it books without asking and notifies you with the return time it got.
+
+The screen shows a **Booking activity** log of what was booked and anything that failed.
+
+**The guard that matters.** Matching runs against the return time the tipboard advertises, but the offer that actually comes back can carry a *later* time — inventory moves between the two requests, and Disney sometimes places a third Lightning Lane between two you already hold. So the real return time is re-checked against your window before booking, and an offer outside it is abandoned rather than booked. A Lightning Lane is not free to undo, so handing you a time you explicitly excluded would be the worst outcome. An abandoned offer stays retryable — the next check is about a second away.
+
+**Other safety limits**
+
+- **Three bookings per session**, so a bug in matching cannot burn a whole day of Lightning Lanes. The count resets only on reload.
+- **One attempt per attraction.** The attempt is recorded *before* the request goes out: a booking request that times out may still have succeeded server-side, so retrying risks double-booking.
+- **A fresh allowance and empty cache every time you turn autopilot on**, so a stale eligibility result cannot drive a booking.
+- **Arming persists, running does not.** Your auto-book choices are saved, but autopilot itself is always off after a reload — nothing can book until you deliberately turn it on again.
+
+### Faster booking
+
+Booking a new Lightning Lane costs three sequential requests: guest eligibility, then offer generation, then the booking itself. Eligibility is the only one that does not change second to second, so Autopilot fetches it in advance for armed attractions and caches it — removing a third of the round trips from the moment a drop lands, which is exactly when seconds decide whether you get an 11am return time or a 7pm one.
+
+The cache invalidates aggressively, because a wrong answer here is expensive:
+
+- It expires as soon as an ineligible guest's eligibility time passes. Reusing it past that point would silently book for part of your party and leave the rest out.
+- It clears entirely after any booking, since party, tier and overlap limits shift eligibility for *every* attraction at once, not just the one that changed.
+
+Prewarm requests go out one at a time rather than in parallel — a fan-out across several attractions is exactly the burst that trips the shared rate limiter.
 
 ### Fixes and corrections
 
