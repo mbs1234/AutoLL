@@ -128,6 +128,8 @@ Crucially, Autopilot also records **when it was watching**. A scheduled drop sho
 
 The **Learned drop times** section on the Autopilot screen shows this per attraction, counting distinct park days rather than raw events so one busy day cannot masquerade as a pattern. Attractions that drop on no written schedule are reported too. Evidence accumulates across visits and is kept for 30 days.
 
+**And it acts on what it learns.** A drop seen on **two or more distinct days** at the same minute is added to the times Autopilot speeds up for — marked *"used for timing"* on the screen — so a drop the built-in table lacks gets burst for once it has been seen twice, and the schedule genuinely self-corrects rather than only reporting. One day is an anecdote; two is a pattern. A learned time within two minutes of a scheduled one is treated as the same drop, so nothing is polled twice. Only attractions in the park you are watching contribute.
+
 ### Faster booking
 
 Booking a new Lightning Lane costs three sequential requests: guest eligibility, then offer generation, then the booking itself. Eligibility is the only one that does not change second to second, so Autopilot fetches it in advance for armed attractions and caches it — removing a third of the round trips from the moment a drop lands, which is exactly when seconds decide whether you get an 11am return time or a 7pm one.
