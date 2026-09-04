@@ -82,6 +82,7 @@ describe('MultiPassList', () => {
               plans: [booking],
               plansLoaded: true,
               refreshPlans: () => {},
+              pollPlans: async () => {},
               loaderElem: null,
             }}
           >

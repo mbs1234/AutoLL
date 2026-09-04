@@ -24,7 +24,14 @@ jest.spyOn(das, 'book').mockResolvedValue(booking);
 
 function renderComponent() {
   renderResort(
-    <PlansContext value={{ plans: [], refreshPlans, loaderElem: null }}>
+    <PlansContext
+      value={{
+        plans: [],
+        refreshPlans,
+        pollPlans: async () => {},
+        loaderElem: null,
+      }}
+    >
       <nav.Provider>
         <DasSelection park={mk} party={party} />
       </nav.Provider>

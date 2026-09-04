@@ -16,19 +16,34 @@ export default function PlansProvider({
   const [plans, setPlans] = useState<Booking[]>([]);
   const [plansLoaded, setPlansLoaded] = useState(false);
 
+  /**
+   * The actual fetch, awaitable and free of UI side effects. Rejects on
+   * failure so background callers can back off; `refreshPlans` wraps it in
+   * `loadData` for the visible path.
+   */
+  const fetchPlans = useCallback(async () => {
+    setPlans(await itinerary.plans());
+    setPlansLoaded(true);
+  }, [itinerary]);
+
   const refreshPlans = useThrottleable(
     useCallback(() => {
-      loadData(async () => {
-        setPlans(await itinerary.plans());
-        setPlansLoaded(true);
-      });
-    }, [itinerary, loadData])
+      loadData(fetchPlans);
+    }, [fetchPlans, loadData])
   );
 
   useEffect(refreshPlans, [refreshPlans]);
 
   return (
-    <PlansContext value={{ plans, plansLoaded, refreshPlans, loaderElem }}>
+    <PlansContext
+      value={{
+        plans,
+        plansLoaded,
+        refreshPlans,
+        pollPlans: fetchPlans,
+        loaderElem,
+      }}
+    >
       {children}
     </PlansContext>
   );

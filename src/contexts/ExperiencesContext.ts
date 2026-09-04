@@ -7,11 +7,26 @@ import useThrottleable from '@/hooks/useThrottleable';
 interface ExperiencesState {
   experiences: Experience[];
   refreshExperiences: ReturnType<typeof useThrottleable>;
+  /**
+   * Silent, awaitable refresh, for background polling.
+   *
+   * `refreshExperiences` cannot be driven by a scheduler: it returns
+   * `undefined` rather than a promise, so polls cannot be sequenced or
+   * prevented from overlapping; it swallows every error into a transient
+   * toast, so failure is undetectable and backoff impossible; and it renders a
+   * spinner on every call, which is wrong for silent polling.
+   *
+   * This resolves once the data has landed and rejects if the Lightning Lane
+   * request fails. Live show times are still treated as supplementary -- a
+   * `shows` failure is logged and ignored rather than failing the poll.
+   */
+  pollExperiences: () => Promise<void>;
   loaderElem: ReturnType<typeof useDataLoader>['loaderElem'];
 }
 
 export default createContext<ExperiencesState>({
   experiences: [],
   refreshExperiences: () => undefined,
+  pollExperiences: () => Promise.resolve(),
   loaderElem: null,
 });

@@ -90,7 +90,12 @@ function renderComponent({
     <ParkContext value={{ park: mk, setPark: () => null }}>
       <DasPartiesContext value={dasParties}>
         <ExperiencesContext
-          value={{ experiences, refreshExperiences, loaderElem: null }}
+          value={{
+            experiences,
+            refreshExperiences,
+            pollExperiences: async () => {},
+            loaderElem: null,
+          }}
         >
           <NavProvider>
             <TimesGuide ref={{ current: null }} />

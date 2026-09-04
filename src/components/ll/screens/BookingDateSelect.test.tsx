@@ -13,7 +13,12 @@ function BookingDateSelectTest() {
 
   return (
     <PlansContext
-      value={{ plans: bookings, refreshPlans: () => {}, loaderElem: null }}
+      value={{
+        plans: bookings,
+        refreshPlans: () => {},
+        pollPlans: async () => {},
+        loaderElem: null,
+      }}
     >
       <ParkContext value={{ park, setPark }}>
         <BookingDateProvider>

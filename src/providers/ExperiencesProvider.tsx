@@ -19,23 +19,32 @@ export default function ExperiencesProvider({
   const { loadData, loaderElem } = useDataLoader();
   const [experiences, setExperiences] = useState<Experience[]>([]);
 
+  /**
+   * The actual fetch, awaitable and free of UI side effects. Rejects if the
+   * Lightning Lane request fails, so background callers can back off;
+   * `refreshExperiences` wraps it in `loadData` for the visible path.
+   */
+  const fetchExperiences = useCallback(async () => {
+    // Live show times are supplementary, so a `shows` failure must not fail
+    // the whole refresh. Attaching the handler at the call site, rather than
+    // awaiting inside a try block further down, also avoids an unhandled
+    // rejection when `ll.experiences()` rejects first and nothing ever awaits
+    // this promise.
+    const showsPromise = liveData.shows(park).catch(error => {
+      console.error(error);
+      return {} as { [id: string]: Experience };
+    });
+    const exps = Object.fromEntries(
+      (await ll.experiences(park, bookingDate)).map(exp => [exp.id, exp])
+    );
+    // Lightning Lane data wins over live show data on key collisions.
+    setExperiences(Object.values({ ...(await showsPromise), ...exps }));
+  }, [park, bookingDate, ll, liveData]);
+
   const refreshExperiences = useThrottleable(
     useCallback(() => {
-      loadData(async () => {
-        const showsPromise = liveData.shows(park);
-        let exps = {
-          ...Object.fromEntries(
-            (await ll.experiences(park, bookingDate)).map(exp => [exp.id, exp])
-          ),
-        };
-        try {
-          exps = { ...(await showsPromise), ...exps };
-        } catch (error) {
-          console.error(error);
-        }
-        setExperiences(Object.values(exps));
-      });
-    }, [park, bookingDate, ll, liveData, loadData])
+      loadData(fetchExperiences);
+    }, [fetchExperiences, loadData])
   );
 
   useLayoutEffect(() => setExperiences([]), [park, bookingDate]);
@@ -43,7 +52,14 @@ export default function ExperiencesProvider({
   useEffect(refreshExperiences, [refreshExperiences]);
 
   return (
-    <ExperiencesContext value={{ experiences, refreshExperiences, loaderElem }}>
+    <ExperiencesContext
+      value={{
+        experiences,
+        refreshExperiences,
+        pollExperiences: fetchExperiences,
+        loaderElem,
+      }}
+    >
       {children}
     </ExperiencesContext>
   );

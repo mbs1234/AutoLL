@@ -12,7 +12,14 @@ const { Provider: NavProvider, goTo } = nav;
 
 function renderComponent(plans: Booking[]) {
   render(
-    <PlansContext value={{ plans, refreshPlans, loaderElem: null }}>
+    <PlansContext
+      value={{
+        plans,
+        refreshPlans,
+        pollPlans: async () => {},
+        loaderElem: null,
+      }}
+    >
       <NavProvider>
         <Plans />
       </NavProvider>
