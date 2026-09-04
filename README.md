@@ -110,6 +110,14 @@ This is the safe form of "don't be afraid to cancel." The swap is a **single req
 
 Auto-move works on future dates too. Select a later date in the LL tab's date picker, watch the attractions you pre-booked, and turn on **Auto-move**; Autopilot will improve those return times as cancellations open up. Drop times are a day-of phenomenon, so on a future date it polls at its slow steady rate rather than bursting. Reservations are matched to the specific park day being watched, so watching today never touches tomorrow's selections.
 
+### Whole-party guard, activity log, and diagnostics
+
+**Whole party only.** By default Autopilot books for whoever is eligible — the way booking by hand in bg1 or Disney's app does. If two of your five are eligible, you get a Lightning Lane for two. Turn on **Whole party only** on the Autopilot screen and it will not book, move, or swap unless *everyone in your saved party* is eligible; a Lightning Lane for part of the group is often worse than none. Guests outside your saved party never count against this. The setting is remembered.
+
+**Activity log.** What Autopilot booked, moved, swapped, or failed at is listed on the screen and now **survives a reload for the rest of the park day.** (Autopilot itself is still off after a reload — only the record persists.)
+
+**Why nothing was booked.** Attempts that were skipped are deliberately kept out of the log — during a drop they happen every second and would bury the real entries. Instead they are counted, and the screen shows a ranked list such as *"7× not everyone in the party was eligible"* or *"3× the offered time was outside the window"*, so a quiet day is explainable rather than mysterious. The counts reset each time you turn Autopilot on.
+
 ### Faster booking
 
 Booking a new Lightning Lane costs three sequential requests: guest eligibility, then offer generation, then the booking itself. Eligibility is the only one that does not change second to second, so Autopilot fetches it in advance for armed attractions and caches it — removing a third of the round trips from the moment a drop lands, which is exactly when seconds decide whether you get an 11am return time or a 7pm one.
