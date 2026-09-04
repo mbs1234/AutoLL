@@ -118,6 +118,16 @@ Auto-move works on future dates too. Select a later date in the LL tab's date pi
 
 **Why nothing was booked.** Attempts that were skipped are deliberately kept out of the log — during a drop they happen every second and would bury the real entries. Instead they are counted, and the screen shows a ranked list such as *"7× not everyone in the party was eligible"* or *"3× the offered time was outside the window"*, so a quiet day is explainable rather than mysterious. The counts reset each time you turn Autopilot on.
 
+### Learned drop times
+
+The built-in drop schedule comes from third-party reports, and the best of those sources bucket their observations to five minutes — which is why one site publishes `:45` for drops this fork places at `:47`. Autopilot is already watching the tipboard at up to one-second resolution whenever it runs, so it now **records when availability actually appears** and compares that with the schedule.
+
+Two things count as a drop: an attraction going from unavailable to available, or its earliest offered return time jumping at least 15 minutes *earlier* (which is what a release of new inventory does even to an attraction that was already available). Observations within two minutes of each other are treated as one drop, labelled by the earliest minute — the poller lands at or just after a release, never before.
+
+Crucially, Autopilot also records **when it was watching**. A scheduled drop shows as *"seen 2 of 2 watched days"*, or in red as *"seen 0 of 3 watched days"* — real evidence that the schedule is wrong for that attraction — or *"not watched yet"*, which says nothing at all. Absence is never reported as evidence unless the poller was actually running at that time.
+
+The **Learned drop times** section on the Autopilot screen shows this per attraction, counting distinct park days rather than raw events so one busy day cannot masquerade as a pattern. Attractions that drop on no written schedule are reported too. Evidence accumulates across visits and is kept for 30 days.
+
 ### Faster booking
 
 Booking a new Lightning Lane costs three sequential requests: guest eligibility, then offer generation, then the booking itself. Eligibility is the only one that does not change second to second, so Autopilot fetches it in advance for armed attractions and caches it — removing a third of the round trips from the moment a drop lands, which is exactly when seconds decide whether you get an 11am return time or a 7pm one.
