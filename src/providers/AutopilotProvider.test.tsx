@@ -29,12 +29,17 @@ jest.useFakeTimers();
 const BZ = '80010114';
 const DB = '80010129';
 
-function available(id: string, time: ParkTime): FlexExperience {
+function available(
+  id: string,
+  time: ParkTime,
+  overrides: Partial<FlexExperience> = {}
+): FlexExperience {
   return {
     ...wdw.experience(id),
     park: mk,
     standby: { available: true, waitTime: 30 },
     flex: { available: true, nextAvailableTime: time },
+    ...overrides,
   } as FlexExperience;
 }
 
@@ -237,7 +242,13 @@ describe('AutopilotProvider auto-booking', () => {
     experiences = [available(BZ, new ParkTime(11))],
   } = {}) {
     const guests = jest.fn(async () => party);
-    const offer = jest.fn(async () => offerAt(offerHour));
+    // Records which attraction was offered, in order -- clearer than indexing
+    // into mock.calls, and it keeps the parameter typed and used.
+    const offeredIds: string[] = [];
+    const offer = jest.fn(async (experience: { id: string }) => {
+      offeredIds.push(experience.id);
+      return offerAt(offerHour);
+    });
     const book = jest.fn(async () => ({ id: 'ent-1' }));
     const pollPlans = jest.fn(async () => undefined);
     render(
@@ -275,7 +286,7 @@ describe('AutopilotProvider auto-booking', () => {
         </ParkContext>
       </ClientsContext>
     );
-    return { guests, offer, book, pollPlans };
+    return { guests, offer, book, pollPlans, offeredIds };
   }
 
   it('books a watched attraction that is armed', async () => {
@@ -348,5 +359,76 @@ describe('AutopilotProvider auto-booking', () => {
       await jest.advanceTimersByTimeAsync(60_000);
     });
     expect(guests).not.toHaveBeenCalled();
+  });
+
+  // The first booking constrains what the next can be, so when two armed
+  // attractions drop in the same tick the order must not come down to
+  // whatever the tipboard happened to list first.
+  it('books the higher-priority attraction first', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true },
+      { experienceId: DB, autoBook: true },
+    ]);
+    const { offer, offeredIds } = setupBooking({
+      experiences: [
+        // Listed worse-first on purpose.
+        available(BZ, new ParkTime(11), { priority: 3.1 }),
+        available(DB, new ParkTime(11), { priority: 1.0 }),
+      ],
+    });
+    await enable();
+    await waitFor(() => expect(offer).toHaveBeenCalled());
+    expect(offeredIds[0]).toBe(DB);
+  });
+
+  // Booking the lesser Tier 1 can consume the party's only Tier 1 selection.
+  it('holds the Tier 1 slot for a better armed attraction', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true },
+      { experienceId: DB, autoBook: true },
+    ]);
+    const { offer } = setupBooking({
+      experiences: [
+        // Available now, but the lesser of the two.
+        available(BZ, new ParkTime(11), { tier: 1, priority: 2.3 }),
+        // Better, Tier 1, still has a drop ahead -- and not yet available.
+        {
+          ...available(DB, new ParkTime(11)),
+          tier: 1,
+          priority: 1.0,
+          flex: { available: false },
+          dropTimes: [new ParkTime(23, 59)],
+        } as FlexExperience,
+      ],
+    });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(offer).not.toHaveBeenCalled();
+  });
+
+  // Self-releasing, so a held slot cannot deadlock for the rest of the day.
+  it('releases the Tier 1 hold once the better drop has passed', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true },
+      { experienceId: DB, autoBook: true },
+    ]);
+    const { offer, offeredIds } = setupBooking({
+      experiences: [
+        available(BZ, new ParkTime(11), { tier: 1, priority: 2.3 }),
+        {
+          ...available(DB, new ParkTime(11)),
+          tier: 1,
+          priority: 1.0,
+          flex: { available: false },
+          // Already behind us, so there is no longer a reason to wait.
+          dropTimes: [new ParkTime(4, 1)],
+        } as FlexExperience,
+      ],
+    });
+    await enable();
+    await waitFor(() => expect(offer).toHaveBeenCalled());
+    expect(offeredIds[0]).toBe(BZ);
   });
 });

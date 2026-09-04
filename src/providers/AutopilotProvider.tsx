@@ -14,6 +14,7 @@ import {
   attemptAutoBook,
 } from '@/autopilot/autobook';
 import { GuestCache, prewarmGuests } from '@/autopilot/prewarm';
+import { orderByPriority, shouldHoldTierSlot } from '@/autopilot/priority';
 import { syncedParkTime } from '@/autopilot/schedule';
 import usePoller from '@/autopilot/usePoller';
 import {
@@ -161,12 +162,30 @@ export default function AutopilotProvider({
       });
     }
 
+    // Every armed target paired with its current tipboard entry, for the tier
+    // decision below -- which has to reason about attractions that have *not*
+    // become available yet, so it cannot work from `hits` alone.
+    const expsById = new Map(experiences.map(exp => [exp.id, exp]));
+    const armed = targetsRef.current.flatMap(target => {
+      if (!target.autoBook) return [];
+      const experience = expsById.get(target.experienceId);
+      return experience ? [{ target, experience }] : [];
+    });
+    const nowTime = syncedParkTime();
+
     // Booking comes before prewarming: when a drop lands, the good return
     // times are gone within a minute, so nothing may sit ahead of it.
-    for (const hit of hits) {
+    //
+    // Ordered by priority rather than tipboard order. The first booking
+    // constrains what the next can be, so when two attractions drop in the
+    // same tick the order is the decision, not an implementation detail.
+    for (const hit of orderByPriority(hits)) {
       if (!hit.target.autoBook) continue;
       if (ledgerRef.current.hasAttempted(hit.experience.id)) continue;
       if (ledgerRef.current.remaining <= 0) break;
+      // Pass on a Tier 1 offer while a better armed Tier 1 could still show
+      // up, since booking this one may consume the party's only Tier 1 slot.
+      if (shouldHoldTierSlot(hit, armed, nowTime)) continue;
 
       let outcome: AutoBookOutcome;
       try {
