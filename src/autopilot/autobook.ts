@@ -27,7 +27,7 @@ export type AutoBookOutcome =
   | { status: 'failed'; error: string };
 
 /** The two things autopilot can do to a reservation slot. */
-export type ActionKind = 'book' | 'modify';
+export type ActionKind = 'book' | 'modify' | 'swap';
 
 /**
  * Per-session record of what the booker has done.
@@ -86,8 +86,8 @@ export function shouldAttempt(
   target: WatchTarget,
   ledger: Pick<AutoBookLedger, 'hasAttempted' | 'remaining'>
 ): { ok: true } | { ok: false; reason: SkipReason } {
-  // bookThenMove implies booking.
-  if (!target.autoBook && !target.bookThenMove) {
+  // bookThenMove and autoSwap both imply booking when a slot is free.
+  if (!target.autoBook && !target.bookThenMove && !target.autoSwap) {
     return { ok: false, reason: 'not-enabled' };
   }
   if (ledger.hasAttempted(target.experienceId)) {

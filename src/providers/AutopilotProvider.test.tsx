@@ -699,3 +699,91 @@ describe('AutopilotProvider pause', () => {
     expect(offeredIds[0]).toBe(BZ);
   });
 });
+
+describe('AutopilotProvider swap', () => {
+  /** A held, ranked Multi Pass reservation on TODAY for some other ride. */
+  function heldRanked(id: string, priority: number, tier?: number): Booking {
+    return {
+      type: 'LL',
+      subtype: 'MP',
+      id: `ent-${id}`,
+      facilityId: id,
+      name: `Ride ${id}`,
+      experience: { id, name: `Ride ${id}`, priority, tier },
+      start: new DateTime(TODAY, new ParkTime(15)),
+      end: new DateTime(TODAY, new ParkTime(16)),
+      modifiable: true,
+      guests: [],
+    } as unknown as Booking;
+  }
+  const fullOfWorse = () => [
+    heldRanked('w1', 4.1),
+    heldRanked('w2', 3.0),
+    heldRanked('w3', 2.0),
+  ];
+
+  // Wait Magic's Attraction Swap: when every slot is taken, the worst held
+  // reservation is given up for the incoming one -- in a single request, so
+  // the old one is released only if the new one is secured.
+  it('swaps out the worst reservation when the party is full', async () => {
+    saveWatchList([{ experienceId: BZ, autoSwap: true }]);
+    const { book, offerOptions } = setupBooking({
+      offerHour: 11,
+      experiences: [available(BZ, new ParkTime(11), { priority: 1.0 })],
+      plans: fullOfWorse(),
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    expect(offerOptions[0]).toHaveProperty('booking');
+    expect(
+      (offerOptions[0]!.booking as { facilityId: string }).facilityId
+    ).toBe('w1');
+  });
+
+  // With a slot free, a fresh booking keeps both attractions.
+  it('books normally instead of swapping when a slot is free', async () => {
+    saveWatchList([{ experienceId: BZ, autoSwap: true }]);
+    const { book, offerOptions } = setupBooking({
+      offerHour: 11,
+      experiences: [available(BZ, new ParkTime(11), { priority: 1.0 })],
+      plans: fullOfWorse().slice(0, 2),
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    expect(offerOptions[0]).toHaveProperty('date');
+    expect(offerOptions[0]).not.toHaveProperty('booking');
+  });
+
+  it('does not swap when nothing held is worse', async () => {
+    saveWatchList([{ experienceId: BZ, autoSwap: true }]);
+    const { book, offer } = setupBooking({
+      offerHour: 11,
+      experiences: [available(BZ, new ParkTime(11), { priority: 3.5 })],
+      plans: [
+        heldRanked('b1', 1.0),
+        heldRanked('b2', 1.5),
+        heldRanked('b3', 2.0),
+      ],
+    });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  it('does not swap when the flag is off, even when full', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { offerOptions, book } = setupBooking({
+      offerHour: 11,
+      experiences: [available(BZ, new ParkTime(11), { priority: 1.0 })],
+      plans: fullOfWorse(),
+    });
+    await enable();
+    // Plain auto-book still tries a fresh booking (Disney would reject it);
+    // the point is that it never reaches for someone else's reservation.
+    await waitFor(() => expect(book).toHaveBeenCalled());
+    expect(offerOptions[0]).not.toHaveProperty('booking');
+  });
+});

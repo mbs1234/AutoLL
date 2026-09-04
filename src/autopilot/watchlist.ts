@@ -46,6 +46,16 @@ export interface WatchTarget {
    * is a statement that it should not be booked right now.
    */
   paused?: boolean;
+  /**
+   * When the party is full, give up its worst-ranked reservation for this one.
+   *
+   * Wait Magic's "Attraction Swap", and the safe form of its "don't be afraid
+   * to cancel" advice: the swap is a single atomic request on Disney's side,
+   * so the old reservation is released only if the new one is secured. Applies
+   * only when all slots are held -- with one free, a plain booking keeps both.
+   * Implies booking when a slot is free.
+   */
+  autoSwap?: boolean;
 }
 
 export interface WatchHit {
@@ -143,6 +153,7 @@ interface StoredTarget {
   autoModify?: boolean;
   bookThenMove?: boolean;
   paused?: boolean;
+  autoSwap?: boolean;
 }
 
 /** `ParkTime.from` throws on garbage; treat an unparseable bound as absent. */
@@ -185,6 +196,7 @@ export function loadWatchList(): WatchTarget[] {
         ...(t.autoModify === true ? { autoModify: true } : {}),
         ...(t.bookThenMove === true ? { bookThenMove: true } : {}),
         ...(t.paused === true ? { paused: true } : {}),
+        ...(t.autoSwap === true ? { autoSwap: true } : {}),
       },
     ];
   });
@@ -201,6 +213,7 @@ export function saveWatchList(targets: WatchTarget[]): void {
       ...(t.autoModify ? { autoModify: true } : {}),
       ...(t.bookThenMove ? { bookThenMove: true } : {}),
       ...(t.paused ? { paused: true } : {}),
+      ...(t.autoSwap ? { autoSwap: true } : {}),
     }))
   );
 }

@@ -74,6 +74,7 @@ export default function Autopilot() {
     toggleAutoModify,
     toggleBookThenMove,
     togglePaused,
+    toggleAutoSwap,
     notifications,
     lastHit,
     bookingLog,
@@ -89,6 +90,7 @@ export default function Autopilot() {
   const anyAutoModify = targets.some(t => t.autoModify);
   const anyBookThenMove = targets.some(t => t.bookThenMove);
   const pausedCount = targets.filter(t => t.paused).length;
+  const anyAutoSwap = targets.some(t => t.autoSwap);
 
   // Only Multi Pass attractions can be watched: matching reads the `flex`
   // field, and bg1 has no Single Pass booking flow, so offering Single Pass
@@ -153,6 +155,7 @@ export default function Autopilot() {
             const autoModify = !!target?.autoModify;
             const bookThenMove = !!target?.bookThenMove;
             const paused = !!target?.paused;
+            const autoSwap = !!target?.autoSwap;
             return (
               <li key={exp.id} className="py-1.5">
                 <div className="flex items-center gap-2">
@@ -227,6 +230,22 @@ export default function Autopilot() {
                   >
                     {paused ? 'Paused' : 'Pause'}
                   </Button>
+                  <Button
+                    type="small"
+                    title={
+                      autoSwap
+                        ? `Stop swapping in ${exp.name}`
+                        : `Swap in ${exp.name}`
+                    }
+                    color={
+                      autoSwap
+                        ? 'bg-red-700 text-white'
+                        : 'bg-gray-200 text-black'
+                    }
+                    onClick={() => toggleAutoSwap(exp.id)}
+                  >
+                    {autoSwap ? 'Swap in on' : 'Swap in off'}
+                  </Button>
                 </div>
               </li>
             );
@@ -275,6 +294,17 @@ export default function Autopilot() {
         </p>
       )}
 
+      {anyAutoSwap && (
+        <p className="mt-2 text-sm">
+          <span className="font-semibold">Swap in is on.</span> When all three
+          Multi Pass slots are taken and an attraction marked above appears,
+          Autopilot gives up your <em>lowest-priority</em> reservation for it
+          &mdash; preferring to let go of a non-Tier-1. The swap is a single
+          request, so the old reservation is only released if the new one is
+          secured. With a slot free it simply books instead.
+        </p>
+      )}
+
       {bookingLog.length > 0 && (
         <>
           <h3>Booking activity</h3>
@@ -289,6 +319,22 @@ export default function Autopilot() {
                       <>
                         {' '}
                         for <Time time={entry.returnTime} />
+                      </>
+                    )}
+                  </>
+                ) : entry.status === 'swapped' ? (
+                  <>
+                    swapped in <b>{entry.name}</b>
+                    {entry.replacedName && (
+                      <>
+                        {' '}
+                        for <b>{entry.replacedName}</b>
+                      </>
+                    )}
+                    {entry.returnTime && (
+                      <>
+                        {' '}
+                        at <Time time={entry.returnTime} />
                       </>
                     )}
                   </>

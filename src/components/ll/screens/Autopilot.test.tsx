@@ -52,6 +52,7 @@ function setup({
   const toggleAutoModify = jest.fn();
   const toggleBookThenMove = jest.fn();
   const togglePaused = jest.fn();
+  const toggleAutoSwap = jest.fn();
   render(
     <ParkContext value={{ park: mk, setPark: () => {} }}>
       <ExperiencesContext
@@ -75,6 +76,7 @@ function setup({
             toggleAutoModify,
             toggleBookThenMove,
             togglePaused,
+            toggleAutoSwap,
             notifications,
             bookingLog: [],
             bookedCount: 0,
@@ -95,6 +97,7 @@ function setup({
     toggleAutoModify,
     toggleBookThenMove,
     togglePaused,
+    toggleAutoSwap,
   };
 }
 
@@ -380,5 +383,51 @@ describe('Autopilot screen book-then-move and pause', () => {
   it('says nothing about pausing when nothing is paused', () => {
     setup({ watched: [BZ] });
     expect(screen.queryByText(/paused\./)).not.toBeInTheDocument();
+  });
+});
+
+describe('Autopilot screen swap', () => {
+  it('shows swap as off by default', () => {
+    setup({ watched: [BZ] });
+    expect(
+      screen.getByTitle(`Swap in ${wdw.experience(BZ).name}`)
+    ).toHaveTextContent('Swap in off');
+  });
+
+  it('toggles swap', () => {
+    const { toggleAutoSwap } = setup({ watched: [BZ] });
+    screen.getByTitle(`Swap in ${wdw.experience(BZ).name}`).click();
+    expect(toggleAutoSwap).toHaveBeenCalledWith(BZ);
+  });
+
+  // Giving up a held reservation is the most consequential thing autopilot
+  // does, so what it will and will not give up is spelled out.
+  it('explains swapping when armed', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoSwap: true }],
+    });
+    expect(screen.getByText(/Swap in is on/)).toBeVisible();
+    expect(screen.getByText(/lowest-priority/)).toBeVisible();
+    expect(
+      screen.getByText(/only released if the new one is secured/)
+    ).toBeVisible();
+  });
+
+  it('logs a swap with what was given up', () => {
+    setup({
+      bookingLog: [
+        {
+          name: 'Slinky Dog Dash',
+          at: new ParkTime(9, 47),
+          status: 'swapped',
+          replacedName: 'Toy Story Mania',
+          fromTime: new ParkTime(15),
+          returnTime: new ParkTime(11, 20),
+        },
+      ],
+    });
+    expect(screen.getByText(/swapped in/)).toBeVisible();
+    expect(screen.getByText('Toy Story Mania')).toBeVisible();
   });
 });

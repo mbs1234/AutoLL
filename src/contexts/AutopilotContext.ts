@@ -15,11 +15,13 @@ export interface AutopilotHit {
 export interface BookingLogEntry {
   name: string;
   at: ParkTime;
-  status: 'booked' | 'modified' | 'failed' | 'skipped';
+  status: 'booked' | 'modified' | 'swapped' | 'failed' | 'skipped';
   /** Return time for a booking. */
   returnTime?: ParkTime;
   /** Previous return time, for a modification. */
   fromTime?: ParkTime;
+  /** The reservation given up, for a swap. */
+  replacedName?: string;
   /** Error message or skip reason. */
   detail?: string;
 }
@@ -44,6 +46,8 @@ export interface AutopilotState {
   toggleBookThenMove: (experienceId: string) => void;
   /** Keep alerting but take no action for this attraction. */
   togglePaused: (experienceId: string) => void;
+  /** When full, give up the worst held reservation for this attraction. */
+  toggleAutoSwap: (experienceId: string) => void;
   notifications: AlertPermission;
   /** The most recent alert, for showing what was found without a toast. */
   lastHit?: AutopilotHit;
@@ -65,6 +69,7 @@ export default createContext<AutopilotState>({
   toggleAutoModify: () => undefined,
   toggleBookThenMove: () => undefined,
   togglePaused: () => undefined,
+  toggleAutoSwap: () => undefined,
   notifications: 'unsupported',
   bookingLog: [],
   bookedCount: 0,

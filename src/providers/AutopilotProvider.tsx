@@ -18,6 +18,12 @@ import {
   attemptAutoModify,
   findExistingLL,
 } from '@/autopilot/automodify';
+import {
+  MAX_HELD_MP,
+  SwapOutcome,
+  attemptAutoSwap,
+  heldMPToday,
+} from '@/autopilot/autoswap';
 import { GuestCache, prewarmGuests } from '@/autopilot/prewarm';
 import { orderByPriority, shouldHoldTierSlot } from '@/autopilot/priority';
 import { syncedParkTime } from '@/autopilot/schedule';
@@ -119,7 +125,7 @@ export default function AutopilotProvider({
   );
 
   const logOutcome = useCallback(
-    (name: string, outcome: AutoBookOutcome | ModifyOutcome) => {
+    (name: string, outcome: AutoBookOutcome | ModifyOutcome | SwapOutcome) => {
       setBookingLog(prev =>
         [
           {
@@ -133,9 +139,16 @@ export default function AutopilotProvider({
                     fromTime: outcome.from,
                     returnTime: outcome.to,
                   }
-                : outcome.status === 'failed'
-                  ? { status: 'failed' as const, detail: outcome.error }
-                  : { status: 'skipped' as const, detail: outcome.reason }),
+                : outcome.status === 'swapped'
+                  ? {
+                      status: 'swapped' as const,
+                      replacedName: outcome.replaced.name,
+                      fromTime: outcome.replaced.time,
+                      returnTime: outcome.to,
+                    }
+                  : outcome.status === 'failed'
+                    ? { status: 'failed' as const, detail: outcome.error }
+                    : { status: 'skipped' as const, detail: outcome.reason }),
           },
           ...prev,
         ].slice(0, 20)
@@ -161,6 +174,8 @@ export default function AutopilotProvider({
     const date = bookingDateRef.current;
     const heldToday = (experienceId: string) =>
       findExistingLL(plansRef.current, experienceId, date);
+    const allHeldToday = heldMPToday(plansRef.current, date);
+    const partyIsFull = allHeldToday.length >= MAX_HELD_MP;
 
     // Book-then-move: while nothing is held, the window is stripped so any
     // offered time matches and gets booked -- holding *something* beats
@@ -232,21 +247,43 @@ export default function AutopilotProvider({
       // hit.target may carry a stripped window; the real one governs moving.
       const target = realTarget(experience.id) ?? hit.target;
       if (target.paused) continue;
-      const wantsBook = !!(target.autoBook || target.bookThenMove);
+      const wantsBook = !!(
+        target.autoBook ||
+        target.bookThenMove ||
+        target.autoSwap
+      );
       const wantsModify = !!(target.autoModify || target.bookThenMove);
-      if (!wantsBook && !wantsModify) continue;
+      const wantsSwap = !!target.autoSwap;
+      if (!wantsBook && !wantsModify && !wantsSwap) continue;
       if (ledgerRef.current.remaining <= 0) break;
 
       // Holding a reservation already makes booking a second one pointless --
-      // Disney would reject it -- so the only useful action is re-timing.
+      // Disney would reject it -- so the only useful action is re-timing. With
+      // nothing held and every slot full, the only way in is to swap.
       const existing = heldToday(experience.id);
-      const kind = existing ? 'modify' : 'book';
+      const kind = existing
+        ? 'modify'
+        : partyIsFull && wantsSwap
+          ? 'swap'
+          : 'book';
       if (ledgerRef.current.hasAttempted(experience.id, kind)) continue;
-      if (existing ? !wantsModify : !wantsBook) continue;
+      if (kind === 'modify' && !wantsModify) continue;
+      if (kind === 'book' && !wantsBook) continue;
 
-      let outcome: AutoBookOutcome | ModifyOutcome;
+      let outcome: AutoBookOutcome | ModifyOutcome | SwapOutcome;
       try {
-        if (existing) {
+        if (kind === 'swap') {
+          // Atomic on Disney's side: the mod endpoint takes both the new
+          // experience and the one being given up, so the old reservation is
+          // released only if the new one is secured.
+          outcome = await attemptAutoSwap(target, experience, allHeldToday, {
+            createSwapOffer: (exp, guests, victim) =>
+              ll.offer(exp, guests, { booking: victim }),
+            book: offer => ll.book(offer),
+            guests: await guestsFor(experience.id),
+            ledger: ledgerRef.current,
+          });
+        } else if (existing) {
           outcome = await attemptAutoModify(
             target,
             experience,
@@ -286,7 +323,11 @@ export default function AutopilotProvider({
       // Skips are the common case mid-drop and would swamp the log.
       if (outcome.status !== 'skipped') logOutcome(experience.name, outcome);
 
-      if (outcome.status === 'booked' || outcome.status === 'modified') {
+      if (
+        outcome.status === 'booked' ||
+        outcome.status === 'modified' ||
+        outcome.status === 'swapped'
+      ) {
         // Any change shifts eligibility across every experience at once via
         // party, tier and overlap limits, so the whole cache is invalid.
         cacheRef.current.clear();
@@ -298,11 +339,17 @@ export default function AutopilotProvider({
                 body: `Return time ${formatTime(outcome.returnTime)}`,
                 tag: `bg1-autopilot-booked-${experience.id}`,
               }
-            : {
-                title: `Moved ${experience.name} earlier`,
-                body: `${formatTime(outcome.from)} to ${formatTime(outcome.to)}`,
-                tag: `bg1-autopilot-booked-${experience.id}`,
-              }
+            : outcome.status === 'modified'
+              ? {
+                  title: `Moved ${experience.name} earlier`,
+                  body: `${formatTime(outcome.from)} to ${formatTime(outcome.to)}`,
+                  tag: `bg1-autopilot-booked-${experience.id}`,
+                }
+              : {
+                  title: `Swapped in ${experience.name}`,
+                  body: `Gave up ${outcome.replaced.name}; return ${formatTime(outcome.to)}`,
+                  tag: `bg1-autopilot-booked-${experience.id}`,
+                }
         );
         try {
           await pollPlans();
@@ -318,7 +365,11 @@ export default function AutopilotProvider({
     // drop lands. Limiting it to auto-book targets bounds the extra requests,
     // and prewarmGuests skips anything already warm.
     const toWarm = targetsRef.current
-      .filter(t => !t.paused && (t.autoBook || t.autoModify || t.bookThenMove))
+      .filter(
+        t =>
+          !t.paused &&
+          (t.autoBook || t.autoModify || t.bookThenMove || t.autoSwap)
+      )
       .map(t => ({ id: t.experienceId }));
     if (toWarm.length > 0) {
       await prewarmGuests(toWarm, bookingDateRef.current, {
@@ -392,7 +443,7 @@ export default function AutopilotProvider({
   }, []);
 
   const toggleFlag = useCallback(
-    (experienceId: string, flag: 'bookThenMove' | 'paused') => {
+    (experienceId: string, flag: 'bookThenMove' | 'paused' | 'autoSwap') => {
       setTargets(prev =>
         prev.map(t =>
           t.experienceId === experienceId ? { ...t, [flag]: !t[flag] } : t
@@ -426,6 +477,7 @@ export default function AutopilotProvider({
         toggleAutoModify,
         toggleBookThenMove: id => toggleFlag(id, 'bookThenMove'),
         togglePaused: id => toggleFlag(id, 'paused'),
+        toggleAutoSwap: id => toggleFlag(id, 'autoSwap'),
         notifications,
         lastHit,
         bookingLog,
