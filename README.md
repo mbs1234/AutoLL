@@ -42,7 +42,7 @@ Autopilot also uses the **drift-corrected clock** that upstream computes in `src
 **Limits worth knowing**
 
 - **Multi Pass only, by design.** Matching reads the `flex` field, and BG1 has no Single Pass booking flow. Most famous headliners — TRON, Rise of the Resistance, Seven Dwarfs Mine Train, Guardians, Flight of Passage — are Single Pass and are deliberately *not* watchable here; Slinky Dog Dash is the one Multi Pass headliner. This is settled scope rather than a missing feature: Single Pass is a separate paid-per-ride product, and watching something this app cannot book would be worse than not offering it.
-- **Must stay foregrounded.** Mobile browsers heavily throttle timers in background tabs.
+- **Must stay foregrounded.** Mobile browsers heavily throttle timers in background tabs. This cannot be fixed with a service worker: BG1 runs injected into a page on Disney's own origin, and a service worker must be served from the same origin as the page it controls — so a worker hosted on this fork's Pages site can never be registered for it. Background operation would require a server acting on your behalf, which is a different product with far greater account exposure.
 - **Off after a reload,** by design: a watcher resuming with no user gesture behind it cannot unlock audio, and silently issuing requests on page load is a surprising default. Your watch list persists; the on/off state does not.
 - **On iOS,** notifications require adding the page to your Home Screen. Without that you still get the chime.
 - Alerts are edge-triggered per attraction: one alert when it becomes available, then silence until it goes away and comes back.
@@ -109,6 +109,12 @@ This is the safe form of "don't be afraid to cancel." The swap is a **single req
 ### Improving pre-booked selections before your trip
 
 Auto-move works on future dates too. Select a later date in the LL tab's date picker, watch the attractions you pre-booked, and turn on **Auto-move**; Autopilot will improve those return times as cancellations open up. Drop times are a day-of phenomenon, so on a future date it polls at its slow steady rate rather than bursting. Reservations are matched to the specific park day being watched, so watching today never touches tomorrow's selections.
+
+### Dry run — rehearse before you trust it
+
+Turn on **Dry run** on the Autopilot screen and Autopilot does everything except act: it watches, alerts, checks eligibility, applies the whole-party guard and the Tier 1 hold, and then writes *"would have booked Slinky Dog Dash for 11:05 AM"* to the activity log instead of booking. No offer is generated; nothing is committed. Each rehearsed action is logged once, and none of it counts against the session limit.
+
+This is the recommended way to spend a first park day with it: arm whatever you like, watch the log fill with what it *would* have done, and flip dry run off once you've seen it be right. Because a forgotten dry run looks exactly like a broken booker, it is deliberately loud — a yellow banner on the screen, and the header button turns yellow instead of green while running. The setting is remembered, so a rehearsal set up the night before survives to the park.
 
 ### Whole-party guard, activity log, and diagnostics
 

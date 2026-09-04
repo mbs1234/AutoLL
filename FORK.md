@@ -84,7 +84,7 @@ test's mocked response no longer provides.
 
 | Command | Scope | Status |
 | --- | --- | --- |
-| `npm run test:ci` | excludes upstream's broken suites | **green** (53 suites / 190 tests) |
+| `npm run test:ci` | excludes upstream's broken suites | **green** (68 suites / 560 tests) |
 | `npm test` | everything | 8 suites / 38 tests fail (pre-existing) |
 | `npm run lint` | | green |
 | `npm run typecheck` | | green |
@@ -93,14 +93,54 @@ CI gates on `test:ci` so it stays a real signal; the full suite also runs, as
 `continue-on-error`, to keep the pre-existing count visible. The exclusion list
 lives in `jest.ci.config.js` — delete an entry if that suite gets repaired.
 Note two of the excluded suites (`Home.test.tsx`, `Home/MultiPassList.test.tsx`)
-cover screens this fork will modify, so new work there needs new tests rather
-than relying on existing coverage.
+cover screens this fork modified, so the Autopilot UI carries its own tests
+(`screens/Autopilot.test.tsx`) rather than relying on the stale ones.
 
 ## Local toolchain
 
 Node is installed via Homebrew at `/opt/homebrew` (node 26.x). `brew shellenv`
 was appended to `~/.zprofile` and `~/.zshrc`. CI pins Node 22, so a
 version-specific failure can differ between local and CI.
+
+## Autopilot
+
+Everything this fork adds beyond the build fixes lives under `src/autopilot/`,
+wired in by `src/providers/AutopilotProvider.tsx` and surfaced in
+`src/components/ll/screens/Autopilot.tsx`. The README is the user-facing guide;
+this is the map.
+
+| Module | Role |
+| --- | --- |
+| `schedule.ts` | Pure cadence policy (idle / approach / burst) from drop times and `nextBookTime`, on the drift-corrected clock; backoff. |
+| `usePoller.ts` | The single sequential polling loop. |
+| `watchlist.ts` | Targets and their flags; matching; edge-triggered alert selection; persistence. |
+| `alert.ts` | Chime, vibration, notification, each degrading independently. |
+| `prewarm.ts` | Guest-eligibility cache, invalidated on `eligibleAfter` and on any booking. |
+| `priority.ts` | Priority ordering (same comparator as the LL list) and the Tier 1 hold. |
+| `autobook.ts` / `automodify.ts` / `autoswap.ts` | The three actions, each guarded on the offer's *real* time; shared per-action ledger. |
+| `party.ts` | Whole-party guard. |
+| `observe.ts` / `learned.ts` | Drop-time learning: detection, coverage, clustering, and merging learned times into the cadence. |
+| `storage.ts` | Persisted settings and the day-scoped activity log. |
+
+Design rules that hold throughout, and that a future change should keep:
+
+- **Pure core, thin shell.** Every decision is a pure function with its own
+  tests; the provider only sequences them. Almost all of the ~560 tests in
+  `test:ci` are on these.
+- **Never commit an offer without re-checking its real time.** The tipboard
+  time you matched on and the offer Disney returns can differ; booking, moving
+  and swapping all re-verify before committing, and moving additionally refuses
+  ever to trade down.
+- **Mark attempts before the request goes out.** A timed-out request may have
+  succeeded server-side; retrying is the dangerous option.
+- **Only a literal `true` arms anything** when reading persisted flags.
+- **On/off never persists;** per-attraction arming does. That asymmetry is
+  what makes persisted arming safe.
+
+A structural limit worth knowing before anyone tries to fix it: background
+operation via a service worker is impossible, not hard. BG1 runs injected into
+a page on Disney's origin; a service worker must be same-origin with the page
+it controls, and this fork's worker would live on `mbs1234.github.io`.
 
 ## Syncing upstream
 
