@@ -48,6 +48,7 @@ function setup({
   const setEnabled = jest.fn();
   const addTarget = jest.fn();
   const removeTarget = jest.fn();
+  const toggleAutoBook = jest.fn();
   render(
     <ParkContext value={{ park: mk, setPark: () => {} }}>
       <ExperiencesContext
@@ -67,7 +68,11 @@ function setup({
             isWatched: (id: string) => watched.includes(id),
             addTarget,
             removeTarget,
+            toggleAutoBook,
             notifications,
+            bookingLog: [],
+            bookedCount: 0,
+            bookingsRemaining: 3,
             ...rest,
           }}
         >
@@ -76,7 +81,7 @@ function setup({
       </ExperiencesContext>
     </ParkContext>
   );
-  return { setEnabled, addTarget, removeTarget };
+  return { setEnabled, addTarget, removeTarget, toggleAutoBook };
 }
 
 describe('Autopilot screen', () => {
@@ -159,6 +164,85 @@ describe('Autopilot screen', () => {
   it('explains the iOS limitation when unsupported', () => {
     setup({ notifications: 'unsupported' });
     expect(screen.getByText(/Home Screen/)).toBeVisible();
+  });
+
+  it('shows auto-book as off by default', () => {
+    setup({ watched: [BZ] });
+    expect(
+      screen.getByTitle(`Auto-book ${wdw.experience(BZ).name}`)
+    ).toHaveTextContent('Auto-book off');
+  });
+
+  it('toggles auto-book for one attraction', () => {
+    const { toggleAutoBook } = setup({ watched: [BZ] });
+    screen.getByTitle(`Auto-book ${wdw.experience(BZ).name}`).click();
+    expect(toggleAutoBook).toHaveBeenCalledWith(BZ);
+  });
+
+  it('reflects auto-book already on', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoBook: true }],
+    });
+    expect(
+      screen.getByTitle(`Stop auto-booking ${wdw.experience(BZ).name}`)
+    ).toHaveTextContent('Auto-book on');
+  });
+
+  // Booking spends a real entitlement, so the consequences are spelled out
+  // rather than left implicit in a toggle.
+  it('explains the booking limits when any target is armed', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoBook: true }],
+      bookedCount: 1,
+      bookingsRemaining: 2,
+    });
+    expect(screen.getByText(/Automatic booking is on/)).toBeVisible();
+    expect(screen.getByText(/at most 3 per session/)).toBeVisible();
+    expect(screen.getByText(/2 left/)).toBeVisible();
+  });
+
+  it('says nothing about booking when no target is armed', () => {
+    setup({ watched: [BZ] });
+    expect(
+      screen.queryByText(/Automatic booking is on/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('lists a successful booking', () => {
+    setup({
+      bookingLog: [
+        {
+          name: 'Big Thunder',
+          at: new ParkTime(9, 47),
+          status: 'booked',
+          returnTime: new ParkTime(11, 5),
+        },
+      ],
+    });
+    expect(screen.getByText('Booking activity')).toBeVisible();
+    expect(screen.getByText(/Big Thunder/)).toBeVisible();
+  });
+
+  it('lists a failed booking with its reason', () => {
+    setup({
+      bookingLog: [
+        {
+          name: 'Big Thunder',
+          at: new ParkTime(9, 47),
+          status: 'failed',
+          detail: 'Request failed',
+        },
+      ],
+    });
+    expect(screen.getByText('failed')).toBeVisible();
+    expect(screen.getByText(/Request failed/)).toBeVisible();
+  });
+
+  it('hides the activity section when nothing has happened', () => {
+    setup();
+    expect(screen.queryByText('Booking activity')).not.toBeInTheDocument();
   });
 
   it('shows the most recent find', () => {

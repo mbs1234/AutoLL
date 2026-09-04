@@ -10,7 +10,7 @@ import ClientsContext, { Clients } from '@/contexts/ClientsContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
-import { ParkTime } from '@/datetime';
+import { DateTime, ParkTime } from '@/datetime';
 
 import AutopilotProvider, { PLANS_EVERY_N_TICKS } from './AutopilotProvider';
 
@@ -214,5 +214,139 @@ describe('AutopilotProvider', () => {
     saveWatchList([{ experienceId: BZ }, { experienceId: DB }]);
     setup([]);
     expect(screen.getByTestId('targets')).toHaveTextContent('2');
+  });
+});
+
+describe('AutopilotProvider auto-booking', () => {
+  const party = { eligible: [{ id: 'g1', name: 'A' }], ineligible: [] };
+
+  function offerAt(hour: number) {
+    return {
+      id: 'offer-1',
+      offerSetId: 'set-1',
+      start: new DateTime('2026-09-04', new ParkTime(hour)),
+      end: new DateTime('2026-09-04', new ParkTime(hour + 1)),
+      guests: party,
+      itinerary: [],
+      booking: undefined,
+    };
+  }
+
+  function setupBooking({
+    offerHour = 11,
+    experiences = [available(BZ, new ParkTime(11))],
+  } = {}) {
+    const guests = jest.fn(async () => party);
+    const offer = jest.fn(async () => offerAt(offerHour));
+    const book = jest.fn(async () => ({ id: 'ent-1' }));
+    const pollPlans = jest.fn(async () => undefined);
+    render(
+      <ClientsContext
+        // Two-step cast: with the jest.Mock members present this no longer
+        // merely omits properties from Clients, it conflicts with them.
+        value={
+          {
+            ll: { nextBookTime: undefined, guests, offer, book },
+          } as unknown as Clients
+        }
+      >
+        <ParkContext value={{ park: mk, setPark: () => {} }}>
+          <ExperiencesContext
+            value={{
+              experiences: [],
+              refreshExperiences: () => {},
+              pollExperiences: async () => experiences,
+              loaderElem: null,
+            }}
+          >
+            <PlansContext
+              value={{
+                plans: [],
+                refreshPlans: () => {},
+                pollPlans,
+                loaderElem: null,
+              }}
+            >
+              <AutopilotProvider>
+                <Probe />
+              </AutopilotProvider>
+            </PlansContext>
+          </ExperiencesContext>
+        </ParkContext>
+      </ClientsContext>
+    );
+    return { guests, offer, book, pollPlans };
+  }
+
+  it('books a watched attraction that is armed', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book } = setupBooking();
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+  });
+
+  // Alerting and booking are deliberately separate decisions.
+  it('does not book a watched attraction that is not armed', async () => {
+    saveWatchList([{ experienceId: BZ }]);
+    const { book, offer } = setupBooking();
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // The load-bearing guard: matching runs on the tipboard time, but the offer
+  // can come back with a later one.
+  it('refuses to book an offer outside the window', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true, before: new ParkTime(12) },
+    ]);
+    const { offer, book } = setupBooking({ offerHour: 20 });
+    await enable();
+    await waitFor(() => expect(offer).toHaveBeenCalled());
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(5000);
+    });
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  it('books at most once per attraction', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book } = setupBooking();
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000 * 3);
+    });
+    expect(book).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes plans after booking so the new reservation shows', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book, pollPlans } = setupBooking();
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalled());
+    expect(pollPlans.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  // Eligibility is the one request in the booking path that does not change
+  // second to second, so it is fetched ahead of the moment that matters.
+  it('prewarms eligibility for armed targets', async () => {
+    saveWatchList([{ experienceId: DB, autoBook: true }]);
+    const { guests } = setupBooking({ experiences: [] });
+    await enable();
+    await waitFor(() => expect(guests).toHaveBeenCalled());
+  });
+
+  it('does not prewarm when nothing is armed', async () => {
+    saveWatchList([{ experienceId: DB }]);
+    const { guests } = setupBooking({ experiences: [] });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(guests).not.toHaveBeenCalled();
   });
 });

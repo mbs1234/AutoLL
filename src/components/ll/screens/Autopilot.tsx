@@ -70,11 +70,19 @@ export default function Autopilot() {
     isWatched,
     addTarget,
     removeTarget,
+    toggleAutoBook,
     notifications,
     lastHit,
+    bookingLog,
+    bookedCount,
+    bookingsRemaining,
   } = use(AutopilotContext);
   const { experiences } = use(ExperiencesContext);
   const { park } = use(ParkContext);
+
+  const targetFor = (experienceId: string) =>
+    targets.find(t => t.experienceId === experienceId);
+  const anyAutoBook = targets.some(t => t.autoBook);
 
   // Only Multi Pass attractions can be watched: matching reads the `flex`
   // field, and bg1 has no Single Pass booking flow, so offering Single Pass
@@ -133,18 +141,78 @@ export default function Autopilot() {
         </p>
       ) : (
         <ul>
-          {watched.map(exp => (
-            <li key={exp.id} className="flex items-center gap-2 py-1">
-              <Button
-                title={`Stop watching ${exp.name}`}
-                onClick={() => removeTarget(exp.id)}
-              >
-                <StarIcon />
-              </Button>
-              <span className="font-semibold">{exp.name}</span>
-            </li>
-          ))}
+          {watched.map(exp => {
+            const autoBook = !!targetFor(exp.id)?.autoBook;
+            return (
+              <li key={exp.id} className="flex items-center gap-2 py-1">
+                <Button
+                  title={`Stop watching ${exp.name}`}
+                  onClick={() => removeTarget(exp.id)}
+                >
+                  <StarIcon />
+                </Button>
+                <span className="flex-1 font-semibold">{exp.name}</span>
+                <Button
+                  type="small"
+                  title={
+                    autoBook
+                      ? `Stop auto-booking ${exp.name}`
+                      : `Auto-book ${exp.name}`
+                  }
+                  color={
+                    autoBook
+                      ? 'bg-red-700 text-white'
+                      : 'bg-gray-200 text-black'
+                  }
+                  onClick={() => toggleAutoBook(exp.id)}
+                >
+                  {autoBook ? 'Auto-book on' : 'Auto-book off'}
+                </Button>
+              </li>
+            );
+          })}
         </ul>
+      )}
+
+      {anyAutoBook && (
+        <p className="mt-2 text-sm">
+          <span className="font-semibold">Automatic booking is on.</span>{' '}
+          Autopilot will book the attractions marked above without asking, but
+          only when the offered return time falls inside that attraction&rsquo;s
+          window. It will book at most {bookedCount + bookingsRemaining} per
+          session ({bookingsRemaining} left), never retries an attraction it has
+          already tried, and forgets everything when the page reloads.
+        </p>
+      )}
+
+      {bookingLog.length > 0 && (
+        <>
+          <h3>Booking activity</h3>
+          <ul className="text-sm">
+            {bookingLog.map((entry, i) => (
+              <li key={`${entry.name}-${i}`} className="py-0.5">
+                <Time time={entry.at} />{' '}
+                {entry.status === 'booked' ? (
+                  <>
+                    booked <b>{entry.name}</b>
+                    {entry.returnTime && (
+                      <>
+                        {' '}
+                        for <Time time={entry.returnTime} />
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="text-red-700">failed</span> on{' '}
+                    <b>{entry.name}</b>
+                    {entry.detail ? `: ${entry.detail}` : ''}
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       <h3>Lightning Lane attractions</h3>

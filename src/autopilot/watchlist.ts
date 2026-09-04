@@ -10,6 +10,13 @@ export interface WatchTarget {
   after?: ParkTime;
   /** Latest acceptable return time, inclusive. */
   before?: ParkTime;
+  /**
+   * Book this automatically when it appears within the window.
+   *
+   * Opt-in per attraction, and off by default: alerting is cheap to get wrong
+   * while booking is not, so the two are deliberately separate decisions.
+   */
+  autoBook?: boolean;
 }
 
 export interface WatchHit {
@@ -98,6 +105,12 @@ interface StoredTarget {
   experienceId: string;
   after?: string;
   before?: string;
+  /**
+   * Persisted so a party set up once keeps working all day. Safe because the
+   * autopilot on/off state is deliberately *not* persisted -- nothing can book
+   * until the user turns it on again, in person, after a reload.
+   */
+  autoBook?: boolean;
 }
 
 /** `ParkTime.from` throws on garbage; treat an unparseable bound as absent. */
@@ -133,6 +146,10 @@ export function loadWatchList(): WatchTarget[] {
         experienceId: t.experienceId,
         ...(after ? { after } : {}),
         ...(before ? { before } : {}),
+        // Only a literal `true` enables booking. Anything else stored here --
+        // a truthy string, a number from a hand-edited value -- reads as off,
+        // since the failure mode of guessing wrong is an unwanted booking.
+        ...(t.autoBook === true ? { autoBook: true } : {}),
       },
     ];
   });
@@ -145,6 +162,7 @@ export function saveWatchList(targets: WatchTarget[]): void {
       experienceId: t.experienceId,
       ...(t.after ? { after: String(t.after) } : {}),
       ...(t.before ? { before: String(t.before) } : {}),
+      ...(t.autoBook ? { autoBook: true } : {}),
     }))
   );
 }
