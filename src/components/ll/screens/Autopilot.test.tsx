@@ -53,6 +53,7 @@ function setup({
   const toggleBookThenMove = jest.fn();
   const togglePaused = jest.fn();
   const toggleAutoSwap = jest.fn();
+  const setRequireWholeParty = jest.fn();
   render(
     <ParkContext value={{ park: mk, setPark: () => {} }}>
       <ExperiencesContext
@@ -78,6 +79,9 @@ function setup({
             togglePaused,
             toggleAutoSwap,
             notifications,
+            requireWholeParty: false,
+            setRequireWholeParty,
+            skipCounts: {},
             bookingLog: [],
             bookedCount: 0,
             bookingsRemaining: 3,
@@ -98,6 +102,7 @@ function setup({
     toggleBookThenMove,
     togglePaused,
     toggleAutoSwap,
+    setRequireWholeParty,
   };
 }
 
@@ -429,5 +434,52 @@ describe('Autopilot screen swap', () => {
     });
     expect(screen.getByText(/swapped in/)).toBeVisible();
     expect(screen.getByText('Toy Story Mania')).toBeVisible();
+  });
+});
+
+describe('Autopilot screen party and diagnostics', () => {
+  it('shows the whole-party guard as off by default', () => {
+    setup();
+    expect(
+      screen.getByTitle('Only act when the whole party is eligible')
+    ).toHaveTextContent('Whole party only: off');
+  });
+
+  it('toggles the whole-party guard', () => {
+    const { setRequireWholeParty } = setup();
+    screen.getByTitle('Only act when the whole party is eligible').click();
+    expect(setRequireWholeParty).toHaveBeenCalledWith(true);
+  });
+
+  it('reflects the guard when on and explains it', () => {
+    setup({ requireWholeParty: true });
+    expect(
+      screen.getByTitle('Allow booking for part of the party')
+    ).toHaveTextContent('Whole party only: on');
+    expect(screen.getByText(/never split|worse than none/)).toBeVisible();
+  });
+
+  // Skips stay out of the log; this is where they become visible.
+  it('explains why nothing was booked, most frequent first', () => {
+    setup({
+      skipCounts: { 'offer-outside-window': 2, 'partial-party': 7 },
+    });
+    expect(screen.getByText('Why nothing was booked')).toBeVisible();
+    const items = screen.getAllByRole('listitem').map(li => li.textContent);
+    const first = items.find(t => t?.includes('7×'));
+    expect(first).toMatch(/not everyone in the party/);
+    expect(screen.getByText(/outside the window/)).toBeVisible();
+  });
+
+  it('shows an unknown skip reason verbatim', () => {
+    setup({ skipCounts: { 'something-new': 1 } });
+    expect(screen.getByText(/something-new/)).toBeVisible();
+  });
+
+  it('hides the diagnostics when nothing was skipped', () => {
+    setup();
+    expect(
+      screen.queryByText('Why nothing was booked')
+    ).not.toBeInTheDocument();
   });
 });

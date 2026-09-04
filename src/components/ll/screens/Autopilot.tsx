@@ -12,6 +12,21 @@ import StarIcon from '@/icons/StarIcon';
 
 export const AUTOPILOT = 'Autopilot';
 
+/** Plain-language labels for skip reasons; unknown ones show as-is. */
+const SKIP_TEXT: Record<string, string> = {
+  'partial-party': 'not everyone in the party was eligible',
+  'tier-hold': 'held the Tier 1 slot for a better attraction',
+  'offer-outside-window': 'the offered time was outside the window',
+  'not-an-improvement': 'the time was not enough better to move for',
+  'offer-not-an-improvement': 'the offer came back not enough better',
+  'no-eligible-guests': 'nobody was eligible',
+  'not-full': 'a slot was free, so it booked instead of swapping',
+  'no-worse-reservation': 'nothing held was worth giving up',
+  'already-attempted': 'already tried once this session',
+  'session-cap': 'the session limit was reached',
+  'not-modifiable': 'Disney marked the reservation unmodifiable',
+};
+
 const MODE_TEXT: Record<PollerStatus['mode'], string> = {
   off: 'Off',
   idle: 'Watching',
@@ -80,6 +95,9 @@ export default function Autopilot() {
     bookingLog,
     bookedCount,
     bookingsRemaining,
+    requireWholeParty,
+    setRequireWholeParty,
+    skipCounts,
   } = use(AutopilotContext);
   const { experiences } = use(ExperiencesContext);
   const { park } = use(ParkContext);
@@ -120,6 +138,30 @@ export default function Autopilot() {
         </Button>
         <StatusRow status={status} />
       </div>
+
+      <div className="mt-3 flex items-center gap-2">
+        <Button
+          type="small"
+          title={
+            requireWholeParty
+              ? 'Allow booking for part of the party'
+              : 'Only act when the whole party is eligible'
+          }
+          color={
+            requireWholeParty
+              ? 'bg-red-700 text-white'
+              : 'bg-gray-200 text-black'
+          }
+          onClick={() => setRequireWholeParty(!requireWholeParty)}
+        >
+          {requireWholeParty ? 'Whole party only: on' : 'Whole party only: off'}
+        </Button>
+      </div>
+      <p className="mt-1 text-xs text-gray-600">
+        {requireWholeParty
+          ? 'Autopilot will not book, move, or swap unless everyone in your party is eligible. A Lightning Lane for part of the group is often worse than none.'
+          : 'Autopilot books for whoever is eligible, the way booking by hand does. Turn this on to guarantee the group is never split.'}
+      </p>
 
       {notifications === 'denied' && (
         <p className="mt-3 text-sm font-semibold text-red-700">
@@ -303,6 +345,22 @@ export default function Autopilot() {
           request, so the old reservation is only released if the new one is
           secured. With a slot free it simply books instead.
         </p>
+      )}
+
+      {Object.keys(skipCounts).length > 0 && (
+        <>
+          <h3>Why nothing was booked</h3>
+          <ul className="text-sm">
+            {Object.entries(skipCounts)
+              .sort((a, b) => b[1] - a[1])
+              .map(([reason, count]) => (
+                <li key={reason} className="py-0.5">
+                  <span className="font-semibold">{count}&times;</span>{' '}
+                  {SKIP_TEXT[reason] ?? reason}
+                </li>
+              ))}
+          </ul>
+        </>
       )}
 
       {bookingLog.length > 0 && (

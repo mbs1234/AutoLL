@@ -24,9 +24,16 @@ import {
   attemptAutoSwap,
   heldMPToday,
 } from '@/autopilot/autoswap';
+import { wholePartyEligible } from '@/autopilot/party';
 import { GuestCache, prewarmGuests } from '@/autopilot/prewarm';
 import { orderByPriority, shouldHoldTierSlot } from '@/autopilot/priority';
 import { syncedParkTime } from '@/autopilot/schedule';
+import {
+  loadBookingLog,
+  loadSettings,
+  saveBookingLog,
+  saveSettings,
+} from '@/autopilot/storage';
 import usePoller from '@/autopilot/usePoller';
 import {
   WatchTarget,
@@ -83,7 +90,13 @@ export default function AutopilotProvider({
   const [notifications, setNotifications] =
     useState<AlertPermission>(alertPermission);
   const [lastHit, setLastHit] = useState<AutopilotHit>();
-  const [bookingLog, setBookingLog] = useState<BookingLogEntry[]>([]);
+  // The day's log survives a reload; the on/off state deliberately does not.
+  const [bookingLog, setBookingLog] =
+    useState<BookingLogEntry[]>(loadBookingLog);
+  const [settings, setSettings] = useState(loadSettings);
+  const [skipCounts, setSkipCounts] = useState<Record<string, number>>({});
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
   const alertedRef = useRef<ReadonlySet<string>>(new Set());
   const tickCountRef = useRef(0);
@@ -105,6 +118,16 @@ export default function AutopilotProvider({
   useEffect(() => {
     saveWatchList(targets);
   }, [targets]);
+  useEffect(() => {
+    saveBookingLog(bookingLog);
+  }, [bookingLog]);
+  useEffect(() => {
+    saveSettings(settings);
+  }, [settings]);
+
+  const bumpSkip = useCallback((reason: string) => {
+    setSkipCounts(prev => ({ ...prev, [reason]: (prev[reason] ?? 0) + 1 }));
+  }, []);
 
   const clock = useCallback(
     () => ({ ms: syncedNow(), time: syncedParkTime() }),
@@ -272,15 +295,27 @@ export default function AutopilotProvider({
 
       let outcome: AutoBookOutcome | ModifyOutcome | SwapOutcome;
       try {
+        const guests = await guestsFor(experience.id);
+        // A Lightning Lane for part of the group is often worse than none: it
+        // splits the party and spends the slot. Opt-in, since booking by hand
+        // in bg1 or Disney's app books for whoever is eligible.
+        if (
+          settingsRef.current.requireWholeParty &&
+          !wholePartyEligible(guests)
+        ) {
+          bumpSkip('partial-party');
+          continue;
+        }
+
         if (kind === 'swap') {
           // Atomic on Disney's side: the mod endpoint takes both the new
           // experience and the one being given up, so the old reservation is
           // released only if the new one is secured.
           outcome = await attemptAutoSwap(target, experience, allHeldToday, {
-            createSwapOffer: (exp, guests, victim) =>
-              ll.offer(exp, guests, { booking: victim }),
+            createSwapOffer: (exp, g, victim) =>
+              ll.offer(exp, g, { booking: victim }),
             book: offer => ll.book(offer),
-            guests: await guestsFor(experience.id),
+            guests,
             ledger: ledgerRef.current,
           });
         } else if (existing) {
@@ -290,23 +325,26 @@ export default function AutopilotProvider({
             existing,
             hit.returnTime,
             {
-              createModifyOffer: (exp, guests, booking) =>
-                ll.offer(exp, guests, { booking }),
+              createModifyOffer: (exp, g, booking) =>
+                ll.offer(exp, g, { booking }),
               book: offer => ll.book(offer),
-              guests: await guestsFor(experience.id),
+              guests,
               ledger: ledgerRef.current,
             }
           );
         } else {
           // Only new bookings can spend the party's Tier 1 slot; re-timing one
           // already held does not, which is why this guard sits on this branch.
-          if (shouldHoldTierSlot(hit, armed, nowTime, redeemedToday)) continue;
+          if (shouldHoldTierSlot(hit, armed, nowTime, redeemedToday)) {
+            bumpSkip('tier-hold');
+            continue;
+          }
           // The effective target: window stripped under book-then-move.
           outcome = await attemptAutoBook(hit.target, experience, {
-            createOffer: (exp, guests) =>
-              ll.offer(exp, guests, { date: bookingDateRef.current }),
+            createOffer: (exp, g) =>
+              ll.offer(exp, g, { date: bookingDateRef.current }),
             book: offer => ll.book(offer),
-            guests: await guestsFor(experience.id),
+            guests,
             ledger: ledgerRef.current,
           });
         }
@@ -320,8 +358,10 @@ export default function AutopilotProvider({
         };
       }
 
-      // Skips are the common case mid-drop and would swamp the log.
-      if (outcome.status !== 'skipped') logOutcome(experience.name, outcome);
+      // Skips are the common case mid-drop and would swamp the log, so they
+      // are tallied instead.
+      if (outcome.status === 'skipped') bumpSkip(outcome.reason);
+      else logOutcome(experience.name, outcome);
 
       if (
         outcome.status === 'booked' ||
@@ -378,7 +418,7 @@ export default function AutopilotProvider({
         now: clock,
       });
     }
-  }, [pollExperiences, pollPlans, ll, guestsFor, clock, logOutcome]);
+  }, [pollExperiences, pollPlans, ll, guestsFor, clock, logOutcome, bumpSkip]);
 
   // Drops and the next-booking window are day-of phenomena. When the user is
   // watching a future date -- improving pre-booked selections before the trip
@@ -411,6 +451,7 @@ export default function AutopilotProvider({
       ledgerRef.current.reset();
       cacheRef.current.clear();
       setBookedCount(0);
+      setSkipCounts({});
     }
     setEnabledState(on);
   }, []);
@@ -483,6 +524,10 @@ export default function AutopilotProvider({
         bookingLog,
         bookedCount,
         bookingsRemaining: ledgerRef.current.maxPerSession - bookedCount,
+        requireWholeParty: settings.requireWholeParty,
+        setRequireWholeParty: on =>
+          setSettings(prev => ({ ...prev, requireWholeParty: on })),
+        skipCounts,
       }}
     >
       {children}

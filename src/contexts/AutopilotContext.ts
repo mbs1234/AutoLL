@@ -55,6 +55,15 @@ export interface AutopilotState {
   bookingLog: BookingLogEntry[];
   bookedCount: number;
   bookingsRemaining: number;
+  /** Act only when every party member is eligible. Persisted. */
+  requireWholeParty: boolean;
+  setRequireWholeParty: (on: boolean) => void;
+  /**
+   * How often each reason stopped an action this session. Skips are the
+   * ordinary outcome and are kept out of the log, so this is where "why did
+   * nothing get booked?" gets answered.
+   */
+  skipCounts: Record<string, number>;
 }
 
 export default createContext<AutopilotState>({
@@ -74,4 +83,7 @@ export default createContext<AutopilotState>({
   bookingLog: [],
   bookedCount: 0,
   bookingsRemaining: DEFAULT_MAX_PER_SESSION,
+  requireWholeParty: false,
+  setRequireWholeParty: () => undefined,
+  skipCounts: {},
 });

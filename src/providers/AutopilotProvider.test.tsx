@@ -5,6 +5,7 @@ import { mk, wdw } from '@/__fixtures__/resort';
 import { Booking } from '@/api/itinerary';
 import { Experience, FlexExperience } from '@/api/ll';
 import { fireAlert, primeAudio } from '@/autopilot/alert';
+import { loadBookingLog, saveSettings } from '@/autopilot/storage';
 import { saveWatchList } from '@/autopilot/watchlist';
 import AutopilotContext from '@/contexts/AutopilotContext';
 import BookingDateContext from '@/contexts/BookingDateContext';
@@ -127,8 +128,9 @@ function setupBooking({
   offerHour = 11,
   experiences = [available(BZ, new ParkTime(11))],
   plans = [] as Booking[],
+  guestsResult = party as unknown,
 } = {}) {
-  const guests = jest.fn(async () => party);
+  const guests = jest.fn(async () => guestsResult);
   // Records which attraction was offered, in order -- clearer than indexing
   // into mock.calls, and it keeps the parameter typed and used.
   const offeredIds: string[] = [];
@@ -785,5 +787,73 @@ describe('AutopilotProvider swap', () => {
     // the point is that it never reaches for someone else's reservation.
     await waitFor(() => expect(book).toHaveBeenCalled());
     expect(offerOptions[0]).not.toHaveProperty('booking');
+  });
+});
+
+describe('AutopilotProvider whole-party guard', () => {
+  const partyMemberLeftOut = {
+    eligible: [{ id: 'g1', name: 'A' }],
+    ineligible: [{ id: 'g2', name: 'B', ineligibleReason: 'TOO_EARLY' }],
+  };
+  const onlyOutsiders = {
+    eligible: [{ id: 'g1', name: 'A' }],
+    ineligible: [{ id: 'x', name: 'X', ineligibleReason: 'NOT_IN_PARTY' }],
+  };
+
+  it('books for whoever is eligible by default', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book } = setupBooking({ guestsResult: partyMemberLeftOut });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+  });
+
+  // A Lightning Lane for part of the group splits the party and spends the
+  // slot; when asked to, autopilot refuses rather than booking a subset.
+  it('refuses to book when a party member is ineligible and the guard is on', async () => {
+    saveSettings({ requireWholeParty: true });
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book, offer } = setupBooking({ guestsResult: partyMemberLeftOut });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // Guests outside the saved party are not "the party".
+  it('still books when only outsiders are ineligible', async () => {
+    saveSettings({ requireWholeParty: true });
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book } = setupBooking({ guestsResult: onlyOutsiders });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('AutopilotProvider persistence and diagnostics', () => {
+  it("keeps the day's activity log across a reload", async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book } = setupBooking();
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    // What the next mount will read back.
+    await waitFor(() => expect(loadBookingLog()).toHaveLength(1));
+    expect(loadBookingLog()[0]).toMatchObject({ status: 'booked' });
+  });
+
+  it('exposes why nothing was booked', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true, before: new ParkTime(12) },
+    ]);
+    // Offer comes back outside the window every time.
+    setupBooking({ offerHour: 20 });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(5000);
+    });
+    // The Probe does not render skipCounts; check the effect on the log
+    // instead -- skips must never reach it.
+    expect(loadBookingLog()).toEqual([]);
   });
 });
