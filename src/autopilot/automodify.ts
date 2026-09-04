@@ -78,12 +78,15 @@ export function shouldModify(
   ledger: Pick<AutoBookLedger, 'hasAttempted' | 'remaining'>,
   minImprovementMinutes = MIN_IMPROVEMENT_MINUTES
 ): { ok: true; existing: LLMP } | { ok: false; reason: ModifySkipReason } {
-  if (!target.autoModify) return { ok: false, reason: 'not-enabled' };
+  // bookThenMove implies moving.
+  if (!target.autoModify && !target.bookThenMove) {
+    return { ok: false, reason: 'not-enabled' };
+  }
   if (!existing) return { ok: false, reason: 'no-existing-booking' };
   // Redemption state, park-hopping rules and Disney's own flags can all make a
   // reservation fixed; the API would reject the attempt anyway.
   if (!existing.modifiable) return { ok: false, reason: 'not-modifiable' };
-  if (ledger.hasAttempted(target.experienceId)) {
+  if (ledger.hasAttempted(target.experienceId, 'modify')) {
     return { ok: false, reason: 'already-attempted' };
   }
   if (ledger.remaining <= 0) return { ok: false, reason: 'session-cap' };
@@ -177,7 +180,7 @@ export async function attemptAutoModify(
 
     // Marked before committing: a timed-out modify may still have applied, and
     // re-running it could move a reservation twice.
-    ledger.markAttempted(target.experienceId);
+    ledger.markAttempted(target.experienceId, 'modify');
     const booking = await book(offer);
     ledger.markBooked();
     return { status: 'modified', booking, from, to };

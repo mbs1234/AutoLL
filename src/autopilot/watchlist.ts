@@ -26,6 +26,26 @@ export interface WatchTarget {
    * people will want one and not the other.
    */
   autoModify?: boolean;
+  /**
+   * Book any available time first, then move it toward the window.
+   *
+   * Wait Magic's "start wide, then narrow in": a wide search finds
+   * availability far more often than a narrow one, and holding *something*
+   * beats holding nothing while waiting for the perfect time. With nothing
+   * held, this books whatever is offered regardless of the window; once
+   * something is held, the window becomes the goal the modify step works
+   * toward. Implies both booking and moving.
+   */
+  bookThenMove?: boolean;
+  /**
+   * Keep watching and alerting, but take no action.
+   *
+   * For controlling order by hand: pause the lesser attractions so a
+   * higher-priority one gets booked first, then resume them. A paused
+   * attraction also stops causing a Tier 1 hold for others, since pausing it
+   * is a statement that it should not be booked right now.
+   */
+  paused?: boolean;
 }
 
 export interface WatchHit {
@@ -121,6 +141,8 @@ interface StoredTarget {
    */
   autoBook?: boolean;
   autoModify?: boolean;
+  bookThenMove?: boolean;
+  paused?: boolean;
 }
 
 /** `ParkTime.from` throws on garbage; treat an unparseable bound as absent. */
@@ -161,6 +183,8 @@ export function loadWatchList(): WatchTarget[] {
         // since the failure mode of guessing wrong is an unwanted booking.
         ...(t.autoBook === true ? { autoBook: true } : {}),
         ...(t.autoModify === true ? { autoModify: true } : {}),
+        ...(t.bookThenMove === true ? { bookThenMove: true } : {}),
+        ...(t.paused === true ? { paused: true } : {}),
       },
     ];
   });
@@ -175,6 +199,8 @@ export function saveWatchList(targets: WatchTarget[]): void {
       ...(t.before ? { before: String(t.before) } : {}),
       ...(t.autoBook ? { autoBook: true } : {}),
       ...(t.autoModify ? { autoModify: true } : {}),
+      ...(t.bookThenMove ? { bookThenMove: true } : {}),
+      ...(t.paused ? { paused: true } : {}),
     }))
   );
 }

@@ -79,6 +79,22 @@ describe('AutoBookLedger', () => {
     expect(ledger.hasAttempted(BZ)).toBe(true);
   });
 
+  // Booking and moving the same attraction are separate each-once actions.
+  it('tracks booking and moving independently', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ, 'book');
+    expect(ledger.hasAttempted(BZ, 'book')).toBe(true);
+    expect(ledger.hasAttempted(BZ, 'modify')).toBe(false);
+    ledger.markAttempted(BZ, 'modify');
+    expect(ledger.hasAttempted(BZ, 'modify')).toBe(true);
+  });
+
+  it('defaults to the booking kind', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    expect(ledger.hasAttempted(BZ, 'book')).toBe(true);
+  });
+
   it('resets', () => {
     const ledger = new AutoBookLedger();
     ledger.markAttempted(BZ);
@@ -107,6 +123,11 @@ describe('shouldAttempt()', () => {
 
   it('allows an enabled, unattempted target', () => {
     expect(shouldAttempt(target(), new AutoBookLedger())).toEqual({ ok: true });
+  });
+
+  it('is enabled by bookThenMove alone', () => {
+    const t = target({ autoBook: false, bookThenMove: true });
+    expect(shouldAttempt(t, new AutoBookLedger())).toEqual({ ok: true });
   });
 
   // A timed-out booking request may still have succeeded server-side, so a

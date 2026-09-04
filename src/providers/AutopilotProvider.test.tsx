@@ -595,3 +595,107 @@ describe('AutopilotProvider auto-move', () => {
     expect(offerOptions[0]).not.toHaveProperty('booking');
   });
 });
+
+describe('AutopilotProvider book-then-move', () => {
+  function heldAt(hour: number): Booking {
+    return {
+      type: 'LL',
+      subtype: 'MP',
+      id: 'ent-1',
+      facilityId: BZ,
+      name: 'Held',
+      start: new DateTime(TODAY, new ParkTime(hour)),
+      end: new DateTime(TODAY, new ParkTime(hour + 1)),
+      modifiable: true,
+      guests: [],
+    } as unknown as Booking;
+  }
+
+  // Wait Magic's "start wide, then narrow in": with nothing held, any offered
+  // time is taken so the party holds *something*. Plain auto-book with the
+  // same window would refuse this offer (covered elsewhere).
+  it('books outside the window when nothing is held', async () => {
+    saveWatchList([
+      { experienceId: BZ, bookThenMove: true, before: new ParkTime(12) },
+    ]);
+    const { book, offerOptions } = setupBooking({
+      offerHour: 19,
+      experiences: [available(BZ, new ParkTime(19))],
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    expect(offerOptions[0]).toHaveProperty('date');
+  });
+
+  // Once something is held, the window becomes the goal for the move.
+  it('moves the held reservation into the window', async () => {
+    saveWatchList([
+      { experienceId: BZ, bookThenMove: true, before: new ParkTime(12) },
+    ]);
+    const { book, offerOptions } = setupBooking({
+      offerHour: 11,
+      experiences: [available(BZ, new ParkTime(11))],
+      plans: [heldAt(19)],
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    expect(offerOptions[0]).toHaveProperty('booking');
+  });
+
+  it('does not move a held reservation to a time outside the window', async () => {
+    saveWatchList([
+      { experienceId: BZ, bookThenMove: true, before: new ParkTime(12) },
+    ]);
+    const { book, offer } = setupBooking({
+      offerHour: 15,
+      experiences: [available(BZ, new ParkTime(15))],
+      plans: [heldAt(19)],
+    });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+});
+
+describe('AutopilotProvider pause', () => {
+  it('still alerts but takes no action while paused', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true, paused: true }]);
+    const { book, offer } = setupBooking({
+      experiences: [available(BZ, new ParkTime(11))],
+    });
+    await enable();
+    await waitFor(() => expect(fireAlert).toHaveBeenCalled());
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // Pausing an attraction says "not now", so it must not make others wait for
+  // it either.
+  it('does not hold the Tier 1 slot for a paused attraction', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true },
+      { experienceId: DB, autoBook: true, paused: true },
+    ]);
+    const { offer, offeredIds } = setupBooking({
+      experiences: [
+        available(BZ, new ParkTime(11), { tier: 1, priority: 2.3 }),
+        {
+          ...available(DB, new ParkTime(11)),
+          tier: 1,
+          priority: 1.0,
+          flex: { available: false },
+          dropTimes: [new ParkTime(23, 59)],
+        } as FlexExperience,
+      ],
+    });
+    await enable();
+    await waitFor(() => expect(offer).toHaveBeenCalled());
+    expect(offeredIds[0]).toBe(BZ);
+  });
+});

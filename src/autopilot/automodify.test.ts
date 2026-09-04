@@ -210,13 +210,26 @@ describe('shouldModify()', () => {
     expect(result).toEqual({ ok: false, reason: 'offer-outside-window' });
   });
 
-  it('refuses a second attempt at the same attraction', () => {
+  it('refuses a second move of the same attraction', () => {
     const l = ledger();
-    l.markAttempted(BZ);
+    l.markAttempted(BZ, 'modify');
     expect(shouldModify(target(), existingLL(at(19)), at(11), l)).toEqual({
       ok: false,
       reason: 'already-attempted',
     });
+  });
+
+  // Booking and moving are distinct each-once actions; book-then-move depends
+  // on a prior booking not blocking the move.
+  it('is not blocked by a prior booking of the same attraction', () => {
+    const l = ledger();
+    l.markAttempted(BZ, 'book');
+    expect(shouldModify(target(), existingLL(at(19)), at(11), l).ok).toBe(true);
+  });
+
+  it('is enabled by bookThenMove alone', () => {
+    const t = target({ autoModify: false, bookThenMove: true });
+    expect(shouldModify(t, existingLL(at(19)), at(11), ledger()).ok).toBe(true);
   });
 
   it('refuses at the session cap', () => {
@@ -333,7 +346,9 @@ describe('attemptAutoModify()', () => {
       d
     );
     expect(result).toEqual({ status: 'failed', error: 'boom' });
-    expect(d.ledger.hasAttempted(BZ)).toBe(true);
+    expect(d.ledger.hasAttempted(BZ, 'modify')).toBe(true);
+    // Recorded as a move, not a booking.
+    expect(d.ledger.hasAttempted(BZ, 'book')).toBe(false);
   });
 
   it('treats OfferError as a skip', async () => {

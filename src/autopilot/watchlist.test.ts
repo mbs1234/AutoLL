@@ -188,6 +188,29 @@ describe('watch list persistence', () => {
     ]);
   });
 
+  it('round-trips the action flags', () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true, bookThenMove: true, paused: true },
+      { experienceId: DB, autoModify: true },
+    ]);
+    expect(loadWatchList()).toEqual([
+      { experienceId: BZ, autoBook: true, bookThenMove: true, paused: true },
+      { experienceId: DB, autoModify: true },
+    ]);
+  });
+
+  // Only a literal true arms an action; anything else stored reads as off,
+  // since guessing wrong means an unwanted booking.
+  it('treats non-boolean flag values as off', () => {
+    localStorage.setItem(
+      WATCHLIST_KEY,
+      JSON.stringify([
+        { experienceId: BZ, autoBook: 'yes', bookThenMove: 1, paused: 'true' },
+      ])
+    );
+    expect(loadWatchList()).toEqual([{ experienceId: BZ }]);
+  });
+
   it('returns empty for a non-array value', () => {
     localStorage.setItem(WATCHLIST_KEY, JSON.stringify({ nope: true }));
     expect(loadWatchList()).toEqual([]);

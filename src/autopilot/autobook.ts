@@ -26,7 +26,18 @@ export type AutoBookOutcome =
   | { status: 'skipped'; reason: SkipReason }
   | { status: 'failed'; error: string };
 
-/** Per-session record of what the booker has done. */
+/** The two things autopilot can do to a reservation slot. */
+export type ActionKind = 'book' | 'modify';
+
+/**
+ * Per-session record of what the booker has done.
+ *
+ * Attempts are recorded per action kind, not per attraction. Booking an
+ * attraction and later moving that same booking to a better time are two
+ * distinct, each-once actions -- and the book-then-move strategy depends on
+ * the second not being blocked by the first. Thrash is still bounded: at most
+ * one booking and one move per attraction per session.
+ */
 export class AutoBookLedger {
   protected attempted = new Set<string>();
   protected booked = 0;
@@ -41,8 +52,8 @@ export class AutoBookLedger {
     return Math.max(0, this.maxPerSession - this.booked);
   }
 
-  hasAttempted(experienceId: string): boolean {
-    return this.attempted.has(experienceId);
+  hasAttempted(experienceId: string, kind: ActionKind = 'book'): boolean {
+    return this.attempted.has(`${kind}:${experienceId}`);
   }
 
   /**
@@ -52,8 +63,8 @@ export class AutoBookLedger {
    * out, it may still have succeeded server-side, so retrying is the dangerous
    * option -- better to skip and let the user see it in their plans.
    */
-  markAttempted(experienceId: string): void {
-    this.attempted.add(experienceId);
+  markAttempted(experienceId: string, kind: ActionKind = 'book'): void {
+    this.attempted.add(`${kind}:${experienceId}`);
   }
 
   markBooked(): void {
@@ -75,7 +86,10 @@ export function shouldAttempt(
   target: WatchTarget,
   ledger: Pick<AutoBookLedger, 'hasAttempted' | 'remaining'>
 ): { ok: true } | { ok: false; reason: SkipReason } {
-  if (!target.autoBook) return { ok: false, reason: 'not-enabled' };
+  // bookThenMove implies booking.
+  if (!target.autoBook && !target.bookThenMove) {
+    return { ok: false, reason: 'not-enabled' };
+  }
   if (ledger.hasAttempted(target.experienceId)) {
     return { ok: false, reason: 'already-attempted' };
   }

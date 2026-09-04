@@ -40,6 +40,10 @@ export interface AutopilotState {
   toggleAutoBook: (experienceId: string) => void;
   /** Turn automatic re-timing of an existing reservation on or off. */
   toggleAutoModify: (experienceId: string) => void;
+  /** Book any time first, then move toward the window. Implies both. */
+  toggleBookThenMove: (experienceId: string) => void;
+  /** Keep alerting but take no action for this attraction. */
+  togglePaused: (experienceId: string) => void;
   notifications: AlertPermission;
   /** The most recent alert, for showing what was found without a toast. */
   lastHit?: AutopilotHit;
@@ -59,6 +63,8 @@ export default createContext<AutopilotState>({
   removeTarget: () => undefined,
   toggleAutoBook: () => undefined,
   toggleAutoModify: () => undefined,
+  toggleBookThenMove: () => undefined,
+  togglePaused: () => undefined,
   notifications: 'unsupported',
   bookingLog: [],
   bookedCount: 0,

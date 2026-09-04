@@ -158,7 +158,24 @@ export default function AutopilotProvider({
       }
     }
 
-    const hits = matchWatchList(experiences, targetsRef.current);
+    const date = bookingDateRef.current;
+    const heldToday = (experienceId: string) =>
+      findExistingLL(plansRef.current, experienceId, date);
+
+    // Book-then-move: while nothing is held, the window is stripped so any
+    // offered time matches and gets booked -- holding *something* beats
+    // holding nothing. Once a reservation exists, the original target (with
+    // its window) governs the modify step. The effective target is what
+    // matching and booking see; the real one is looked up for moving.
+    const effectiveTargets = targetsRef.current.map(target =>
+      target.bookThenMove && !heldToday(target.experienceId)
+        ? { ...target, after: undefined, before: undefined }
+        : target
+    );
+    const realTarget = (experienceId: string) =>
+      targetsRef.current.find(t => t.experienceId === experienceId);
+
+    const hits = matchWatchList(experiences, effectiveTargets);
     const { toAlert, alerted } = selectNewAlerts(hits, alertedRef.current);
     alertedRef.current = alerted;
 
@@ -182,7 +199,6 @@ export default function AutopilotProvider({
 
     const expsById = new Map(experiences.map(exp => [exp.id, exp]));
     const nowTime = syncedParkTime();
-    const date = bookingDateRef.current;
 
     // The one-Tier-1-at-a-time rule lifts after the party's first redemption
     // of the day. LLTracker marks a redeemed attraction `experienced` (its
@@ -196,10 +212,11 @@ export default function AutopilotProvider({
     // have *not* become available yet, so it cannot work from `hits` alone,
     // and an attraction already booked is no reason to hold anything back.
     const armed = targetsRef.current.flatMap(target => {
-      if (!target.autoBook) return [];
-      if (findExistingLL(plansRef.current, target.experienceId, date)) {
-        return [];
-      }
+      // Pausing an attraction says "not now", so it must not hold a slot back
+      // for itself either.
+      if (target.paused) return [];
+      if (!target.autoBook && !target.bookThenMove) return [];
+      if (heldToday(target.experienceId)) return [];
       const experience = expsById.get(target.experienceId);
       return experience ? [{ target, experience }] : [];
     });
@@ -211,14 +228,21 @@ export default function AutopilotProvider({
     // constrains what the next can be, so when two attractions drop in the
     // same tick the order is the decision, not an implementation detail.
     for (const hit of orderByPriority(hits)) {
-      const { target, experience } = hit;
-      if (!target.autoBook && !target.autoModify) continue;
-      if (ledgerRef.current.hasAttempted(experience.id)) continue;
+      const { experience } = hit;
+      // hit.target may carry a stripped window; the real one governs moving.
+      const target = realTarget(experience.id) ?? hit.target;
+      if (target.paused) continue;
+      const wantsBook = !!(target.autoBook || target.bookThenMove);
+      const wantsModify = !!(target.autoModify || target.bookThenMove);
+      if (!wantsBook && !wantsModify) continue;
       if (ledgerRef.current.remaining <= 0) break;
 
       // Holding a reservation already makes booking a second one pointless --
       // Disney would reject it -- so the only useful action is re-timing.
-      const existing = findExistingLL(plansRef.current, experience.id, date);
+      const existing = heldToday(experience.id);
+      const kind = existing ? 'modify' : 'book';
+      if (ledgerRef.current.hasAttempted(experience.id, kind)) continue;
+      if (existing ? !wantsModify : !wantsBook) continue;
 
       let outcome: AutoBookOutcome | ModifyOutcome;
       try {
@@ -240,7 +264,8 @@ export default function AutopilotProvider({
           // Only new bookings can spend the party's Tier 1 slot; re-timing one
           // already held does not, which is why this guard sits on this branch.
           if (shouldHoldTierSlot(hit, armed, nowTime, redeemedToday)) continue;
-          outcome = await attemptAutoBook(target, experience, {
+          // The effective target: window stripped under book-then-move.
+          outcome = await attemptAutoBook(hit.target, experience, {
             createOffer: (exp, guests) =>
               ll.offer(exp, guests, { date: bookingDateRef.current }),
             book: offer => ll.book(offer),
@@ -293,7 +318,7 @@ export default function AutopilotProvider({
     // drop lands. Limiting it to auto-book targets bounds the extra requests,
     // and prewarmGuests skips anything already warm.
     const toWarm = targetsRef.current
-      .filter(t => t.autoBook || t.autoModify)
+      .filter(t => !t.paused && (t.autoBook || t.autoModify || t.bookThenMove))
       .map(t => ({ id: t.experienceId }));
     if (toWarm.length > 0) {
       await prewarmGuests(toWarm, bookingDateRef.current, {
@@ -366,6 +391,17 @@ export default function AutopilotProvider({
     );
   }, []);
 
+  const toggleFlag = useCallback(
+    (experienceId: string, flag: 'bookThenMove' | 'paused') => {
+      setTargets(prev =>
+        prev.map(t =>
+          t.experienceId === experienceId ? { ...t, [flag]: !t[flag] } : t
+        )
+      );
+    },
+    []
+  );
+
   const toggleAutoModify = useCallback((experienceId: string) => {
     setTargets(prev =>
       prev.map(t =>
@@ -388,6 +424,8 @@ export default function AutopilotProvider({
         removeTarget,
         toggleAutoBook,
         toggleAutoModify,
+        toggleBookThenMove: id => toggleFlag(id, 'bookThenMove'),
+        togglePaused: id => toggleFlag(id, 'paused'),
         notifications,
         lastHit,
         bookingLog,

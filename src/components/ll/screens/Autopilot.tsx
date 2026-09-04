@@ -72,6 +72,8 @@ export default function Autopilot() {
     removeTarget,
     toggleAutoBook,
     toggleAutoModify,
+    toggleBookThenMove,
+    togglePaused,
     notifications,
     lastHit,
     bookingLog,
@@ -85,6 +87,8 @@ export default function Autopilot() {
     targets.find(t => t.experienceId === experienceId);
   const anyAutoBook = targets.some(t => t.autoBook);
   const anyAutoModify = targets.some(t => t.autoModify);
+  const anyBookThenMove = targets.some(t => t.bookThenMove);
+  const pausedCount = targets.filter(t => t.paused).length;
 
   // Only Multi Pass attractions can be watched: matching reads the `flex`
   // field, and bg1 has no Single Pass booking flow, so offering Single Pass
@@ -147,6 +151,8 @@ export default function Autopilot() {
             const target = targetFor(exp.id);
             const autoBook = !!target?.autoBook;
             const autoModify = !!target?.autoModify;
+            const bookThenMove = !!target?.bookThenMove;
+            const paused = !!target?.paused;
             return (
               <li key={exp.id} className="py-1.5">
                 <div className="flex items-center gap-2">
@@ -193,6 +199,34 @@ export default function Autopilot() {
                   >
                     {autoModify ? 'Auto-move on' : 'Auto-move off'}
                   </Button>
+                  <Button
+                    type="small"
+                    title={
+                      bookThenMove
+                        ? `Stop book-then-move for ${exp.name}`
+                        : `Book then move ${exp.name}`
+                    }
+                    color={
+                      bookThenMove
+                        ? 'bg-red-700 text-white'
+                        : 'bg-gray-200 text-black'
+                    }
+                    onClick={() => toggleBookThenMove(exp.id)}
+                  >
+                    {bookThenMove ? 'Book then move on' : 'Book then move off'}
+                  </Button>
+                  <Button
+                    type="small"
+                    title={paused ? `Resume ${exp.name}` : `Pause ${exp.name}`}
+                    color={
+                      paused
+                        ? 'bg-yellow-600 text-white'
+                        : 'bg-gray-200 text-black'
+                    }
+                    onClick={() => togglePaused(exp.id)}
+                  >
+                    {paused ? 'Paused' : 'Pause'}
+                  </Button>
                 </div>
               </li>
             );
@@ -218,6 +252,26 @@ export default function Autopilot() {
           Autopilot will move it earlier when a better time appears &mdash; but
           only if the gain is at least 30 minutes, and never to a later time
           than you already have.
+        </p>
+      )}
+
+      {anyBookThenMove && (
+        <p className="mt-2 text-sm">
+          <span className="font-semibold">Book then move is on.</span> For
+          attractions marked above, Autopilot books the first time offered
+          &mdash; even outside your window &mdash; so you hold something, then
+          works to move it into the window. A wide search finds availability far
+          more often than a narrow one.
+        </p>
+      )}
+
+      {pausedCount > 0 && (
+        <p className="mt-2 text-sm">
+          <span className="font-semibold">{pausedCount} paused.</span> Paused
+          attractions are still watched and still alert, but nothing is booked
+          or moved for them &mdash; and they will not make Autopilot hold back
+          on others. Use this to make sure a higher-priority attraction gets
+          booked first.
         </p>
       )}
 

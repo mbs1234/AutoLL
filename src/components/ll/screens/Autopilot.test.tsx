@@ -50,6 +50,8 @@ function setup({
   const removeTarget = jest.fn();
   const toggleAutoBook = jest.fn();
   const toggleAutoModify = jest.fn();
+  const toggleBookThenMove = jest.fn();
+  const togglePaused = jest.fn();
   render(
     <ParkContext value={{ park: mk, setPark: () => {} }}>
       <ExperiencesContext
@@ -71,6 +73,8 @@ function setup({
             removeTarget,
             toggleAutoBook,
             toggleAutoModify,
+            toggleBookThenMove,
+            togglePaused,
             notifications,
             bookingLog: [],
             bookedCount: 0,
@@ -89,6 +93,8 @@ function setup({
     removeTarget,
     toggleAutoBook,
     toggleAutoModify,
+    toggleBookThenMove,
+    togglePaused,
   };
 }
 
@@ -321,5 +327,58 @@ describe('Autopilot screen auto-move', () => {
     });
     expect(screen.getByText(/moved/)).toBeVisible();
     expect(screen.getByText(/Slinky Dog Dash/)).toBeVisible();
+  });
+});
+
+describe('Autopilot screen book-then-move and pause', () => {
+  it('shows book-then-move as off by default', () => {
+    setup({ watched: [BZ] });
+    expect(
+      screen.getByTitle(`Book then move ${wdw.experience(BZ).name}`)
+    ).toHaveTextContent('Book then move off');
+  });
+
+  it('toggles book-then-move', () => {
+    const { toggleBookThenMove } = setup({ watched: [BZ] });
+    screen.getByTitle(`Book then move ${wdw.experience(BZ).name}`).click();
+    expect(toggleBookThenMove).toHaveBeenCalledWith(BZ);
+  });
+
+  it('explains book-then-move when armed', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, bookThenMove: true }],
+    });
+    expect(screen.getByText(/Book then move is on/)).toBeVisible();
+    expect(screen.getByText(/even outside your window/)).toBeVisible();
+  });
+
+  it('offers to pause by default', () => {
+    setup({ watched: [BZ] });
+    expect(
+      screen.getByTitle(`Pause ${wdw.experience(BZ).name}`)
+    ).toHaveTextContent('Pause');
+  });
+
+  it('toggles pause', () => {
+    const { togglePaused } = setup({ watched: [BZ] });
+    screen.getByTitle(`Pause ${wdw.experience(BZ).name}`).click();
+    expect(togglePaused).toHaveBeenCalledWith(BZ);
+  });
+
+  it('shows a paused attraction and how many are paused', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, paused: true }],
+    });
+    expect(
+      screen.getByTitle(`Resume ${wdw.experience(BZ).name}`)
+    ).toHaveTextContent('Paused');
+    expect(screen.getByText(/1 paused/)).toBeVisible();
+  });
+
+  it('says nothing about pausing when nothing is paused', () => {
+    setup({ watched: [BZ] });
+    expect(screen.queryByText(/paused\./)).not.toBeInTheDocument();
   });
 });
