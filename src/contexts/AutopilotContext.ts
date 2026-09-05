@@ -40,6 +40,15 @@ export interface AutopilotState {
   isWatched: (experienceId: string) => boolean;
   addTarget: (target: WatchTarget) => void;
   removeTarget: (experienceId: string) => void;
+  /**
+   * Set the whole list at once, replacing whatever was there.
+   *
+   * For a screen that watches exactly one thing at a time. `addTarget` merges
+   * by id, which is right for a watch list built up over a morning and wrong
+   * for a single-goal search: a target left behind by an earlier search would
+   * still be armed while the screen named only the newest one.
+   */
+  replaceTargets: (targets: WatchTarget[]) => void;
   /** Turn automatic booking on or off for one watched attraction. */
   toggleAutoBook: (experienceId: string) => void;
   /** Turn automatic re-timing of an existing reservation on or off. */
@@ -122,6 +131,7 @@ export default createContext<AutopilotState>({
   isWatched: () => false,
   addTarget: () => undefined,
   removeTarget: () => undefined,
+  replaceTargets: () => undefined,
   toggleAutoBook: () => undefined,
   toggleAutoModify: () => undefined,
   toggleBookThenMove: () => undefined,

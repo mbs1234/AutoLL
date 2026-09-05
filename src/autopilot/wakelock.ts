@@ -33,6 +33,31 @@ let generation = 0;
 /** The outstanding request, shared so concurrent callers do not each make one. */
 let pending: Promise<void> | undefined;
 
+/**
+ * Who currently wants the screen held.
+ *
+ * This module is a singleton, and more than one AutopilotProvider can be
+ * mounted at once: the NextLL tab nests a second one inside the app's own.
+ * Without owners, unmounting the nested provider released the lock the outer
+ * one was still holding -- and since `holdScreenAwake` is only ever called
+ * from the gesture that starts a run, nothing re-acquired it. Merely opening
+ * NextLL and leaving cost a running Autopilot its wake lock for the rest of
+ * the day, which is the one failure the lock exists to prevent.
+ *
+ * A set of owners rather than a count, so a double release from one owner
+ * cannot drop another owner's hold.
+ */
+const owners = new Set<unknown>();
+
+/**
+ * Stands in for a caller that does not identify itself.
+ *
+ * Callers that pass nothing all share this one, which is exactly the old
+ * behaviour: any release drops the hold. Only callers that can be mounted
+ * more than once need to say who they are.
+ */
+const DEFAULT_OWNER = Symbol('screen-awake');
+
 export function wakeLockSupported(): boolean {
   return typeof navigator !== 'undefined' && 'wakeLock' in navigator;
 }
@@ -40,6 +65,11 @@ export function wakeLockSupported(): boolean {
 /** Whether a lock is held right now. Exposed for display and tests. */
 export function wakeLockHeld(): boolean {
   return !!sentinel;
+}
+
+/** How many owners are currently holding. Exposed for tests. */
+export function wakeLockOwnerCount(): number {
+  return owners.size;
 }
 
 async function acquire(): Promise<void> {
@@ -88,14 +118,31 @@ async function acquire(): Promise<void> {
  * again, since returning to the tab is exactly when the previous lock has
  * been dropped and the user has just signalled they want it running.
  */
-export async function holdScreenAwake(): Promise<void> {
+export async function holdScreenAwake(
+  owner: unknown = DEFAULT_OWNER
+): Promise<void> {
+  // Recorded even where the lock is unsupported, so that a release from one
+  // owner is never mistaken for the last one on a platform that grants
+  // nothing. Cheap, and it keeps the two calls symmetrical.
+  owners.add(owner);
   if (!wakeLockSupported()) return;
   stopWatching ??= onVisible(() => void acquire());
   await acquire();
 }
 
-/** Release the lock and stop re-acquiring. Safe to call when none is held. */
-export async function releaseScreenAwake(): Promise<void> {
+/**
+ * Release this owner's hold, and the lock itself once nobody is left holding.
+ *
+ * Safe to call when none is held, and safe to call twice.
+ */
+export async function releaseScreenAwake(
+  owner: unknown = DEFAULT_OWNER
+): Promise<void> {
+  owners.delete(owner);
+  // Somebody else still wants the screen. Leaving `generation` alone matters
+  // as much as leaving the sentinel alone: bumping it would make an acquire
+  // still in flight for the remaining owner discard the lock it was granted.
+  if (owners.size > 0) return;
   // Before anything else: a request already in flight must not store its
   // result once this returns.
   ++generation;

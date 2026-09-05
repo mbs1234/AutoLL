@@ -227,6 +227,11 @@ function setupBooking({
   // the poller into burst cadence, where plans polls are ~12s apart instead of
   // ~7.5min.
   nextBookTimes = [] as ParkTime[],
+  // NextLL's settings: no budget, and a reservation may be moved more than
+  // once. Off by default, which is Autopilot.
+  repeatMoves = false,
+  // Lets a test make `book` fail, and say how. `undefined` succeeds.
+  bookErrors = [] as (number | 'no-response' | undefined)[],
 } = {}) {
   const guests = jest.fn(async () => {
     if (guestsStatus !== undefined) {
@@ -252,7 +257,15 @@ function setupBooking({
       return offerAt(offerHour);
     }
   );
-  const book = jest.fn(async () => ({ id: 'ent-1' }));
+  let bookCalls = 0;
+  const book = jest.fn(async () => {
+    const failure = bookErrors[bookCalls++];
+    if (failure === 'no-response') throw new Error('Network request failed');
+    if (failure !== undefined) {
+      throw new RequestError({ ok: false, status: failure, data: {} });
+    }
+    return { id: 'ent-1' };
+  });
   // Mutable so a test can make a booking appear in the itinerary and later
   // vanish, which is what a real booking followed by a manual cancellation
   // looks like from here. Defaults to the same list the context renders.
@@ -297,7 +310,7 @@ function setupBooking({
                 loaderElem: null,
               }}
             >
-              <AutopilotProvider>
+              <AutopilotProvider repeatMoves={repeatMoves}>
                 <Probe />
               </AutopilotProvider>
             </PlansContext>
@@ -1718,5 +1731,78 @@ describe('AutopilotProvider refusals', () => {
     await enable();
     await runTicks(4);
     expect(screen.getByTestId('refused')).toHaveTextContent('');
+  });
+});
+
+// NextLL's settings. The improvement loop is the feature: it takes whatever
+// time it can get, then keeps moving that reservation earlier for as long as
+// the screen is open.
+describe('AutopilotProvider repeated moves', () => {
+  function heldAt(hour: number): Booking {
+    return {
+      type: 'LL',
+      subtype: 'MP',
+      id: 'ent-1',
+      facilityId: BZ,
+      name: 'Held',
+      start: new DateTime(TODAY, new ParkTime(hour)),
+      end: new DateTime(TODAY, new ParkTime(hour + 1)),
+      modifiable: true,
+      guests: [],
+    } as unknown as Booking;
+  }
+
+  const watchBZ = () => saveWatchList([{ experienceId: BZ, autoModify: true }]);
+
+  // The lock is taken before the request goes out, so a failed modify used to
+  // hold it for the rest of the session: `repeatMoves` released it only on
+  // success. Losing one race therefore ended the improvement loop while the
+  // screen went on saying it was still looking.
+  it('tries again after a move that the server rejected', async () => {
+    watchBZ();
+    const { book } = setupBooking({
+      offerHour: 11,
+      plans: [heldAt(19)],
+      repeatMoves: true,
+      bookErrors: [409],
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    await runTicks(2);
+    // The point is that a second attempt happens at all: before the release,
+    // the first rejection held the lock for the rest of the session.
+    expect(book.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // A modify that never reached a server may still have applied, and doing it
+  // again would move the same reservation twice. Unknown stays locked.
+  it('does not try again when the request never got a response', async () => {
+    watchBZ();
+    const { book } = setupBooking({
+      offerHour: 11,
+      plans: [heldAt(19)],
+      repeatMoves: true,
+      bookErrors: ['no-response'],
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    await runTicks(RELEASE_TICKS);
+    expect(book).toHaveBeenCalledTimes(1);
+  });
+
+  // Autopilot's rule is one move per attraction per session, which is what
+  // stops it thrashing a reservation as availability shifts. A rejection must
+  // not become a way around that.
+  it('leaves Autopilot at one move per attraction', async () => {
+    watchBZ();
+    const { book } = setupBooking({
+      offerHour: 11,
+      plans: [heldAt(19)],
+      bookErrors: [409],
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    await runTicks(RELEASE_TICKS);
+    expect(book).toHaveBeenCalledTimes(1);
   });
 });

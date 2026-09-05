@@ -2,6 +2,7 @@ import {
   holdScreenAwake,
   releaseScreenAwake,
   wakeLockHeld,
+  wakeLockOwnerCount,
   wakeLockSupported,
 } from './wakelock';
 
@@ -39,11 +40,28 @@ function uninstallWakeLock() {
   Reflect.deleteProperty(navigator, 'wakeLock');
 }
 
+/** A request the test resolves by hand, to hold it open across a release. */
+function deferredRequest() {
+  let grant: (sentinel: unknown) => void = () => undefined;
+  const request = () =>
+    new Promise(resolve => {
+      grant = resolve;
+    });
+  return { request, grant: (s: unknown) => grant(s) };
+}
+
 const becomeVisible = () =>
   document.dispatchEvent(new Event('visibilitychange'));
 
+/** Two providers that can be mounted at the same time. */
+const OUTER = Symbol('outer');
+const INNER = Symbol('inner');
+
 afterEach(async () => {
-  // Module-level state: leave no lock or listener behind for the next test.
+  // Module-level state: leave no lock, owner or listener behind for the next
+  // test.
+  await releaseScreenAwake(OUTER);
+  await releaseScreenAwake(INNER);
   await releaseScreenAwake();
   uninstallWakeLock();
 });
@@ -116,16 +134,6 @@ describe('holdScreenAwake()', () => {
 // `setEnabled` fires holdScreenAwake without awaiting it, so turning autopilot
 // straight back off can land while the request is still outstanding.
 describe('acquire/release races', () => {
-  /** A request the test resolves by hand, to hold it open across a release. */
-  function deferredRequest() {
-    let grant: (sentinel: unknown) => void = () => undefined;
-    const request = () =>
-      new Promise(resolve => {
-        grant = resolve;
-      });
-    return { request, grant: (s: unknown) => grant(s) };
-  }
-
   it('gives back a lock granted after the release', async () => {
     const sentinel = fakeSentinel();
     const { request, grant } = deferredRequest();
@@ -205,5 +213,82 @@ describe('releaseScreenAwake()', () => {
     await holdScreenAwake();
     await expect(releaseScreenAwake()).resolves.toBeUndefined();
     expect(wakeLockHeld()).toBe(false);
+  });
+});
+
+// The NextLL tab nests a second AutopilotProvider inside the app's own, so
+// two of them are mounted whenever that tab is open. This module is a
+// singleton, and before owners existed the inner one's unmount released the
+// lock the outer one was still holding -- permanently, because the lock is
+// only ever requested from the gesture that starts a run.
+describe('with more than one owner', () => {
+  it('keeps the lock while anyone still wants it', async () => {
+    const sentinel = fakeSentinel();
+    installWakeLock(async () => sentinel);
+    await holdScreenAwake(OUTER);
+    await holdScreenAwake(INNER);
+
+    await releaseScreenAwake(INNER);
+    expect(wakeLockHeld()).toBe(true);
+    expect(sentinel.release).not.toHaveBeenCalled();
+
+    await releaseScreenAwake(OUTER);
+    expect(wakeLockHeld()).toBe(false);
+    expect(sentinel.release).toHaveBeenCalled();
+  });
+
+  it('keeps re-acquiring for the owner that is left', async () => {
+    const wakeLock = installWakeLock(async () => fakeSentinel());
+    await holdScreenAwake(OUTER);
+    await holdScreenAwake(INNER);
+    await releaseScreenAwake(INNER);
+
+    // The browser drops locks on its own; returning to the page is when the
+    // listener puts it back. Detaching that listener with an owner still
+    // holding would leave the screen sleeping for a running poller.
+    becomeVisible();
+    await Promise.resolve();
+    expect(wakeLock.request).toHaveBeenCalled();
+  });
+
+  it('ignores a second release from the same owner', async () => {
+    const sentinel = fakeSentinel();
+    installWakeLock(async () => sentinel);
+    await holdScreenAwake(OUTER);
+    await holdScreenAwake(INNER);
+
+    await releaseScreenAwake(INNER);
+    await releaseScreenAwake(INNER);
+    expect(wakeLockHeld()).toBe(true);
+  });
+
+  // Bumping the generation on a release that is not the last one would make
+  // an acquire still in flight for the remaining owner hand back the lock it
+  // had just been granted -- the surviving owner would end up holding nothing.
+  it('does not cancel an acquire in flight for another owner', async () => {
+    const sentinel = fakeSentinel();
+    const { request, grant } = deferredRequest();
+    installWakeLock(request as (t: string) => Promise<unknown>);
+
+    // One shared request serves both owners, so this is the same in-flight
+    // acquire that INNER's release could cancel.
+    const held = holdScreenAwake(OUTER);
+    void holdScreenAwake(INNER);
+    await releaseScreenAwake(INNER);
+    grant(sentinel);
+    await held;
+
+    expect(wakeLockHeld()).toBe(true);
+    expect(sentinel.release).not.toHaveBeenCalled();
+  });
+
+  // An unsupported platform grants nothing, but the bookkeeping must still
+  // pair up -- otherwise a release from one owner looks like the last one.
+  it('tracks owners even where the API is missing', async () => {
+    await holdScreenAwake(OUTER);
+    await holdScreenAwake(INNER);
+    expect(wakeLockOwnerCount()).toBe(2);
+    await releaseScreenAwake(INNER);
+    expect(wakeLockOwnerCount()).toBe(1);
   });
 });

@@ -22,6 +22,7 @@ import {
 import {
   ModifyOutcome,
   attemptAutoModify,
+  canRetryModify,
   findExistingLL,
   shouldModify,
 } from '@/autopilot/automodify';
@@ -165,6 +166,12 @@ export default function AutopilotProvider({
   const refusalRef = useRef<RefusalState>(NO_REFUSALS);
   const [refusals, setRefusals] = useState<RefusalState>(NO_REFUSALS);
 
+  // Identifies this provider to the wake-lock module, which is a singleton
+  // shared with any other provider mounted at the same time -- NextLL nests a
+  // second one inside the app's own. Without it, this component's unmount
+  // released the lock a different, still-running provider was holding.
+  const wakeLockOwner = useRef({}).current;
+
   const alertedRef = useRef<ReadonlySet<string>>(new Set());
   const tickCountRef = useRef(0);
   const targetsRef = useRef(targets);
@@ -281,7 +288,10 @@ export default function AutopilotProvider({
   // Unmount is the one path that bypasses `setEnabled(false)`, and a wake lock
   // outliving the screen that requested it would keep the phone awake with
   // nothing running.
-  useEffect(() => () => void releaseScreenAwake(), []);
+  useEffect(
+    () => () => void releaseScreenAwake(wakeLockOwner),
+    [wakeLockOwner]
+  );
 
   const refillBudget = useCallback(() => {
     grantedRef.current = Math.min(
@@ -786,6 +796,21 @@ export default function AutopilotProvider({
       setBookedCount(ledgerRef.current.bookedCount);
       setBookingsRemaining(ledgerRef.current.remaining);
 
+      // A modify takes the ledger lock before it commits, so a failure leaves
+      // it held -- and `repeatMoves` only ever releases it on success. One
+      // lost race therefore ended the improvement loop for the rest of the
+      // session while the screen went on saying it was still looking. Give
+      // the lock back where the server told us the move definitely did not
+      // happen; see canRetryModify for why that is narrower than "it failed".
+      if (
+        repeatMoves &&
+        kind === 'modify' &&
+        outcome.status === 'failed' &&
+        canRetryModify(outcome.httpStatus)
+      ) {
+        ledgerRef.current.releaseAttempt(experience.id, 'modify');
+      }
+
       if (
         outcome.status === 'booked' ||
         outcome.status === 'modified' ||
@@ -899,50 +924,53 @@ export default function AutopilotProvider({
   // the release in `setEnabled` never runs. Holding the screen awake for a loop
   // that has stopped drains the battery for nothing.
   useEffect(() => {
-    if (status.mode === 'stopped') void releaseScreenAwake();
-  }, [status.mode]);
+    if (status.mode === 'stopped') void releaseScreenAwake(wakeLockOwner);
+  }, [status.mode, wakeLockOwner]);
 
-  const setEnabled = useCallback((on: boolean) => {
-    if (!on) {
-      void releaseScreenAwake();
-    } else {
-      // Both of these must be initiated inside the user gesture that turned
-      // autopilot on -- primeAudio synchronously, and the permission request
-      // at least called from here.
-      primeAudio();
-      void requestAlertPermission().then(setNotifications);
-      // A locking screen backgrounds the page and clamps its timers, which
-      // stops the poller as surely as closing it would. Requested from the
-      // gesture for the same reason as the two above. Best-effort throughout:
-      // where it is unsupported or refused, behaviour is unchanged.
-      void holdScreenAwake();
-      // Forget past alerts so turning it back on re-alerts anything already
-      // available, rather than staying silent about it.
-      alertedRef.current = new Set();
-      tickCountRef.current = 0;
-      // Fresh locks and a clear cache per run, so a stale eligibility result
-      // from an earlier session cannot drive a booking. The day's spend is
-      // deliberately *not* fresh: turning autopilot off and on used to be the
-      // only way to get more actions, and it came bundled with a wipe of the
-      // drop-detection baseline, so buying actions cost the first poll's
-      // ability to see a drop. Use the refill button instead.
-      ledgerRef.current.reset();
-      cacheRef.current.clear();
-      // Re-baseline: a run comparing against the previous run's plans would
-      // clear the cache on its own first poll.
-      entitlementsRef.current = undefined;
-      setBookedCount(0);
-      setBookingsRemaining(ledgerRef.current.remaining);
-      budgetSkipRef.current = false;
-      setSkipCounts({});
-      refusalRef.current = NO_REFUSALS;
-      setRefusals(NO_REFUSALS);
-      // Fresh baseline: the first poll of a run sees everything as "new", and
-      // that must read as a baseline rather than a drop.
-      snapshotRef.current = new Map();
-    }
-    setEnabledState(on);
-  }, []);
+  const setEnabled = useCallback(
+    (on: boolean) => {
+      if (!on) {
+        void releaseScreenAwake(wakeLockOwner);
+      } else {
+        // Both of these must be initiated inside the user gesture that turned
+        // autopilot on -- primeAudio synchronously, and the permission request
+        // at least called from here.
+        primeAudio();
+        void requestAlertPermission().then(setNotifications);
+        // A locking screen backgrounds the page and clamps its timers, which
+        // stops the poller as surely as closing it would. Requested from the
+        // gesture for the same reason as the two above. Best-effort throughout:
+        // where it is unsupported or refused, behaviour is unchanged.
+        void holdScreenAwake(wakeLockOwner);
+        // Forget past alerts so turning it back on re-alerts anything already
+        // available, rather than staying silent about it.
+        alertedRef.current = new Set();
+        tickCountRef.current = 0;
+        // Fresh locks and a clear cache per run, so a stale eligibility result
+        // from an earlier session cannot drive a booking. The day's spend is
+        // deliberately *not* fresh: turning autopilot off and on used to be the
+        // only way to get more actions, and it came bundled with a wipe of the
+        // drop-detection baseline, so buying actions cost the first poll's
+        // ability to see a drop. Use the refill button instead.
+        ledgerRef.current.reset();
+        cacheRef.current.clear();
+        // Re-baseline: a run comparing against the previous run's plans would
+        // clear the cache on its own first poll.
+        entitlementsRef.current = undefined;
+        setBookedCount(0);
+        setBookingsRemaining(ledgerRef.current.remaining);
+        budgetSkipRef.current = false;
+        setSkipCounts({});
+        refusalRef.current = NO_REFUSALS;
+        setRefusals(NO_REFUSALS);
+        // Fresh baseline: the first poll of a run sees everything as "new", and
+        // that must read as a baseline rather than a drop.
+        snapshotRef.current = new Map();
+      }
+      setEnabledState(on);
+    },
+    [wakeLockOwner]
+  );
 
   // Reads `targets` rather than the ref: a stable identity over a ref would
   // never re-render a watch toggle when the list changed.
@@ -961,6 +989,10 @@ export default function AutopilotProvider({
 
   const removeTarget = useCallback((experienceId: string) => {
     setTargets(prev => prev.filter(t => t.experienceId !== experienceId));
+  }, []);
+
+  const replaceTargets = useCallback((next: WatchTarget[]) => {
+    setTargets(next);
   }, []);
 
   const toggleAutoBook = useCallback((experienceId: string) => {
@@ -1025,6 +1057,7 @@ export default function AutopilotProvider({
         isWatched,
         addTarget,
         removeTarget,
+        replaceTargets,
         toggleAutoBook,
         toggleAutoModify,
         toggleBookThenMove: id => toggleFlag(id, 'bookThenMove'),

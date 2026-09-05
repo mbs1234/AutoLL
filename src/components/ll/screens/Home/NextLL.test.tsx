@@ -1,9 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 
 import { mk, wdw } from '@/__fixtures__/resort';
 import { Booking } from '@/api/itinerary';
 import { Experience } from '@/api/ll';
+import { NEXTLL_PENDING_KEY, PendingSearch } from '@/autopilot/nextll';
 import { PollerStatus } from '@/autopilot/usePoller';
+import { WatchTarget, loadWatchList } from '@/autopilot/watchlist';
 import AutopilotContext, { AutopilotState } from '@/contexts/AutopilotContext';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ClientsContext, { Clients } from '@/contexts/ClientsContext';
@@ -12,9 +15,10 @@ import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
 import TabsContext from '@/contexts/TabContext';
 import { DateTime, ParkTime } from '@/datetime';
+import kvdb from '@/kvdb';
 import { TODAY } from '@/testing';
 
-import { NEXTLL, NextLL } from './NextLL';
+import { NEXTLL, NEXTLL_WATCHLIST_KEY, NextLL } from './NextLL';
 
 const BZ = '80010114';
 const OFF: PollerStatus = { mode: 'off', consecutiveFailures: 0, polls: 0 };
@@ -51,7 +55,8 @@ function heldAt(hour: number): Booking {
 
 function setup({
   status = OFF,
-  enabled = false,
+  enabled: initialEnabled = false,
+  targets: initialTargets = [] as WatchTarget[],
   plans = [] as Booking[],
   ...rest
 }: Partial<AutopilotState> & { plans?: Booking[] } = {}) {
@@ -59,10 +64,49 @@ function setup({
   const addTarget = jest.fn();
   const removeTarget = jest.fn();
   const setPartyIds = jest.fn();
+  const replaceTargets = jest.fn();
   const changeTab = jest.fn();
   const tab = (name: string) => ({ name, icon: null, component: () => null });
   const tabs = [tab('LL'), tab('Plans'), tab(NEXTLL)];
-  render(
+
+  // Stateful rather than a frozen object, so that pressing Stop actually
+  // leaves the component in the stopped state. The spies still record every
+  // call; they just also let the change take effect, which is what makes the
+  // unmount tests below mean anything -- "stop, then leave" is a different
+  // situation from "leave", and a fixed `enabled` cannot tell them apart.
+  function Autopilot({ children }: { children: React.ReactNode }) {
+    const [enabled, setEnabledState] = useState(initialEnabled);
+    const [targets, setTargetsState] = useState(initialTargets);
+    return (
+      <AutopilotContext
+        value={
+          {
+            enabled,
+            setEnabled: (on: boolean) => {
+              setEnabled(on);
+              setEnabledState(on);
+            },
+            status,
+            targets,
+            isWatched: () => false,
+            addTarget,
+            removeTarget,
+            replaceTargets: (next: WatchTarget[]) => {
+              replaceTargets(next);
+              setTargetsState(next);
+            },
+            bookingLog: [],
+            bookedCount: 0,
+            bookingsRemaining: 10,
+            ...rest,
+          } as unknown as AutopilotState
+        }
+      >
+        {children}
+      </AutopilotContext>
+    );
+  }
+  const view = render(
     <ClientsContext value={{ ll: { setPartyIds } } as unknown as Clients}>
       <TabsContext
         value={{
@@ -93,25 +137,9 @@ function setup({
                   loaderElem: null,
                 }}
               >
-                <AutopilotContext
-                  value={
-                    {
-                      enabled,
-                      setEnabled,
-                      status,
-                      targets: [],
-                      isWatched: () => false,
-                      addTarget,
-                      removeTarget,
-                      bookingLog: [],
-                      bookedCount: 0,
-                      bookingsRemaining: 10,
-                      ...rest,
-                    } as unknown as AutopilotState
-                  }
-                >
+                <Autopilot>
                   <NextLL />
-                </AutopilotContext>
+                </Autopilot>
               </ExperiencesContext>
             </PlansContext>
           </BookingDateContext>
@@ -119,10 +147,22 @@ function setup({
       </TabsContext>
     </ClientsContext>
   );
-  return { setEnabled, addTarget, removeTarget, setPartyIds, changeTab };
+  return {
+    ...view,
+    setEnabled,
+    addTarget,
+    removeTarget,
+    replaceTargets,
+    setPartyIds,
+    changeTab,
+  };
 }
 
 const name = wdw.experience(BZ).name;
+
+beforeEach(() => {
+  kvdb.clear();
+});
 
 describe('NextLL', () => {
   // The only way back to the rest of the app. Rendering a bare div instead of
@@ -147,37 +187,37 @@ describe('NextLL', () => {
   });
 
   it('does nothing without an attraction chosen', () => {
-    const { setEnabled, addTarget } = setup();
-    screen.getByText('Find it').click();
-    expect(addTarget).not.toHaveBeenCalled();
+    const { setEnabled, replaceTargets } = setup();
+    fireEvent.click(screen.getByText('Find it'));
+    expect(replaceTargets).not.toHaveBeenCalled();
     expect(setEnabled).not.toHaveBeenCalled();
   });
 
   // `bookThenMove` is this problem already solved: take any time so something
   // is held, then treat the window as the goal to move toward.
   it('arms a single book-then-move target with no bound by default', () => {
-    const { setEnabled, addTarget } = setup();
+    const { setEnabled, replaceTargets } = setup();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: BZ } });
-    screen.getByText('Find it').click();
-    expect(addTarget).toHaveBeenCalledWith({
-      experienceId: BZ,
-      bookThenMove: true,
-    });
+    fireEvent.click(screen.getByText('Find it'));
+    // Replaced, not appended: `addTarget` merges by id, so a target left over
+    // from an earlier search would stay armed while the screen named only the
+    // new one, and Stop would clear just one of the two.
+    expect(replaceTargets).toHaveBeenCalledWith([
+      { experienceId: BZ, bookThenMove: true },
+    ]);
     expect(setEnabled).toHaveBeenCalledWith(true);
   });
 
   it('passes a return-by time through as the upper bound', () => {
-    const { addTarget } = setup();
+    const { replaceTargets } = setup();
     fireEvent.change(screen.getByRole('combobox'), { target: { value: BZ } });
     fireEvent.change(screen.getByLabelText('Latest acceptable return time'), {
       target: { value: '13:00' },
     });
-    screen.getByText('Find it').click();
-    expect(addTarget).toHaveBeenCalledWith({
-      experienceId: BZ,
-      bookThenMove: true,
-      before: new ParkTime(13),
-    });
+    fireEvent.click(screen.getByText('Find it'));
+    expect(replaceTargets).toHaveBeenCalledWith([
+      { experienceId: BZ, bookThenMove: true, before: new ParkTime(13) },
+    ]);
   });
 
   it('reports that nothing is held yet while it searches', () => {
@@ -211,13 +251,119 @@ describe('NextLL', () => {
   });
 
   it('stops and clears its target', () => {
-    const { setEnabled, removeTarget } = setup({
+    const { setEnabled, replaceTargets } = setup({
       enabled: true,
       status: RUNNING,
       targets: [{ experienceId: BZ }],
     });
-    screen.getByText('Stop looking').click();
+    fireEvent.click(screen.getByText('Stop looking'));
     expect(setEnabled).toHaveBeenCalledWith(false);
-    expect(removeTarget).toHaveBeenCalledWith(BZ);
+    expect(replaceTargets).toHaveBeenCalledWith([]);
+  });
+});
+
+// Leaving the tab unmounts the provider, so the search stops whatever this
+// screen does about it. These cover the part it can control: not leaving an
+// armed target behind, and leaving enough to offer the search back.
+describe('NextLL when its tab goes away', () => {
+  it('clears the target so it cannot re-arm behind the next search', () => {
+    const { unmount } = setup({
+      enabled: true,
+      status: RUNNING,
+      targets: [{ experienceId: BZ }],
+    });
+    unmount();
+    expect(loadWatchList(NEXTLL_WATCHLIST_KEY)).toEqual([]);
+  });
+
+  it('remembers what it was looking for, bound and all', () => {
+    const { unmount } = setup({
+      enabled: true,
+      status: RUNNING,
+      targets: [{ experienceId: BZ, before: new ParkTime(13) }],
+    });
+    unmount();
+    expect(kvdb.getDaily<PendingSearch>(NEXTLL_PENDING_KEY)).toEqual({
+      experienceId: BZ,
+      before: '13:00:00',
+    });
+  });
+
+  // Nothing was running, so there is nothing to offer back. Prompting anyway
+  // would make the prompt meaningless.
+  it('remembers nothing when no search was running', () => {
+    const { unmount } = setup();
+    unmount();
+    expect(kvdb.getDaily(NEXTLL_PENDING_KEY)).toBeUndefined();
+  });
+
+  it('forgets it once the search is stopped by hand', () => {
+    const { unmount } = setup({
+      enabled: true,
+      status: RUNNING,
+      targets: [{ experienceId: BZ }],
+    });
+    fireEvent.click(screen.getByText('Stop looking'));
+    unmount();
+    expect(kvdb.getDaily(NEXTLL_PENDING_KEY)).toBeUndefined();
+  });
+});
+
+describe('NextLL on returning to the tab', () => {
+  const pending = (before?: string) =>
+    kvdb.setDaily<PendingSearch>(NEXTLL_PENDING_KEY, {
+      experienceId: BZ,
+      ...(before ? { before } : {}),
+    });
+
+  it('offers the interrupted search back by name', () => {
+    pending();
+    setup();
+    const offer = screen.getByText(/Still looking for/);
+    expect(offer).toBeVisible();
+    // Scoped to the offer: the attraction is also one of the options in the
+    // picker below it.
+    expect(offer).toHaveTextContent(name);
+  });
+
+  it('re-arms the same goal in one tap, bound and all', () => {
+    pending('13:00:00');
+    const { replaceTargets, setEnabled } = setup();
+    fireEvent.click(screen.getByText('Resume'));
+    expect(replaceTargets).toHaveBeenCalledWith([
+      { experienceId: BZ, bookThenMove: true, before: new ParkTime(13) },
+    ]);
+    expect(setEnabled).toHaveBeenCalledWith(true);
+    expect(kvdb.getDaily(NEXTLL_PENDING_KEY)).toBeUndefined();
+  });
+
+  it('refills the form so the goal is visible, not just applied', () => {
+    pending('13:00:00');
+    setup();
+    fireEvent.click(screen.getByText('Resume'));
+    expect(screen.queryByText(/Still looking for/)).not.toBeInTheDocument();
+  });
+
+  it('drops the offer without arming anything', () => {
+    pending();
+    const { replaceTargets, setEnabled } = setup();
+    fireEvent.click(screen.getByText('Start something else'));
+    expect(screen.queryByText(/Still looking for/)).not.toBeInTheDocument();
+    expect(replaceTargets).not.toHaveBeenCalled();
+    expect(setEnabled).not.toHaveBeenCalled();
+    expect(kvdb.getDaily(NEXTLL_PENDING_KEY)).toBeUndefined();
+  });
+
+  // The park selector sits in this screen's own header. A search for a Magic
+  // Kingdom ride cannot run while Epcot is loaded, so offering it there would
+  // be an offer the button could not keep -- but it is kept, not discarded,
+  // so switching the park back brings it into reach again.
+  it('stays quiet about an attraction the loaded park does not have', () => {
+    kvdb.setDaily<PendingSearch>(NEXTLL_PENDING_KEY, {
+      experienceId: 'not_in_this_park',
+    });
+    setup();
+    expect(screen.queryByText(/Still looking for/)).not.toBeInTheDocument();
+    expect(kvdb.getDaily(NEXTLL_PENDING_KEY)).toBeDefined();
   });
 });

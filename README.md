@@ -33,6 +33,8 @@ Same engine underneath — it is `book then move` with a single target — but n
 
 Its watch list is stored separately, so starting a search does not disturb whatever Autopilot is watching.
 
+Leaving the tab stops the search — the poller lives in the tab, and a bookmarklet cannot keep a 600ms loop alive behind a backgrounded page anyway. It is no longer silent about it: the goal is remembered for the rest of the park day, and coming back offers **Resume** in one tap.
+
 ## Getting started
 
 1. Open <https://mbs1234.github.io/AutoLL/> on your phone and install the bookmarklet (or userscript).

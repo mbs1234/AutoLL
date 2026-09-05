@@ -1,8 +1,13 @@
-import { use, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 
 import { Experience } from '@/api/ll';
 import { findExistingLL } from '@/autopilot/automodify';
-import { parseBound } from '@/autopilot/watchlist';
+import {
+  clearPendingSearch,
+  loadPendingSearch,
+  savePendingSearch,
+} from '@/autopilot/nextll';
+import { WatchTarget, parseBound, saveWatchList } from '@/autopilot/watchlist';
 import Button from '@/components/Button';
 import Tab from '@/components/Tab';
 import { Time } from '@/components/Time';
@@ -70,18 +75,15 @@ export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
   const { experiences, refreshExperiences } = use(ExperiencesContext);
   const { plans } = use(PlansContext);
   const { bookingDate } = use(BookingDateContext);
-  const {
-    enabled,
-    setEnabled,
-    status,
-    targets,
-    addTarget,
-    removeTarget,
-    bookingLog,
-  } = use(AutopilotContext);
+  const { enabled, setEnabled, status, targets, replaceTargets, bookingLog } =
+    use(AutopilotContext);
 
   const [choice, setChoice] = useState('');
   const [before, setBefore] = useState('');
+  // What an interrupted search was after, read once on mount. Cleared as soon
+  // as anything is started or dismissed, so it only ever describes a search
+  // that is not running.
+  const [pending, setPending] = useState(loadPendingSearch);
 
   // Multi Pass only, same as Autopilot: matching reads `flex`, and there is no
   // Single Pass booking flow to offer.
@@ -90,6 +92,10 @@ export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const target = targets[0];
+  const pendingExp =
+    !enabled &&
+    pending &&
+    bookable.find(exp => exp.id === pending.experienceId);
   const chosen = bookable.find(
     exp => exp.id === (target?.experienceId ?? choice)
   );
@@ -97,21 +103,70 @@ export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
   const goalMet =
     !!held && (!target?.before || +held.start.time <= +target.before);
 
-  function start() {
-    if (!choice) return;
-    const bound = parseBound(before);
-    addTarget({
-      experienceId: choice,
+  // `replaceTargets` rather than `addTarget`: this screen watches exactly one
+  // attraction and names it, so a target from an earlier search must not
+  // survive alongside the new one.
+  function begin(experienceId: string, beforeText: string) {
+    const bound = parseBound(beforeText);
+    const target: WatchTarget = {
+      experienceId,
       bookThenMove: true,
       ...(bound ? { before: bound } : {}),
-    });
+    };
+    replaceTargets([target]);
+    clearPendingSearch();
+    setPending(undefined);
     setEnabled(true);
+  }
+
+  function start() {
+    if (!choice) return;
+    begin(choice, before);
+  }
+
+  function resume() {
+    if (!pending) return;
+    setChoice(pending.experienceId);
+    // The stored bound carries seconds; the time input does not want them.
+    setBefore(pending.before?.slice(0, 5) ?? '');
+    begin(pending.experienceId, pending.before ?? '');
+  }
+
+  function dismissPending() {
+    clearPendingSearch();
+    setPending(undefined);
   }
 
   function stop() {
     setEnabled(false);
-    if (target) removeTarget(target.experienceId);
+    replaceTargets([]);
+    clearPendingSearch();
+    setPending(undefined);
   }
+
+  // Leaving the tab unmounts the provider, so the poller stops whatever this
+  // does. What it must not do is leave the target behind: the provider
+  // reloads the list on mount, and a leftover would be armed again while the
+  // screen described only whatever was chosen next.
+  //
+  // Written straight to storage rather than through `replaceTargets`, because
+  // an unmounting component's state update never reaches the effect that
+  // persists it.
+  const latest = useRef({ enabled, target });
+  latest.current = { enabled, target };
+  useEffect(
+    () => () => {
+      const { enabled, target } = latest.current;
+      saveWatchList([], NEXTLL_WATCHLIST_KEY);
+      if (enabled && target) {
+        savePendingSearch({
+          experienceId: target.experienceId,
+          ...(target.before ? { before: String(target.before) } : {}),
+        });
+      }
+    },
+    []
+  );
 
   return (
     <Tab
@@ -126,7 +181,21 @@ export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
     >
       {!enabled ? (
         <>
-          <p>
+          {pendingExp && (
+            <div className="mt-2 rounded-sm border border-gray-300 p-3">
+              <p>
+                Still looking for{' '}
+                <span className="font-semibold">{pendingExp.name}</span>?
+                Searching stopped when you left this tab.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <Button onClick={resume}>Resume</Button>
+                <Button onClick={dismissPending}>Start something else</Button>
+              </div>
+            </div>
+          )}
+
+          <p className={pendingExp ? 'mt-4' : undefined}>
             Pick one attraction and NextLL will take the first Lightning Lane it
             can get, then keep trying to move it earlier.
           </p>
@@ -222,7 +291,8 @@ export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
 
           <p className="mt-3 text-sm text-gray-600">
             Keep this screen open and in front. Your phone will not sleep while
-            it runs.
+            it runs. Switching tabs stops the search &mdash; come back and it
+            will offer to pick it up again.
           </p>
 
           {bookingLog.length > 0 && (

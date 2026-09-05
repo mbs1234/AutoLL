@@ -81,6 +81,7 @@ function setup({
             isWatched: (id: string) => watched.includes(id),
             addTarget,
             removeTarget,
+            replaceTargets: () => {},
             toggleAutoBook,
             toggleAutoModify,
             toggleBookThenMove,
