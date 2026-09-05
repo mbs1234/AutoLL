@@ -50,7 +50,19 @@ export default function useDataLoader(): {
             if (error instanceof Error && msgs[name]) {
               setFlashArgs(msgs[name], 'error');
             } else if (Number.isInteger(status)) {
-              setFlashArgs(msgs[status] ? msgs[status] : msgs.request, 'error');
+              // The status, when nothing maps it. "Network request failed" is
+              // the fallback for *any* unmapped status, so it said the same
+              // thing for a refused request as for a dropped connection --
+              // which is the one distinction that matters when Disney may be
+              // rejecting these calls outright. 0 is not a status: `fetchJson`
+              // uses it when fetch itself threw, so name that rather than
+              // printing a number no server sent.
+              setFlashArgs(
+                msgs[status]
+                  ? msgs[status]
+                  : `${msgs.request} (${status || 'no response'})`,
+                'error'
+              );
             } else {
               console.error(error);
               setFlashArgs(msgs.error, 'error');

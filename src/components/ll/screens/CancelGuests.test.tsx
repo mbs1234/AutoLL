@@ -45,6 +45,6 @@ describe('CancelGuests', () => {
     click('Select All');
     click('Cancel Reservation');
     await loading();
-    see('Network request failed');
+    see('Network request failed (no response)');
   });
 });
