@@ -40,9 +40,25 @@ goofy  (static) ──► overlay index/start/news/contact/autoloader/icon/css
 
 ## Booking
 
-**This build cannot create a Lightning Lane at Walt Disney World. Confirmed by
-test on 2026-09-05: the booking attempt returns 403.** Read this before
-trusting the autopilot with a trip.
+**A booking attempt from this build returns 403 (tested 2026-09-05). Why is not
+yet settled.** Read this before trusting the autopilot with a trip.
+
+Two candidate causes, and they lead to very different places:
+
+1. **The bot wall wants the sensor header** upstream started sending in
+   December 2025. If so, nothing this fork can honestly do will fix it.
+2. **The requests looked like a bare client.** `fetchJson` sets
+   `credentials: 'omit'` on everything, so bg1 was stripping the cookies the
+   browser already holds for `disneyworld.disney.go.com` — including the ones
+   Disney's CDN sets to distinguish a browser from a script. bg1 runs
+   *injected into that page*, so those cookies are genuinely its own; omitting
+   them is the anomaly, not sending them.
+
+The second was untested when the 403 was recorded, and it is a one-line fix
+(`credentials: 'same-origin'` in `ApiClient.request`, scoped so the
+cross-origin time-sync and live-data calls stay cookie-less). **That fix has
+landed and the test has not been re-run since.** Do that before concluding
+anything.
 
 The 403 is the answer to the open question below. It is Disney refusing the
 request, not a timeout: `fetchJson` reports a thrown fetch as status 0, and

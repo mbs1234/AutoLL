@@ -58,6 +58,16 @@ export abstract class ApiClient {
       method: request.method,
       params: request.params,
       data: request.data,
+      // The fetch default, rather than `fetchJson`'s `omit`. bg1 runs injected
+      // into Disney's own page, so these calls are same-origin and the browser
+      // already holds that origin's cookies from the user's real session --
+      // including the ones Disney's CDN sets to tell a browser apart from a
+      // bare client. Omitting them made every request look like something no
+      // browser would send, which is a bot signal in itself. Scoped here
+      // rather than changed in `fetchJson`, because that is also used for the
+      // cross-origin time-sync and live-data calls, which have no business
+      // receiving cookies.
+      credentials: 'same-origin',
       headers: {
         'Accept-Language': 'en-US',
         Authorization: `BEARER ${accessToken}`,
