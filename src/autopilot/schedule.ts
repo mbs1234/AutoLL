@@ -44,8 +44,13 @@ export interface CadenceInput {
   now: ParkTime;
   /** Drop times for the park, e.g. `park.dropTimes`. */
   dropTimes?: ParkTime[];
-  /** When the next Lightning Lane may be booked, from `LLClient.nextBookTime`. */
-  nextBookTime?: ParkTime;
+  /**
+   * Every moment a booking window opens, from `LLClient.nextBookTimes`.
+   *
+   * Plural because a party's slots free at different times. Taking only the
+   * first left the loop idling at 45 seconds through the rest.
+   */
+  nextBookTimes?: ParkTime[];
 }
 
 export interface Cadence {
@@ -88,9 +93,12 @@ export function secondsUntil(now: ParkTime, target: ParkTime): number {
 export function cadence({
   now,
   dropTimes = [],
-  nextBookTime,
+  nextBookTimes = [],
 }: CadenceInput): Cadence {
-  const targets = [...dropTimes, ...(nextBookTime ? [nextBookTime] : [])];
+  // Defaulting to an empty array rather than testing for undefined keeps the
+  // two kinds of target symmetrical, which is what lets the loop below score
+  // every one of them without knowing where it came from.
+  const targets = [...dropTimes, ...nextBookTimes];
 
   let burst: { target: ParkTime; secondsToTarget: number } | undefined;
   let approach: { target: ParkTime; secondsToTarget: number } | undefined;

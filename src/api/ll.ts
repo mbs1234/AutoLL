@@ -84,7 +84,7 @@ export type Experience = ExpData &
   };
 export type FlexExperience = Experience & Required<Pick<Experience, 'flex'>>;
 
-interface ExperiencesResponse {
+export interface ExperiencesResponse {
   availableExperiences: ApiExperience[];
   eligibility?: {
     geniePlusEligibility?: {
@@ -214,6 +214,46 @@ function compareByReason(a: Guest, b: Guest, reason: IneligibleReason) {
   return +(b.ineligibleReason === reason) - +(a.ineligibleReason === reason);
 }
 
+/**
+ * Every moment Disney says a booking window opens on `date`, soonest first.
+ *
+ * Read for the date actually requested rather than today. The two coincide for
+ * every current caller, but reading `parkDate()` here while the rest of
+ * `experiences()` answers for `date` would report today next booking time as
+ * though it applied to a future park day.
+ *
+ * Plural because a party's slots free at different times, and each entry is a
+ * moment Disney has said inventory opens. Keeping only the earliest threw the
+ * rest away, so the poller idled at 45 seconds through every later one.
+ *
+ * Ordered by `ParkTime`, which measures from a 4am day start, rather than by
+ * the raw `HH:MM:SS` string: a window at 00:15 on a late Magic Kingdom night
+ * belongs after 23:00, not at the head of the list where a string sort puts
+ * it. That is a live bug in the single-window code this replaces.
+ *
+ * A window whose time will not parse is dropped rather than thrown on.
+ * `ParkTime.from` throws a RangeError on anything that is not HH:MM:SS, and
+ * this now reads every window instead of one, so a single malformed entry
+ * would fail the whole poll -- and MAX_CONSECUTIVE_FAILURES of those stop
+ * autopilot for the day.
+ */
+export function bookWindows(
+  eligibility: ExperiencesResponse['eligibility'],
+  date: string
+): ParkTime[] {
+  const windows =
+    eligibility?.geniePlusEligibility?.[date]?.flexEligibilityWindows ?? [];
+  return windows
+    .flatMap(w => {
+      try {
+        return w.time?.time ? [ParkTime.from(w.time.time)] : [];
+      } catch {
+        return [];
+      }
+    })
+    .sort((a, b) => +a - +b);
+}
+
 export abstract class LLClient extends ApiClient {
   readonly rules = {
     book: false,
@@ -222,7 +262,14 @@ export abstract class LLClient extends ApiClient {
     prebook: false,
     timeSelect: false,
   };
-  nextBookTime: ParkTime | undefined;
+  /**
+   * Every moment Disney says a booking window opens, soonest first.
+   *
+   * Reassigned wholesale on every `experiences()` call rather than mutated,
+   * so a park or date change cannot leave a stale window behind and the
+   * poller's ref cannot observe a half-written list mid-tick.
+   */
+  nextBookTimes: ParkTime[] = [];
   /**
    * Tipboard ids the resort data file does not know, from the last fetch.
    *
@@ -249,6 +296,17 @@ export abstract class LLClient extends ApiClient {
     return this.#lastOffer;
   }
 
+  /**
+   * The soonest booking window, which is the one the screens name.
+   *
+   * Derived rather than stored alongside the array: two homes for the same
+   * fact drift apart, and both readers want a single time rather than a `[0]`
+   * in their JSX.
+   */
+  get nextBookTime(): ParkTime | undefined {
+    return this.nextBookTimes[0];
+  }
+
   setPartyIds(partyIds: string[]) {
     this.partyIds = new Set(partyIds);
   }
@@ -261,17 +319,9 @@ export abstract class LLClient extends ApiClient {
       params: { date },
       userId: true,
     });
-    // Keyed by the date actually requested, not today. The two coincide for
-    // every current caller, but reading `parkDate()` here while the rest of
-    // the method answers for `date` would report today's next booking time as
-    // though it applied to a future park day.
-    const nextBookTimeString = (
-      data.eligibility?.geniePlusEligibility?.[date]?.flexEligibilityWindows ||
-      []
-    ).sort((a, b) => a.time.time.localeCompare(b.time.time))[0]?.time.time;
-    this.nextBookTime = nextBookTimeString
-      ? ParkTime.from(nextBookTimeString)
-      : undefined;
+    // Unconditional: a response with no eligibility block must clear the
+    // previous park's windows rather than leave them to be burst for.
+    this.nextBookTimes = bookWindows(data.eligibility, date);
 
     const unknown: string[] = [];
     const mapped = data.availableExperiences.flatMap(exp => {

@@ -33,7 +33,7 @@ export interface PollerOptions {
    */
   onTick: () => Promise<void>;
   dropTimes?: ParkTime[];
-  nextBookTime?: ParkTime;
+  nextBookTimes?: ParkTime[];
 }
 
 const OFF: PollerStatus = { mode: 'off', consecutiveFailures: 0, polls: 0 };
@@ -55,21 +55,21 @@ export default function usePoller({
   enabled,
   onTick,
   dropTimes,
-  nextBookTime,
+  nextBookTimes,
 }: PollerOptions): PollerStatus {
   const [status, setStatus] = useState<PollerStatus>(OFF);
 
   // Latest values, read at tick time. Held in refs so that a park change, a
-  // new nextBookTime, or a re-created onTick does not tear the loop down and
-  // restart it -- a restart fires an immediate extra poll, and
+  // new set of booking windows, or a re-created onTick does not tear the loop
+  // down and restart it -- a restart fires an immediate extra poll, and
   // ExperiencesProvider re-creates its callback on every park or date change,
   // so the loop would rarely survive.
   const onTickRef = useRef(onTick);
   const dropTimesRef = useRef(dropTimes);
-  const nextBookTimeRef = useRef(nextBookTime);
+  const nextBookTimesRef = useRef(nextBookTimes);
   onTickRef.current = onTick;
   dropTimesRef.current = dropTimes;
-  nextBookTimeRef.current = nextBookTime;
+  nextBookTimesRef.current = nextBookTimes;
 
   useEffect(() => {
     if (!enabled) {
@@ -112,7 +112,7 @@ export default function usePoller({
       const next = cadence({
         now: syncedParkTime(),
         dropTimes: dropTimesRef.current,
-        nextBookTime: nextBookTimeRef.current,
+        nextBookTimes: nextBookTimesRef.current,
       });
 
       // Keep the clock offset fresh while something is actually coming up.

@@ -78,8 +78,20 @@ describe('cadence()', () => {
     expect(cadence({ now: at(9, 50), dropTimes: [DROP] }).mode).toBe('idle');
   });
 
-  it('treats nextBookTime as a target', () => {
-    const c = cadence({ now: at(13, 0), nextBookTime: at(13, 0, 10) });
+  // The point of the plural field. Under the single earliest window, this is
+  // what an 11:00 slot that has come and gone looked like: idling at 45s
+  // through the 13:30 one Disney had already announced.
+  it('bursts for a later window once the first has passed', () => {
+    const c = cadence({
+      now: at(13, 30),
+      nextBookTimes: [at(11, 0), at(13, 30, 10)],
+    });
+    expect(c.mode).toBe('burst');
+    expect(c.target).toEqual(at(13, 30, 10));
+  });
+
+  it('treats a booking window as a target', () => {
+    const c = cadence({ now: at(13, 0), nextBookTimes: [at(13, 0, 10)] });
     expect(c.mode).toBe('burst');
     expect(c.target).toEqual(at(13, 0, 10));
   });
@@ -104,7 +116,7 @@ describe('cadence()', () => {
     const c = cadence({
       now: at(9, 46, 50),
       dropTimes: [DROP, at(9, 49)],
-      nextBookTime: at(9, 48),
+      nextBookTimes: [at(9, 48)],
     });
     expect(c.mode).toBe('burst');
   });

@@ -305,7 +305,7 @@ export const times: HourlyTimes = [
   ['12:05', '12:25', '12:45'],
 ].map(times => times.map(t => ParkTime.from(t)));
 
-ll.nextBookTime = new ParkTime(11) as any;
+ll.nextBookTimes = [new ParkTime(11)] as any;
 
 export function mockOffer(offer: Offer) {
   jest.spyOn(ll, 'offer').mockResolvedValue(offer);
