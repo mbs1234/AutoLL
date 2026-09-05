@@ -422,6 +422,16 @@ export const experiences: ResortData['experiences'] = {
     land: mainStreet,
     type: 'E',
   },
+  411805943: {
+    name: 'Wondrous Journeys (Fireworks)',
+    land: mainStreet,
+    type: 'E',
+  },
+  411805942: {
+    name: 'Wondrous Journeys (Projections)',
+    land: mainStreet,
+    type: 'E',
+  },
 
   // Disneyland - Characters
   18738682: {
@@ -671,16 +681,6 @@ export const experiences: ResortData['experiences'] = {
   353457: {
     name: 'Turtle Talk with Crush',
     land: hollywood,
-    type: 'E',
-  },
-  411805943: {
-    name: 'Wondrous Journeys (Fireworks)',
-    land: mainStreet,
-    type: 'E',
-  },
-  411805942: {
-    name: 'Wondrous Journeys (Projections)',
-    land: mainStreet,
     type: 'E',
   },
   401479: {

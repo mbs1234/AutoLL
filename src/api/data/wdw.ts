@@ -211,13 +211,17 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.4208394, -81.5784733],
     avgWait: 17,
   },
+  // Hardest Magic Kingdom Tier 1 since it reopened: sold out by 8:47am and
+  // 9:07am on the two 2026 days sampled, well ahead of Tiana's. No avgWait
+  // on purpose -- no trustworthy post-reopening average exists yet, and an
+  // invented one would decide swaps and same-tick ordering.
   80010110: {
     name: 'Big Thunder Mountain Railroad',
     land: frontierland,
     type: 'A',
     geo: [28.4197486, -81.5845092],
     tier: 1,
-    priority: 2.3,
+    priority: 1.0,
     highlight: true,
   },
   80010114: {
@@ -225,8 +229,8 @@ export const experiences: ResortData['experiences'] = {
     land: tomorrowland,
     type: 'A',
     geo: [28.418446, -81.5796479],
-    priority: 3.0,
-    avgWait: 22,
+    priority: 1.4,
+    avgWait: 32,
     highlight: true,
   },
   80010232: {
@@ -278,7 +282,7 @@ export const experiences: ResortData['experiences'] = {
     type: 'A',
     geo: [28.4180339, -81.5834548],
     tier: 1,
-    priority: 1.0,
+    priority: 1.1,
     avgWait: 53,
     highlight: true,
   },
@@ -311,7 +315,7 @@ export const experiences: ResortData['experiences'] = {
     land: fantasyland,
     type: 'A',
     geo: [28.4202297, -81.5801966],
-    priority: 1.2,
+    priority: 1.5,
     avgWait: 33,
     highlight: true,
   },
@@ -340,7 +344,7 @@ export const experiences: ResortData['experiences'] = {
     type: 'A',
     geo: [28.4203332, -81.5818676],
     tier: 1,
-    priority: 1.1,
+    priority: 1.2,
     avgWait: 45,
     highlight: true,
   },
@@ -687,12 +691,21 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.3748995, -81.5507208],
     avgWait: 17,
   },
+  412577054: {
+    name: "Soarin' Across America",
+    land: nature,
+    type: 'A',
+    geo: [28.3735924, -81.5522783],
+    priority: 1.3,
+    avgWait: 33,
+    highlight: true,
+  },
   20194: {
     name: "Soarin' Around the World",
     land: nature,
     type: 'A',
     geo: [28.3735924, -81.5522783],
-    priority: 3.0,
+    priority: 1.3,
     avgWait: 33,
     highlight: true,
   },
@@ -701,7 +714,7 @@ export const experiences: ResortData['experiences'] = {
     land: nature,
     type: 'A',
     geo: [28.3735924, -81.5522783],
-    priority: 3.0,
+    priority: 1.3,
     avgWait: 35,
     highlight: true,
   },
@@ -962,7 +975,7 @@ export const experiences: ResortData['experiences'] = {
     land: animation,
     type: 'A',
     geo: [28.3576612, -81.5609242],
-    priority: 2.3,
+    priority: 4.0,
   },
   19259335: {
     name: "Mickey & Minnie's Runaway Railway",
@@ -991,14 +1004,14 @@ export const experiences: ResortData['experiences'] = {
     geo: [28.3548829, -81.5604682],
     highlight: true,
   },
-  80010182: {
-    name: "Rock 'n' Roller Coaster",
+  412573652: {
+    name: "Rock 'n' Roller Coaster Starring The Muppets",
     land: hollywood,
     type: 'A',
     geo: [28.3597607, -81.5606022],
     tier: 1,
-    priority: 2.2,
-    avgWait: 47,
+    priority: 1.1,
+    avgWait: 59,
     highlight: true,
   },
   18904138: {
@@ -1024,7 +1037,7 @@ export const experiences: ResortData['experiences'] = {
     land: toyStory,
     type: 'A',
     geo: [28.3563865, -81.5619019],
-    priority: 1.1,
+    priority: 1.2,
     avgWait: 46,
     highlight: true,
     dropTimes: ['13:17', '15:47'],
@@ -1047,11 +1060,11 @@ export const experiences: ResortData['experiences'] = {
     type: 'E',
     geo: [28.3591529, -81.5597641],
   },
-  19583373: {
-    name: 'Disney Junior Play and Dance',
+  412521565: {
+    name: 'Disney Jr. Mickey Mouse Clubhouse Live!',
     land: animation,
-    geo: [28.3579409, -81.5607914],
     type: 'E',
+    geo: [28.3579409, -81.5607914],
   },
   18693119: {
     name: 'Disney Movie Magic',
@@ -1201,10 +1214,10 @@ export const experiences: ResortData['experiences'] = {
     land: asia,
     type: 'A',
     geo: [28.3584979, -81.587395],
-    priority: 3.0,
+    priority: 3.1,
     avgWait: 28,
     highlight: true,
-    dropTimes: ['08:47', '12:47', '15:47'],
+    dropTimes: ['08:47', '12:47', '14:47', '15:47'],
   },
   80010175: {
     name: 'Gorilla Falls Exploration Trail',
@@ -1224,7 +1237,7 @@ export const experiences: ResortData['experiences'] = {
     land: africa,
     type: 'A',
     geo: [28.3592779, -81.5921478],
-    priority: 3.1,
+    priority: 3.0,
     avgWait: 27,
     highlight: true,
     dropTimes: ['09:47', '12:47'],
@@ -1250,8 +1263,9 @@ export const experiences: ResortData['experiences'] = {
   },
   412430582: {
     name: 'Zootopia: Better Zoogether',
-    land: discovery,
+    land: discIsland,
     type: 'A',
+    priority: 3.2,
   },
 
   // Animal Kingdom - Entertainment
@@ -1338,7 +1352,7 @@ export const experiences: ResortData['experiences'] = {
   },
   411921961: {
     name: 'Moana (Character Landing)',
-    land: discovery,
+    land: discIsland,
     type: 'C',
   },
 
@@ -1350,6 +1364,12 @@ export const experiences: ResortData['experiences'] = {
   },
 
   // Ignored
+  //
+  // Retired facility ids. Kept as null rather than deleted: that is what
+  // suppresses the "Missing experience" warning if Disney serves one again,
+  // and it records that the id was considered rather than overlooked.
+  80010182: null, // -> 412573652, Rock 'n' Roller Coaster Starring The Muppets
+  19583373: null, // -> 412521565, Disney Jr. Mickey Mouse Clubhouse Live!
   412380330: null,
   412380331: null,
   412380332: null,
