@@ -58,6 +58,8 @@ function setup({
   const setRequireWholeParty = jest.fn();
   const setDryRun = jest.fn();
   const setAvoidOverlaps = jest.fn();
+  const refillBudget = jest.fn();
+  const setMaxActionsPerDay = jest.fn();
   const setTargetWindow = jest.fn();
   render(
     <ParkContext value={{ park: mk, setPark: () => {} }}>
@@ -97,6 +99,10 @@ function setup({
             bookingLog: [],
             bookedCount: 0,
             bookingsRemaining: 3,
+            actionBudget: 10,
+            refillBudget,
+            maxActionsPerDay: 10,
+            setMaxActionsPerDay,
             ...rest,
           }}
         >
@@ -118,6 +124,8 @@ function setup({
     setDryRun,
     setAvoidOverlaps,
     setTargetWindow,
+    refillBudget,
+    setMaxActionsPerDay,
   };
 }
 
@@ -236,8 +244,44 @@ describe('Autopilot screen', () => {
       bookingsRemaining: 2,
     });
     expect(screen.getByText(/Automatic booking is on/)).toBeVisible();
-    expect(screen.getByText(/at most 3 per session/)).toBeVisible();
-    expect(screen.getByText(/2 left/)).toBeVisible();
+    expect(screen.getByText(/2 of 10 actions left today/)).toBeVisible();
+  });
+
+  // Book-then-move and swap both imply booking, so both spend the budget.
+  // Gating the count on auto-book alone hid it from anyone using only those.
+  it.each(['bookThenMove', 'autoSwap', 'autoModify'])(
+    'shows the day budget for a target armed only with %s',
+    flag => {
+      setup({
+        watched: [BZ],
+        targets: [{ experienceId: BZ, [flag]: true }],
+        bookingsRemaining: 2,
+      });
+      expect(screen.getByText(/2 of 10 actions left today/)).toBeVisible();
+    }
+  );
+
+  it('offers a top-up once the day budget is gone, and only while running', () => {
+    const { refillBudget } = setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoBook: true }],
+      bookingsRemaining: 0,
+      status: { mode: 'idle', consecutiveFailures: 0, polls: 3 },
+    });
+    expect(screen.getByText(/actions are used up/)).toBeVisible();
+    screen.getByText('Add more for today').click();
+    expect(refillBudget).toHaveBeenCalled();
+  });
+
+  // Off, an exhausted budget is a fact about earlier today rather than the
+  // reason nothing is happening now.
+  it('says nothing about the budget while switched off', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoBook: true }],
+      bookingsRemaining: 0,
+    });
+    expect(screen.queryByText(/actions are used up/)).not.toBeInTheDocument();
   });
 
   it('says nothing about booking when no target is armed', () => {
@@ -714,5 +758,36 @@ describe('clash avoidance', () => {
     const { setAvoidOverlaps } = setup({ avoidOverlaps: true });
     screen.getByTitle('Allow times that clash with existing plans').click();
     expect(setAvoidOverlaps).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('the day allowance', () => {
+  const field = () => screen.getByLabelText('Actions allowed per day');
+
+  // Typing "15" passes through "1". A controlled input writing straight
+  // through would set the day's budget to 1 mid-keystroke, which with two
+  // actions already spent is enough to stop autopilot until the second digit
+  // lands.
+  it('commits on blur rather than on every keystroke', () => {
+    const { setMaxActionsPerDay } = setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoBook: true }],
+      maxActionsPerDay: 10,
+    });
+    fireEvent.change(field(), { target: { value: '1' } });
+    fireEvent.change(field(), { target: { value: '15' } });
+    expect(setMaxActionsPerDay).not.toHaveBeenCalled();
+    fireEvent.blur(field());
+    expect(setMaxActionsPerDay).toHaveBeenCalledTimes(1);
+    expect(setMaxActionsPerDay).toHaveBeenCalledWith(15);
+  });
+
+  it('shows the allowance currently set', () => {
+    setup({
+      watched: [BZ],
+      targets: [{ experienceId: BZ, autoSwap: true }],
+      maxActionsPerDay: 12,
+    });
+    expect(field()).toHaveValue(12);
   });
 });

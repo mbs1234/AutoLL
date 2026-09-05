@@ -237,7 +237,7 @@ describe('shouldModify()', () => {
     l.markBooked();
     expect(shouldModify(target(), existingLL(at(19)), at(11), l)).toEqual({
       ok: false,
-      reason: 'session-cap',
+      reason: 'budget-exhausted',
     });
   });
 });

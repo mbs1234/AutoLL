@@ -5,7 +5,7 @@ import { DateTime, ParkTime } from '@/datetime';
 import {
   AutoBookLedger,
   CONFIRM_ABSENT_POLLS,
-  DEFAULT_MAX_PER_SESSION,
+  DEFAULT_ACTIONS_PER_DAY,
   attemptAutoBook,
   offerIsAcceptable,
   shouldAttempt,
@@ -55,7 +55,7 @@ function deps(overrides: Partial<Parameters<typeof attemptAutoBook>[2]> = {}) {
 
 describe('AutoBookLedger', () => {
   it('starts with the full allowance', () => {
-    expect(new AutoBookLedger().remaining).toBe(DEFAULT_MAX_PER_SESSION);
+    expect(new AutoBookLedger().remaining).toBe(DEFAULT_ACTIONS_PER_DAY);
   });
 
   it('counts bookings against the allowance', () => {
@@ -331,7 +331,7 @@ describe('shouldAttempt()', () => {
     ledger.markBooked();
     expect(shouldAttempt(target(), ledger)).toEqual({
       ok: false,
-      reason: 'session-cap',
+      reason: 'budget-exhausted',
     });
   });
 });
@@ -478,6 +478,52 @@ describe('attemptAutoBook()', () => {
       experience,
       d
     );
-    expect(second).toEqual({ status: 'skipped', reason: 'session-cap' });
+    expect(second).toEqual({ status: 'skipped', reason: 'budget-exhausted' });
+  });
+});
+
+/**
+ * The day's allowance. A session-scoped cap bounded nothing: the ledger lived
+ * in a ref, so a plain page reload refilled it.
+ */
+describe('AutoBookLedger day budget', () => {
+  it('counts what earlier runs today already spent', () => {
+    const ledger = new AutoBookLedger(10, 4);
+    expect(ledger.spent).toBe(4);
+    expect(ledger.remaining).toBe(6);
+  });
+
+  // The bug this replaces: turning autopilot off and on was the refill, and it
+  // came bundled with a wipe of the drop-detection baseline.
+  it('carries the run forward across a reset rather than refilling', () => {
+    const ledger = new AutoBookLedger(10);
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    expect(ledger.remaining).toBe(9);
+    ledger.reset();
+    expect(ledger.spent).toBe(1);
+    expect(ledger.remaining).toBe(9);
+    // The per-attraction lock is session state and does clear.
+    expect(ledger.hasAttempted(BZ)).toBe(false);
+  });
+
+  it('reports every change in the charge, so the day survives a reload', () => {
+    const spends: number[] = [];
+    const ledger = new AutoBookLedger(10, 0, n => spends.push(n));
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    ledger.reset();
+    expect(spends).toEqual([1, 1, 1]);
+  });
+
+  // Lowering the allowance below what has been spent leaves nothing remaining
+  // rather than going negative or refunding anything.
+  it('changes the ceiling without changing the spend', () => {
+    const ledger = new AutoBookLedger(10, 6);
+    ledger.setBudget(4);
+    expect(ledger.spent).toBe(6);
+    expect(ledger.remaining).toBe(0);
+    ledger.setBudget(12);
+    expect(ledger.remaining).toBe(6);
   });
 });

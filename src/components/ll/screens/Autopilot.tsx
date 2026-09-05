@@ -1,7 +1,7 @@
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
 
 import { Experience } from '@/api/ll';
-import { DEFAULT_MAX_PER_SESSION } from '@/autopilot/autobook';
+import { MAX_ACTIONS_PER_DAY, MIN_ACTIONS_PER_DAY } from '@/autopilot/autobook';
 import { LEARNED_MIN_DAYS } from '@/autopilot/learned';
 import { PollerStatus } from '@/autopilot/usePoller';
 import Button from '@/components/Button';
@@ -25,7 +25,7 @@ const SKIP_TEXT: Record<string, string> = {
   'not-full': 'a slot was free, so it booked instead of swapping',
   'no-worse-reservation': 'nothing held was worth giving up',
   'already-attempted': 'a booking for it was already held or in flight',
-  'session-cap': 'the session limit was reached',
+  'budget-exhausted': "today's action budget was used up",
   'outside-window': 'the advertised time was outside the window',
   'overlaps-plans': 'it clashed with something already booked',
   'not-modifiable': 'Disney marked the reservation unmodifiable',
@@ -39,7 +39,17 @@ const MODE_TEXT: Record<PollerStatus['mode'], string> = {
   stopped: 'Stopped after repeated errors',
 };
 
-function StatusRow({ status }: { status: PollerStatus }) {
+function StatusRow({
+  status,
+  bookingsRemaining,
+  actionBudget,
+  onRefill,
+}: {
+  status: PollerStatus;
+  bookingsRemaining: number;
+  actionBudget: number;
+  onRefill: () => void;
+}) {
   return (
     <div className="mt-3 text-sm">
       <div>
@@ -68,6 +78,22 @@ function StatusRow({ status }: { status: PollerStatus }) {
           retry.
         </p>
       )}
+      {/* Only while something is running: off, the count is a fact about
+          earlier today rather than a reason nothing is happening now. */}
+      {status.mode !== 'off' && bookingsRemaining <= 0 && (
+        <div className="mt-2 rounded-sm bg-amber-100 p-2 text-amber-900">
+          <p className="font-semibold">
+            Today&rsquo;s {actionBudget} actions are used up.
+          </p>
+          <p className="mt-1">
+            Autopilot keeps watching and alerting, but will not book, move or
+            swap again today until you top it up.
+          </p>
+          <Button type="small" onClick={onRefill}>
+            Add more for today
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -80,6 +106,40 @@ function StatusRow({ status }: { status: PollerStatus }) {
  * and a mis-tapped header toggle that silently started or stopped polling
  * would be worse than one extra tap.
  */
+/**
+ * The day's allowance, committed on blur rather than per keystroke.
+ *
+ * Typing "15" passes through "1", and a controlled input writing straight
+ * through would set the day's budget to 1 mid-keystroke -- enough, with two
+ * actions already spent, to mark it exhausted and stop autopilot acting until
+ * the second digit landed.
+ */
+function BudgetInput({
+  value,
+  onCommit,
+}: {
+  value: number;
+  onCommit: (actions: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+  return (
+    <label className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+      <span className="text-gray-600">Actions allowed per day</span>
+      <input
+        type="number"
+        min={MIN_ACTIONS_PER_DAY}
+        max={MAX_ACTIONS_PER_DAY}
+        step={1}
+        className="w-20 rounded-sm border border-gray-300 px-1 py-0.5"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={() => onCommit(Number(draft))}
+      />
+    </label>
+  );
+}
+
 export default function Autopilot() {
   const {
     enabled,
@@ -98,6 +158,10 @@ export default function Autopilot() {
     lastHit,
     bookingLog,
     bookingsRemaining,
+    actionBudget,
+    refillBudget,
+    maxActionsPerDay,
+    setMaxActionsPerDay,
     requireWholeParty,
     setRequireWholeParty,
     dryRun,
@@ -118,6 +182,12 @@ export default function Autopilot() {
   const anyBookThenMove = targets.some(t => t.bookThenMove);
   const pausedCount = targets.filter(t => t.paused).length;
   const anyAutoSwap = targets.some(t => t.autoSwap);
+  // Any armed action spends the budget, so any of them should see the count.
+  // Gating it on auto-book alone hid it from anyone running only book-then-move
+  // or swap -- both of which imply booking.
+  const anyAction = targets.some(
+    t => t.autoBook || t.autoModify || t.bookThenMove || t.autoSwap
+  );
 
   const nameOf = (experienceId: string) =>
     experiences.find(e => e.id === experienceId)?.name ?? experienceId;
@@ -157,7 +227,12 @@ export default function Autopilot() {
         >
           {enabled ? 'Turn off autopilot' : 'Turn on autopilot'}
         </Button>
-        <StatusRow status={status} />
+        <StatusRow
+          status={status}
+          bookingsRemaining={bookingsRemaining}
+          actionBudget={actionBudget}
+          onRefill={refillBudget}
+        />
       </div>
 
       {dryRun && (
@@ -405,11 +480,26 @@ export default function Autopilot() {
           <span className="font-semibold">Automatic booking is on.</span>{' '}
           Autopilot will book the attractions marked above without asking, but
           only when the offered return time falls inside that attraction&rsquo;s
-          window. It will book at most {DEFAULT_MAX_PER_SESSION} per session (
-          {bookingsRemaining} left), will not book an attraction it is already
-          holding or still waiting on an answer for, and forgets everything when
-          the page reloads.
+          window. It will not book an attraction it is already holding or still
+          waiting on an answer for.
         </p>
+      )}
+
+      {anyAction && (
+        <>
+          <p className="mt-2 text-sm">
+            <span className="font-semibold">
+              {bookingsRemaining} of {actionBudget} actions left today.
+            </span>{' '}
+            Bookings, moves and swaps share one budget for the park day. It
+            survives a reload and turning Autopilot off and on &mdash; both of
+            which used to refill it silently, which meant it bounded nothing.
+          </p>
+          <BudgetInput
+            value={maxActionsPerDay}
+            onCommit={setMaxActionsPerDay}
+          />
+        </>
       )}
 
       {anyAutoModify && (

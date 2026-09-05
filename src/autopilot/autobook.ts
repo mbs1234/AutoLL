@@ -12,14 +12,42 @@ import { ParkTime } from '@/datetime';
 import { WatchTarget, inWindow } from './watchlist';
 
 /**
- * Cap on automatic bookings per session.
+ * Cap on automatic actions per park day.
  *
- * A runaway booker is expensive in a way a runaway poller is not: every
- * booking consumes a real entitlement and may displace one already held. The
- * cap is deliberately low, resets only on reload, and exists so that a bug in
- * the matching logic cannot burn a whole day's Lightning Lanes.
+ * A runaway booker is expensive in a way a runaway poller is not: every action
+ * consumes a real entitlement and may displace one already held. So there is a
+ * cap, and bookings, moves and swaps share it.
+ *
+ * It counts the *day*, not the session, because a session-scoped cap did not
+ * bound anything. The ledger lived in a `useRef`, so turning autopilot off and
+ * on refilled it -- and so did a plain page reload, which on a phone that
+ * backgrounds a tab mid-day is the ordinary path rather than the exotic one.
+ * The number that was meant to be a safety limit was in practice a limit on
+ * how many actions could happen between reloads, which is not a quantity
+ * anyone cares about.
+ *
+ * Ten rather than three: a day-scoped budget has to cover a whole park day of
+ * legitimate booking, and three was calibrated against a cap that refilled
+ * itself. Refills are still available, deliberately, but now they are a
+ * decision rather than a side effect of the page reloading.
  */
-export const DEFAULT_MAX_PER_SESSION = 3;
+export const DEFAULT_ACTIONS_PER_DAY = 10;
+
+/** Floor and ceiling on the day's allowance, applied to every path that sets it. */
+export const MIN_ACTIONS_PER_DAY = 1;
+/**
+ * The day's hard ceiling, enforced on the effective budget rather than only on
+ * the setting.
+ *
+ * The setting, the persisted refill total, and their sum are each clamped to
+ * it. Clamping only the setting would leave the refill total -- a number
+ * persisted in localStorage and therefore editable -- able to remove the limit
+ * entirely, which is the exact failure the ceiling exists to prevent.
+ */
+export const MAX_ACTIONS_PER_DAY = 30;
+
+/** How many actions one refill grants, up to `MAX_ACTIONS_PER_DAY`. */
+export const REFILL_ACTIONS = 3;
 
 /**
  * Consecutive plans polls that must show an attraction unheld before its
@@ -34,7 +62,7 @@ export const CONFIRM_ABSENT_POLLS = 2;
 
 export type SkipReason =
   | 'not-enabled'
-  | 'session-cap'
+  | 'budget-exhausted'
   | 'already-attempted'
   | 'no-eligible-guests'
   | 'offer-outside-window'
@@ -109,14 +137,43 @@ export class AutoBookLedger {
    */
   protected rehearsed = new Set<string>();
 
-  constructor(readonly maxPerSession = DEFAULT_MAX_PER_SESSION) {}
+  /**
+   * @param budget    today's ceiling: the setting plus any refills granted.
+   * @param carried   actions already charged earlier today, from storage.
+   * @param onSpend   called with the new total whenever the charge changes, so
+   *                  the day's spend survives the reload that used to reset it.
+   */
+  constructor(
+    protected budget = DEFAULT_ACTIONS_PER_DAY,
+    protected carried = 0,
+    protected readonly onSpend: (spent: number) => void = () => undefined
+  ) {}
+
+  /** Everything charged against today: earlier runs, this run, and doubt-holds. */
+  get spent(): number {
+    return this.carried + this.booked + this.unresolved.size;
+  }
+
+  /** Today's ceiling, for display. */
+  get budgetToday(): number {
+    return this.budget;
+  }
+
+  /** Raise or lower the day's ceiling. Never changes what has been spent. */
+  setBudget(budget: number): void {
+    this.budget = budget;
+  }
+
+  protected notify(): void {
+    this.onSpend(this.spent);
+  }
 
   get bookedCount(): number {
     return this.booked;
   }
 
   get remaining(): number {
-    return Math.max(0, this.maxPerSession - this.booked - this.unresolved.size);
+    return Math.max(0, this.budget - this.spent);
   }
 
   hasAttempted(experienceId: string, kind: ActionKind = 'book'): boolean {
@@ -156,6 +213,7 @@ export class AutoBookLedger {
     // settle -- it marks only so the rehearsal logs once.
     if (rehearsal) this.rehearsed.add(experienceId);
     else this.unresolved.add(experienceId);
+    this.notify();
   }
 
   /**
@@ -169,6 +227,7 @@ export class AutoBookLedger {
   markBooked(experienceId?: string): void {
     if (experienceId !== undefined) this.unresolved.delete(experienceId);
     ++this.booked;
+    this.notify();
   }
 
   /**
@@ -221,6 +280,7 @@ export class AutoBookLedger {
       this.absences.delete(experienceId);
       this.confirmed.add(experienceId);
       if (this.unresolved.delete(experienceId)) ++this.booked;
+      this.notify();
       return;
     }
     // A spent entitlement leaves plans exactly as a cancellation does, and
@@ -241,15 +301,29 @@ export class AutoBookLedger {
     this.confirmed.delete(experienceId);
     this.unresolved.delete(experienceId);
     this.attempted.delete(`book:${experienceId}`);
+    this.notify();
   }
 
+  /**
+   * Clear this run's locks, keeping the day's charge.
+   *
+   * The per-attraction locks are session state -- they exist so one run cannot
+   * thrash a reservation -- and clearing them on every enable is right. What is
+   * deliberately *not* cleared is the spend: it folds into `carried` first, so
+   * turning autopilot off and on is no longer how you get more actions. That
+   * used to be the only refill there was, and it came bundled with a wipe of
+   * the drop-detection baseline, so buying three more actions cost the first
+   * poll's ability to see a drop at all.
+   */
   reset(): void {
+    this.carried = this.spent;
     this.attempted.clear();
     this.unresolved.clear();
     this.absences.clear();
     this.confirmed.clear();
     this.rehearsed.clear();
     this.booked = 0;
+    this.notify();
   }
 }
 
@@ -269,7 +343,7 @@ export function shouldAttempt(
   if (ledger.hasAttempted(target.experienceId)) {
     return { ok: false, reason: 'already-attempted' };
   }
-  if (ledger.remaining <= 0) return { ok: false, reason: 'session-cap' };
+  if (ledger.remaining <= 0) return { ok: false, reason: 'budget-exhausted' };
   return { ok: true };
 }
 

@@ -233,7 +233,7 @@ describe('shouldSwap()', () => {
     l.markBooked();
     expect(shouldSwap(target(), incoming('new', 1.0), full(), l)).toEqual({
       ok: false,
-      reason: 'session-cap',
+      reason: 'budget-exhausted',
     });
   });
 });
