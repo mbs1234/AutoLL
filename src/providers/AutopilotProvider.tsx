@@ -108,6 +108,9 @@ export const PLANS_EVERY_N_TICKS = 10;
 export default function AutopilotProvider({
   children,
   watchListKey = WATCHLIST_KEY,
+  rapid = false,
+  budgeted = true,
+  repeatMoves = false,
 }: {
   children: React.ReactNode;
   /**
@@ -116,6 +119,20 @@ export default function AutopilotProvider({
    * needs a different key or it overwrites the other's list.
    */
   watchListKey?: string;
+  /** Poll flat-out rather than pacing to the drop schedule. */
+  rapid?: boolean;
+  /**
+   * Whether the park day's action budget applies.
+   *
+   * It exists so a bug in matching cannot burn a day of Lightning Lanes, which
+   * is a real risk for something armed in the morning and left running. A
+   * hand-started search for one named attraction, watched by the person who
+   * started it, is bounded by its own shape instead -- and sharing the budget
+   * would mean a morning of Autopilot silently disabling an afternoon search.
+   */
+  budgeted?: boolean;
+  /** Allow the same reservation to be moved more than once. */
+  repeatMoves?: boolean;
 }) {
   const { park } = use(ParkContext);
   const { ll } = use(ClientsContext);
@@ -195,12 +212,14 @@ export default function AutopilotProvider({
       // `settings` rather than `loadSettings()`: `useRef` keeps only the first
       // value but evaluates its argument on every render, so a load here would
       // parse localStorage on each one.
-      Math.min(
-        MAX_ACTIONS_PER_DAY,
-        settings.maxActionsPerDay + budgetTodayRef.current.granted
-      ),
-      budgetTodayRef.current.spent,
-      spent => persistBudget(spent)
+      budgeted
+        ? Math.min(
+            MAX_ACTIONS_PER_DAY,
+            settings.maxActionsPerDay + budgetTodayRef.current.granted
+          )
+        : Infinity,
+      budgeted ? budgetTodayRef.current.spent : 0,
+      spent => (budgeted ? persistBudget(spent) : undefined)
     )
   );
 
@@ -231,6 +250,7 @@ export default function AutopilotProvider({
    * nothing remaining.
    */
   const applyBudget = useCallback(() => {
+    if (!budgeted) return;
     const budget = Math.min(
       MAX_ACTIONS_PER_DAY,
       settingsRef.current.maxActionsPerDay + grantedRef.current
@@ -238,7 +258,7 @@ export default function AutopilotProvider({
     ledgerRef.current.setBudget(budget);
     setActionBudget(budget);
     setBookingsRemaining(ledgerRef.current.remaining);
-  }, []);
+  }, [budgeted]);
 
   // Block body on purpose: an expression body would return saveWatchList's
   // value, which React would treat as a cleanup function.
@@ -771,6 +791,17 @@ export default function AutopilotProvider({
         outcome.status === 'modified' ||
         outcome.status === 'swapped'
       ) {
+        // Let a move be made again, where the product wants that. Autopilot
+        // does not: one move per attraction per session is what stops it
+        // thrashing a reservation as availability shifts. A hand-started
+        // search is the opposite -- "keep moving it earlier" is the whole
+        // request -- and each move still has to clear the 30-minute
+        // improvement bar, so it walks toward the earliest time rather than
+        // oscillating. Released only on success: a move that failed should not
+        // be retried all afternoon.
+        if (repeatMoves && outcome.status === 'modified') {
+          ledgerRef.current.releaseAttempt(experience.id, 'modify');
+        }
         // Any change shifts eligibility across every experience at once via
         // party, tier and overlap limits, so the whole cache is invalid.
         cacheRef.current.clear();
@@ -820,7 +851,16 @@ export default function AutopilotProvider({
         now: clock,
       });
     }
-  }, [pollExperiences, pollPlans, ll, guestsFor, clock, logOutcome, bumpSkip]);
+  }, [
+    pollExperiences,
+    pollPlans,
+    ll,
+    guestsFor,
+    clock,
+    logOutcome,
+    bumpSkip,
+    repeatMoves,
+  ]);
 
   // The schedule the poller actually times itself to: the hardcoded drop
   // times plus any learned from observation on enough distinct days, for the
@@ -852,6 +892,7 @@ export default function AutopilotProvider({
     // Set as a side effect of ll.experiences(), so it is current as of the
     // last poll. Read fresh each tick by usePoller.
     nextBookTimes: watchingToday ? ll.nextBookTimes : undefined,
+    rapid,
   });
 
   // The poller gives up after repeated failures without touching `enabled`, so

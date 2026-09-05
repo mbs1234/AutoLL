@@ -6,13 +6,14 @@ import { Experience } from '@/api/ll';
 import { PollerStatus } from '@/autopilot/usePoller';
 import AutopilotContext, { AutopilotState } from '@/contexts/AutopilotContext';
 import BookingDateContext from '@/contexts/BookingDateContext';
+import ClientsContext, { Clients } from '@/contexts/ClientsContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
 import { DateTime, ParkTime } from '@/datetime';
 import { TODAY } from '@/testing';
 
-import NextLL from './NextLL';
+import { NextLL } from './NextLL';
 
 const BZ = '80010114';
 const OFF: PollerStatus = { mode: 'off', consecutiveFailures: 0, polls: 0 };
@@ -56,53 +57,56 @@ function setup({
   const setEnabled = jest.fn();
   const addTarget = jest.fn();
   const removeTarget = jest.fn();
+  const setPartyIds = jest.fn();
   render(
-    <ParkContext value={{ park: mk, setPark: () => {} }}>
-      <BookingDateContext
-        value={{ bookingDate: TODAY, setBookingDate: () => {} }}
-      >
-        <PlansContext
-          value={{
-            plans,
-            plansLoaded: true,
-            refreshPlans: () => {},
-            pollPlans: async () => plans,
-            loaderElem: null,
-          }}
+    <ClientsContext value={{ ll: { setPartyIds } } as unknown as Clients}>
+      <ParkContext value={{ park: mk, setPark: () => {} }}>
+        <BookingDateContext
+          value={{ bookingDate: TODAY, setBookingDate: () => {} }}
         >
-          <ExperiencesContext
+          <PlansContext
             value={{
-              experiences: [llExperience(BZ)],
-              refreshExperiences: () => {},
-              pollExperiences: async () => [],
+              plans,
+              plansLoaded: true,
+              refreshPlans: () => {},
+              pollPlans: async () => plans,
               loaderElem: null,
             }}
           >
-            <AutopilotContext
-              value={
-                {
-                  enabled,
-                  setEnabled,
-                  status,
-                  targets: [],
-                  isWatched: () => false,
-                  addTarget,
-                  removeTarget,
-                  bookingLog: [],
-                  bookedCount: 0,
-                  bookingsRemaining: 10,
-                  ...rest,
-                } as unknown as AutopilotState
-              }
+            <ExperiencesContext
+              value={{
+                experiences: [llExperience(BZ)],
+                refreshExperiences: () => {},
+                pollExperiences: async () => [],
+                loaderElem: null,
+              }}
             >
-              <NextLL />
-            </AutopilotContext>
-          </ExperiencesContext>
-        </PlansContext>
-      </BookingDateContext>
-    </ParkContext>
+              <AutopilotContext
+                value={
+                  {
+                    enabled,
+                    setEnabled,
+                    status,
+                    targets: [],
+                    isWatched: () => false,
+                    addTarget,
+                    removeTarget,
+                    bookingLog: [],
+                    bookedCount: 0,
+                    bookingsRemaining: 10,
+                    ...rest,
+                  } as unknown as AutopilotState
+                }
+              >
+                <NextLL />
+              </AutopilotContext>
+            </ExperiencesContext>
+          </PlansContext>
+        </BookingDateContext>
+      </ParkContext>
+    </ClientsContext>
   );
-  return { setEnabled, addTarget, removeTarget };
+  return { setEnabled, addTarget, removeTarget, setPartyIds };
 }
 
 const name = wdw.experience(BZ).name;

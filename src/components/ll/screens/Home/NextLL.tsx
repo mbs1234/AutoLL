@@ -4,16 +4,44 @@ import { Experience } from '@/api/ll';
 import { findExistingLL } from '@/autopilot/automodify';
 import { parseBound } from '@/autopilot/watchlist';
 import Button from '@/components/Button';
-import Screen from '@/components/Screen';
 import { Time } from '@/components/Time';
 import AutopilotContext from '@/contexts/AutopilotContext';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
-import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
 import { parkDate } from '@/datetime';
+import useSavedParty from '@/hooks/useSavedParty';
+import AutopilotProvider from '@/providers/AutopilotProvider';
+
+import { HomeTabProps } from '../Home';
 
 export const NEXTLL = 'NextLL';
+
+/**
+ * Its own watch list, its own poller, inside AutoLL's tree.
+ *
+ * Nested rather than driving the Autopilot the tab bar already sits inside:
+ * that one may be armed with a day's worth of attractions, and a quick search
+ * must not add a sixth target to it, turn the whole thing on, or -- worse --
+ * have Stop switch it all off. What it does inherit, by being nested, is the
+ * park, the booking date, the plans, the tipboard and the login.
+ */
+export const NEXTLL_WATCHLIST_KEY = 'bg1.nextll.watchlist';
+
+export default function NextLLTab({ ref }: HomeTabProps) {
+  return (
+    <div ref={ref}>
+      <AutopilotProvider
+        watchListKey={NEXTLL_WATCHLIST_KEY}
+        rapid
+        budgeted={false}
+        repeatMoves
+      >
+        <NextLL />
+      </AutopilotProvider>
+    </div>
+  );
+}
 
 /**
  * One attraction, one goal, one button.
@@ -31,10 +59,15 @@ export const NEXTLL = 'NextLL';
  * nothing -- and once something is held the window becomes the goal the move
  * step works toward.
  */
-export default function NextLL() {
+export function NextLL() {
+  // Applies the party saved in the LL tab. Only `useSavedParty` calls
+  // `ll.setPartyIds`, and it is mounted by `MultiPassList` -- which is not
+  // mounted while this tab is showing. Without this, an empty party id set
+  // means nobody is marked NOT_IN_PARTY and a search books for everyone
+  // eligible on the account, silently overriding the choice made next door.
+  const [partyIds] = useSavedParty();
   const { experiences } = use(ExperiencesContext);
   const { plans } = use(PlansContext);
-  const { park } = use(ParkContext);
   const { bookingDate } = use(BookingDateContext);
   const {
     enabled,
@@ -44,7 +77,6 @@ export default function NextLL() {
     addTarget,
     removeTarget,
     bookingLog,
-    bookingsRemaining,
   } = use(AutopilotContext);
 
   const [choice, setChoice] = useState('');
@@ -81,7 +113,7 @@ export default function NextLL() {
   }
 
   return (
-    <Screen title={NEXTLL}>
+    <div className="px-3 pb-4">
       {!enabled ? (
         <>
           <p>
@@ -125,10 +157,16 @@ export default function NextLL() {
             </Button>
           </div>
 
+          <p className="mt-3 text-sm text-gray-600">
+            {partyIds.size > 0
+              ? `Books for your saved party of ${partyIds.size}. Change it from the LL tab.`
+              : 'Books for everyone eligible. Choose a smaller party from the LL tab if you want fewer.'}
+          </p>
+
           {bookable.length === 0 && (
             <p className="mt-3 text-sm text-gray-600">
-              No attractions loaded yet for {park.name}. Close this and refresh
-              the Lightning Lane list first.
+              No attractions loaded yet. Switch to the LL tab and let the list
+              load first, or pick a different park there.
             </p>
           )}
         </>
@@ -159,11 +197,6 @@ export default function NextLL() {
               Goal: a return time at or before <Time time={target.before} />.
             </p>
           )}
-
-          <p className="mt-1 text-sm text-gray-600">
-            {bookingsRemaining} action{bookingsRemaining === 1 ? '' : 's'} left
-            today.
-          </p>
 
           {bookingDate !== parkDate() && (
             <p className="mt-1 text-sm text-gray-600">
@@ -211,6 +244,6 @@ export default function NextLL() {
           )}
         </>
       )}
-    </Screen>
+    </div>
   );
 }

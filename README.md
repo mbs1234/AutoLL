@@ -21,13 +21,17 @@ AutoLL is an unofficial client for Lightning Lane Multi Pass reservations and vi
 
 ---
 
-## Two bookmarklets
+## NextLL
 
-**AutoLL** (`index.html`) is the full tool: a watch list, per-attraction toggles, windows, a day budget, drop learning and diagnostics. It is for setting up a park day in advance.
+A fourth tab, to the right of Plans. One attraction, one goal, one button: pick a ride, optionally say "return by", tap **Find it**. It takes the first Lightning Lane it can get and then keeps trying to move it earlier.
 
-**NextLL** (`nextll.html`) is one attraction, one goal, one button. Pick a ride, optionally say "return by", tap **Find it**: it takes the first Lightning Lane it can get and then keeps trying to move it earlier. Same engine underneath — it is `book then move` with a single target — but none of the levers, because at 7am with one hand and a coffee the levers are the problem.
+Same engine underneath — it is `book then move` with a single target — but none of the levers, because at 7am with one hand the levers are the problem. It inherits the park and the saved party from the LL tab, and differs from Autopilot in three deliberate ways:
 
-They share a login, the action budget and the attraction data, and keep separate watch lists, so starting one does not disturb the other.
+- **It polls flat-out.** No drop schedule to pace against; it is waiting for someone else to cancel, which has no schedule. Short runs, watched by a person.
+- **It ignores the day's action budget.** One named attraction with somebody standing over it is bounded by its own shape, and a morning of Autopilot should not silently disable an afternoon search.
+- **It moves a reservation as often as it can improve it.** Autopilot allows one move per attraction per session to stop it thrashing; here "keep moving it earlier" is the entire request, and every move must still clear the 30-minute improvement bar.
+
+Its watch list is stored separately, so starting a search does not disturb whatever Autopilot is watching.
 
 ## Getting started
 

@@ -527,3 +527,34 @@ describe('AutoBookLedger day budget', () => {
     expect(ledger.remaining).toBe(6);
   });
 });
+
+describe('AutoBookLedger.releaseAttempt()', () => {
+  // For the search that exists to keep improving one reservation. Autopilot
+  // never releases: one move per attraction per session is what stops it
+  // thrashing.
+  it('lets an action be taken again', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ, 'modify');
+    expect(ledger.hasAttempted(BZ, 'modify')).toBe(true);
+    ledger.releaseAttempt(BZ, 'modify');
+    expect(ledger.hasAttempted(BZ, 'modify')).toBe(false);
+  });
+
+  it('releases only the kind named, and only that attraction', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ, 'modify');
+    ledger.markAttempted(BZ, 'book');
+    ledger.releaseAttempt(BZ, 'modify');
+    expect(ledger.hasAttempted(BZ, 'book')).toBe(true);
+  });
+
+  // An unbudgeted ledger still counts; it just never runs out.
+  it('does not refund the spend', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ, 'modify');
+    ledger.markBooked();
+    const spent = ledger.spent;
+    ledger.releaseAttempt(BZ, 'modify');
+    expect(ledger.spent).toBe(spent);
+  });
+});

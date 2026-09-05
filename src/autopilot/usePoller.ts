@@ -34,6 +34,8 @@ export interface PollerOptions {
   onTick: () => Promise<void>;
   dropTimes?: ParkTime[];
   nextBookTimes?: ParkTime[];
+  /** Poll flat-out, ignoring the drop schedule. */
+  rapid?: boolean;
 }
 
 const OFF: PollerStatus = { mode: 'off', consecutiveFailures: 0, polls: 0 };
@@ -56,6 +58,7 @@ export default function usePoller({
   onTick,
   dropTimes,
   nextBookTimes,
+  rapid,
 }: PollerOptions): PollerStatus {
   const [status, setStatus] = useState<PollerStatus>(OFF);
 
@@ -67,9 +70,11 @@ export default function usePoller({
   const onTickRef = useRef(onTick);
   const dropTimesRef = useRef(dropTimes);
   const nextBookTimesRef = useRef(nextBookTimes);
+  const rapidRef = useRef(rapid);
   onTickRef.current = onTick;
   dropTimesRef.current = dropTimes;
   nextBookTimesRef.current = nextBookTimes;
+  rapidRef.current = rapid;
 
   useEffect(() => {
     if (!enabled) {
@@ -113,6 +118,7 @@ export default function usePoller({
         now: syncedParkTime(),
         dropTimes: dropTimesRef.current,
         nextBookTimes: nextBookTimesRef.current,
+        rapid: rapidRef.current,
       });
 
       // Keep the clock offset fresh while something is actually coming up.

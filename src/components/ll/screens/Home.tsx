@@ -9,11 +9,13 @@ import ThemeContext from '@/contexts/ThemeContext';
 import useScreenState from '@/hooks/useScreenState';
 import CalendarIcon from '@/icons/CalendarIcon';
 import ClockIcon from '@/icons/ClockIcon';
+import DropIcon from '@/icons/DropIcon';
 import LightningIcon from '@/icons/LightningIcon';
 import kvdb from '@/kvdb';
 import onVisible from '@/onVisible';
 
 import MultiPassList from './Home/MultiPassList';
+import NextLLTab from './Home/NextLL';
 import SettingsButton from './Home/SettingsButton';
 import TimesGuide from './Home/TimesGuide';
 import Plans from './Plans';
@@ -40,6 +42,11 @@ const tabs = [
     name: 'Plans' as const,
     icon: <CalendarIcon />,
     component: Plans,
+  },
+  {
+    name: 'NextLL' as const,
+    icon: <DropIcon />,
+    component: NextLLTab,
   },
 ];
 

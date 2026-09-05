@@ -221,6 +221,20 @@ export class AutoBookLedger {
   }
 
   /**
+   * Forget one action lock, so the same action can be taken again.
+   *
+   * Autopilot never does this: one booking and one move per attraction per
+   * session is what stops it thrashing a reservation while availability
+   * shifts. NextLL is the opposite case -- "keep moving it earlier" is its
+   * entire purpose, a person is watching it, and every move still has to clear
+   * the 30-minute improvement bar, so it converges on the earliest time
+   * available rather than oscillating.
+   */
+  releaseAttempt(experienceId: string, kind: ActionKind): void {
+    this.attempted.delete(`${kind}:${experienceId}`);
+  }
+
+  /**
    * Record a confirmed booking.
    *
    * `experienceId` settles the matching unresolved attempt, and so is passed

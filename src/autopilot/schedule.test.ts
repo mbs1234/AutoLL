@@ -186,3 +186,33 @@ describe('withJitter()', () => {
     expect(seen.size).toBeGreaterThan(1);
   });
 });
+
+describe('cadence() in rapid mode', () => {
+  // A hand-started search in the park is waiting for somebody else to cancel,
+  // which has no schedule to approach. Pacing to the drop table would leave it
+  // idling at 45s through exactly the minutes the user is standing there for.
+  it('bursts regardless of what is or is not coming up', () => {
+    const c = cadence({ now: at(14, 3), rapid: true });
+    expect(c.mode).toBe('burst');
+    expect(c.intervalMs).toBe(BURST_INTERVAL_MS);
+  });
+
+  it('ignores drop times entirely rather than being pulled toward them', () => {
+    const c = cadence({
+      now: at(14, 3),
+      dropTimes: [at(9, 47)],
+      nextBookTimes: [at(20)],
+      rapid: true,
+    });
+    expect(c.mode).toBe('burst');
+    expect(c.target).toBeUndefined();
+  });
+
+  // The floor exists because ApiClient shares a RateLimit(5) with the user's
+  // own taps; rapid mode may not go under it.
+  it('does not poll faster than the shared rate limit allows', () => {
+    expect(
+      cadence({ now: at(14), rapid: true }).intervalMs
+    ).toBeGreaterThanOrEqual(MIN_INTERVAL_MS);
+  });
+});

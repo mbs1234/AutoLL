@@ -45,6 +45,18 @@ export interface CadenceInput {
   /** Drop times for the park, e.g. `park.dropTimes`. */
   dropTimes?: ParkTime[];
   /**
+   * Poll as fast as the limiter allows, ignoring the schedule.
+   *
+   * The drop-aware cadence exists to spend requests where they pay: idle until
+   * a known drop is near, then hard. That is right for a tool left running all
+   * day. It is wrong for a search started by hand, in the park, for the next
+   * few minutes -- there the user is standing still waiting, the thing being
+   * waited for is somebody else cancelling, and a cancellation has no
+   * schedule to approach. So: burst throughout, and the run is short because a
+   * person is watching it.
+   */
+  rapid?: boolean;
+  /**
    * Every moment a booking window opens, from `LLClient.nextBookTimes`.
    *
    * Plural because a party's slots free at different times. Taking only the
@@ -94,7 +106,9 @@ export function cadence({
   now,
   dropTimes = [],
   nextBookTimes = [],
+  rapid = false,
 }: CadenceInput): Cadence {
+  if (rapid) return { mode: 'burst', intervalMs: BURST_INTERVAL_MS };
   // Defaulting to an empty array rather than testing for undefined keeps the
   // two kinds of target symmetrical, which is what lets the loop below score
   // every one of them without knowing where it came from.

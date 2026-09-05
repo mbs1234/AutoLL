@@ -28,13 +28,7 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: false,
     rollupOptions: {
-      input: [
-        'src/bg1.tsx',
-        'src/nextll.tsx',
-        'src/bg1.css',
-        'src/responder.html',
-        'src/nextll.html',
-      ],
+      input: ['src/bg1.tsx', 'src/bg1.css', 'src/responder.html'],
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
