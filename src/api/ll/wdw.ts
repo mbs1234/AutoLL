@@ -132,7 +132,6 @@ export class LLClientWDW extends LLClient {
 
   async experiences(park: Park, date: string): Promise<Experience[]> {
     const exps = await super.experiences(park, date);
-    return exps;
 
     if (date > parkDate() || exps.length === 0) {
       const expIds = new Set(exps.map(exp => exp.id));
