@@ -29,7 +29,11 @@ export type ModifySkipReason =
 export type ModifyOutcome =
   | { status: 'modified'; booking: LLMP; from: ParkTime; to: ParkTime }
   | { status: 'skipped'; reason: ModifySkipReason }
-  | { status: 'failed'; error: string };
+  | {
+      status: 'failed';
+      error: string;
+      /** The HTTP status, when there was one. */ httpStatus?: number;
+    };
 
 /**
  * The party's existing Multi Pass reservation for an attraction on a given
@@ -200,6 +204,11 @@ export async function attemptAutoModify(
     return {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error),
+      // Carried out rather than left inside the message: a refusal is told
+      // apart from an ordinary failure by its status, and reading that back
+      // out of a formatted string would be guesswork.
+      httpStatus: (error as { response?: { status?: number } })?.response
+        ?.status,
     };
   }
 }

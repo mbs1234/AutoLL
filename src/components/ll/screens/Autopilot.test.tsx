@@ -791,3 +791,36 @@ describe('the day allowance', () => {
     expect(field()).toHaveValue(12);
   });
 });
+
+describe('refusal warning', () => {
+  const refusing = {
+    eligibility: { count: 5, since: new ParkTime(9) },
+  };
+
+  // A refusal lands on eligibility, one step before an offer exists, so
+  // autopilot keeps polling, alerting and learning drops while never acting.
+  // Without this the screen reads as perfectly healthy.
+  it('says so when Disney is refusing requests', () => {
+    setup({
+      status: { mode: 'idle', consecutiveFailures: 0, polls: 40 },
+      refusals: refusing,
+    });
+    expect(screen.getByText(/Disney is refusing these requests/)).toBeVisible();
+    expect(screen.getByText(/checking who is eligible/)).toBeVisible();
+  });
+
+  // Off, this describes earlier today rather than why nothing is happening.
+  it('says nothing while switched off', () => {
+    setup({ refusals: refusing });
+    expect(
+      screen.queryByText(/Disney is refusing these requests/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('says nothing when requests are going through', () => {
+    setup({ status: { mode: 'idle', consecutiveFailures: 0, polls: 40 } });
+    expect(
+      screen.queryByText(/Disney is refusing these requests/)
+    ).not.toBeInTheDocument();
+  });
+});

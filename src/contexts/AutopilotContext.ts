@@ -3,6 +3,7 @@ import { createContext } from 'react';
 import { AlertPermission } from '@/autopilot/alert';
 import { DEFAULT_ACTIONS_PER_DAY } from '@/autopilot/autobook';
 import { DropSummary } from '@/autopilot/observe';
+import { NO_REFUSALS, RefusalState } from '@/autopilot/refusal';
 import { PollerStatus } from '@/autopilot/usePoller';
 import { WatchTarget } from '@/autopilot/watchlist';
 import { ParkTime } from '@/datetime';
@@ -97,6 +98,15 @@ export interface AutopilotState {
    */
   skipCounts: Record<string, number>;
   /**
+   * Which booking-path calls Disney is refusing outright, if any.
+   *
+   * Optional so the several places that stub this context need not change.
+   * A refusal is invisible otherwise: it lands on eligibility, one step
+   * before an offer exists, so autopilot keeps polling, alerting and
+   * learning drops while never acting.
+   */
+  refusals?: RefusalState;
+  /**
    * What the poller has learned about when drops really happen, per
    * attraction, checked against the hardcoded schedule. Accumulates across
    * visits; only meaningful while watching today's date.
@@ -133,5 +143,6 @@ export default createContext<AutopilotState>({
   avoidOverlaps: true,
   setAvoidOverlaps: () => undefined,
   skipCounts: {},
+  refusals: NO_REFUSALS,
   dropSummaries: [],
 });

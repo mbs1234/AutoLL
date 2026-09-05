@@ -33,7 +33,11 @@ export type SwapOutcome =
       to: ParkTime;
     }
   | { status: 'skipped'; reason: SwapSkipReason }
-  | { status: 'failed'; error: string };
+  | {
+      status: 'failed';
+      error: string;
+      /** The HTTP status, when there was one. */ httpStatus?: number;
+    };
 
 /**
  * Every Multi Pass reservation that occupies one of the party's three slots
@@ -190,6 +194,11 @@ export async function attemptAutoSwap(
     return {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error),
+      // Carried out rather than left inside the message: a refusal is told
+      // apart from an ordinary failure by its status, and reading that back
+      // out of a formatted string would be guesswork.
+      httpStatus: (error as { response?: { status?: number } })?.response
+        ?.status,
     };
   }
 }

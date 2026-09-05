@@ -71,7 +71,11 @@ export type SkipReason =
 export type AutoBookOutcome =
   | { status: 'booked'; booking: LLMP; returnTime: ParkTime }
   | { status: 'skipped'; reason: SkipReason }
-  | { status: 'failed'; error: string };
+  | {
+      status: 'failed';
+      error: string;
+      /** The HTTP status, when there was one. */ httpStatus?: number;
+    };
 
 /**
  * Whether a return time collides with plans already made.
@@ -435,6 +439,11 @@ export async function attemptAutoBook(
     return {
       status: 'failed',
       error: error instanceof Error ? error.message : String(error),
+      // Carried out rather than left inside the message: a refusal is told
+      // apart from an ordinary failure by its status, and reading that back
+      // out of a formatted string would be guesswork.
+      httpStatus: (error as { response?: { status?: number } })?.response
+        ?.status,
     };
   }
 }

@@ -86,6 +86,8 @@ Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and fro
 
 **Why nothing was booked.** Skips are counted rather than logged — during a drop they happen every second — and shown ranked: *"7× not everyone in the party was eligible"*, *"3× it clashed with something already booked"*.
 
+**Refused requests.** If Disney refuses the booking calls outright — a 403, which is what the bot filter returns — the Autopilot screen says so plainly and names which call is being refused. It waits for three refusals spanning at least a minute, so an ordinary hiccup mid-drop does not trip it, and a single success clears it. This matters because a refusal lands on *eligibility*, one step before an offer exists: without it, Autopilot keeps polling, alerting and learning drop times while silently never acting.
+
 **Activity log.** What was booked, moved, swapped or failed, surviving a reload for the rest of the park day.
 
 **Unknown attractions.** If Disney's tipboard lists a facility ID this build does not know, the Autopilot screen says so. Unknown IDs are otherwise dropped in silence — no row, no alert, no booking, and nothing explaining why.

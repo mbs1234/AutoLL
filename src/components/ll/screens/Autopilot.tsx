@@ -3,6 +3,13 @@ import { use, useEffect, useState } from 'react';
 import { Experience } from '@/api/ll';
 import { MAX_ACTIONS_PER_DAY, MIN_ACTIONS_PER_DAY } from '@/autopilot/autobook';
 import { LEARNED_MIN_DAYS } from '@/autopilot/learned';
+import {
+  CALL_TEXT,
+  NO_REFUSALS,
+  RefusalState,
+  refusedCalls,
+} from '@/autopilot/refusal';
+import { syncedParkTime } from '@/autopilot/schedule';
 import { PollerStatus } from '@/autopilot/usePoller';
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
@@ -44,12 +51,18 @@ function StatusRow({
   bookingsRemaining,
   actionBudget,
   onRefill,
+  refusals,
 }: {
   status: PollerStatus;
   bookingsRemaining: number;
   actionBudget: number;
   onRefill: () => void;
+  refusals: RefusalState;
 }) {
+  // Only while something is running, like the budget notice below: off, this
+  // describes earlier today rather than why nothing is happening now.
+  const refused =
+    status.mode === 'off' ? [] : refusedCalls(refusals, syncedParkTime());
   return (
     <div className="mt-3 text-sm">
       <div>
@@ -69,6 +82,17 @@ function StatusRow({
                 (in {Math.round(status.secondsToTarget / 60)} min)
               </span>
             )}
+        </div>
+      )}
+      {refused.length > 0 && (
+        <div className="mt-2 rounded-sm bg-red-100 p-2 text-red-900">
+          <p className="font-semibold">Disney is refusing these requests.</p>
+          <p className="mt-1">
+            {refused.map(call => CALL_TEXT[call]).join(', ')} &mdash; refused
+            repeatedly for over a minute. Autopilot is still watching and will
+            still alert you, but it cannot book, move or swap until this clears.
+            Book by hand in Disney&rsquo;s app meanwhile.
+          </p>
         </div>
       )}
       {status.mode === 'stopped' && (
@@ -170,6 +194,7 @@ export default function Autopilot() {
     setAvoidOverlaps,
     setTargetWindow,
     skipCounts,
+    refusals,
     dropSummaries,
   } = use(AutopilotContext);
   const { experiences, unknownExperienceIds } = use(ExperiencesContext);
@@ -232,6 +257,7 @@ export default function Autopilot() {
           bookingsRemaining={bookingsRemaining}
           actionBudget={actionBudget}
           onRefill={refillBudget}
+          refusals={refusals ?? NO_REFUSALS}
         />
       </div>
 

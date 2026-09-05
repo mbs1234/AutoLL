@@ -55,6 +55,7 @@ import {
   prewarmGuests,
 } from '@/autopilot/prewarm';
 import { orderByPriority, shouldHoldTierSlot } from '@/autopilot/priority';
+import { NO_REFUSALS, RefusalState, observeAction } from '@/autopilot/refusal';
 import { syncedParkTime } from '@/autopilot/schedule';
 import {
   loadBookingLog,
@@ -130,6 +131,12 @@ export default function AutopilotProvider({
   const [skipCounts, setSkipCounts] = useState<Record<string, number>>({});
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
+
+  // Which booking-path calls Disney is refusing, and for how long. Held in
+  // a ref as well as state because the tick reads and writes it between
+  // renders; the state copy exists only so the screen can show it.
+  const refusalRef = useRef<RefusalState>(NO_REFUSALS);
+  const [refusals, setRefusals] = useState<RefusalState>(NO_REFUSALS);
 
   const alertedRef = useRef<ReadonlySet<string>>(new Set());
   const tickCountRef = useRef(0);
@@ -706,13 +713,36 @@ export default function AutopilotProvider({
         }
       } catch (error) {
         // Only guestsFor can throw out here; the attempt helpers handle their
-        // own failures.
+        // own failures. Its status is worth carrying: eligibility is the first
+        // call the booking path makes, so it is where a refusal lands first.
+        const httpStatus = (error as { response?: { status?: number } })
+          ?.response?.status;
+        refusalRef.current = observeAction(
+          refusalRef.current,
+          'eligibility',
+          httpStatus,
+          nowTime
+        );
         console.error(error);
         outcome = {
           status: 'failed',
           error: error instanceof Error ? error.message : String(error),
+          httpStatus,
         };
       }
+
+      // Anything the helpers returned settles their own call. A success clears
+      // that call's run; only an unbroken run of refusals reads as "this is not
+      // working" rather than "this went wrong a few times today".
+      if (outcome.status !== 'skipped') {
+        refusalRef.current = observeAction(
+          refusalRef.current,
+          kind === 'book' ? 'book' : 'offer',
+          outcome.status === 'failed' ? outcome.httpStatus : undefined,
+          nowTime
+        );
+      }
+      setRefusals(refusalRef.current);
 
       // Skips are the common case mid-drop and would swamp the log, so they
       // are tallied instead.
@@ -854,6 +884,8 @@ export default function AutopilotProvider({
       setBookingsRemaining(ledgerRef.current.remaining);
       budgetSkipRef.current = false;
       setSkipCounts({});
+      refusalRef.current = NO_REFUSALS;
+      setRefusals(NO_REFUSALS);
       // Fresh baseline: the first poll of a run sees everything as "new", and
       // that must read as a baseline rather than a drop.
       snapshotRef.current = new Map();
@@ -973,6 +1005,7 @@ export default function AutopilotProvider({
         setAvoidOverlaps: on =>
           setSettings(prev => ({ ...prev, avoidOverlaps: on })),
         skipCounts,
+        refusals,
         dropSummaries,
       }}
     >

@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { use } from 'react';
 
 import { mk, wdw } from '@/__fixtures__/resort';
+import { RequestError } from '@/api/client';
 import { Booking } from '@/api/itinerary';
 import { Experience, FlexExperience } from '@/api/ll';
 import { fireAlert, primeAudio } from '@/autopilot/alert';
@@ -16,7 +17,12 @@ import {
   loadCoverage,
   loadDropEvents,
 } from '@/autopilot/observe';
-import { BURST_INTERVAL_MS, IDLE_INTERVAL_MS } from '@/autopilot/schedule';
+import { NO_REFUSALS, refusedCalls } from '@/autopilot/refusal';
+import {
+  BURST_INTERVAL_MS,
+  IDLE_INTERVAL_MS,
+  syncedParkTime,
+} from '@/autopilot/schedule';
 import {
   DEFAULT_SETTINGS,
   loadBookingLog,
@@ -79,6 +85,7 @@ function Probe() {
     actionBudget,
     refillBudget,
     setMaxActionsPerDay,
+    refusals,
   } = use(AutopilotContext);
   return (
     <div>
@@ -89,6 +96,9 @@ function Probe() {
       <span data-testid="targets">{targets.length}</span>
       <span data-testid="remaining">{bookingsRemaining}</span>
       <span data-testid="budget">{actionBudget}</span>
+      <span data-testid="refused">
+        {refusedCalls(refusals ?? NO_REFUSALS, syncedParkTime()).join(',')}
+      </span>
     </div>
   );
 }
@@ -211,12 +221,19 @@ function setupBooking({
   experiences = [available(BZ, new ParkTime(11))],
   plans = [] as Booking[],
   guestsResult = party as unknown,
+  // The status `ll.guests` should reject with, for the refusal tests.
+  guestsStatus = undefined as number | undefined,
   // Set one of these within BURST_LEAD_S of the pinned 09:00 clock to drive
   // the poller into burst cadence, where plans polls are ~12s apart instead of
   // ~7.5min.
   nextBookTimes = [] as ParkTime[],
 } = {}) {
-  const guests = jest.fn(async () => guestsResult);
+  const guests = jest.fn(async () => {
+    if (guestsStatus !== undefined) {
+      throw new RequestError({ ok: false, status: guestsStatus, data: {} });
+    }
+    return guestsResult;
+  });
   // Records which attraction was offered, in order -- clearer than indexing
   // into mock.calls, and it keeps the parameter typed and used.
   const offeredIds: string[] = [];
@@ -1673,5 +1690,33 @@ describe('AutopilotProvider action budget', () => {
     });
     expect(offer).not.toHaveBeenCalled();
     expect(book).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Disney refusing the booking path outright. The failure lands on eligibility,
+ * one step before an offer exists, so without this autopilot polls, alerts and
+ * learns drops looking entirely healthy while never acting.
+ */
+describe('AutopilotProvider refusals', () => {
+  it('reports eligibility being refused, once it has lasted', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    setTime('09:00');
+    setupBooking({ guestsStatus: 403 });
+    await enable();
+    // Three refusals arrive within seconds; the warning waits for the run to
+    // span a minute, so that an ordinary hiccup mid-drop does not trip it.
+    await runTicks(4);
+    expect(screen.getByTestId('refused')).toHaveTextContent('eligibility');
+  });
+
+  // 410 is a ride selling out from under you -- the common case at a drop.
+  it('does not report an ordinary failure as a refusal', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    setTime('09:00');
+    setupBooking({ guestsStatus: 410 });
+    await enable();
+    await runTicks(4);
+    expect(screen.getByTestId('refused')).toHaveTextContent('');
   });
 });
