@@ -81,7 +81,11 @@ Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and fro
 
 ## Improving pre-booked selections before your trip
 
-Auto-move works on future dates. Pick a later date in the LL tab, watch what you pre-booked, and arm **Auto-move**; Autopilot improves those times as cancellations open up. Drops are a day-of phenomenon, so future dates poll at the slow rate. Reservations are matched to the park day being watched, so today never touches tomorrow.
+Pick a later date in the LL tab and Autopilot works on that day instead of today — **booking as well as moving**. Neither paid tool makes new bookings before the park day, and this is the scenario it wins: you buy Multi Pass at the 7-day window with one selection because the headliners were gone, and Autopilot fills slots 2 and 3 overnight from cancellations.
+
+Everything that decides an action is scoped to the day being worked on — the reservations you hold, the free slots, the clash check, the eligibility fetch, and the offer itself. Three facts that are only ever about *today* are now fenced off from it: whether an attraction has been ridden, whether the party has redeemed anything (which lifts the one-Tier-1 limit), and the drop schedule that governs the Tier 1 hold. Riding Space Mountain this morning no longer makes Autopilot behave as though you had ridden it next Tuesday.
+
+Alerts name the date when it isn't today, and are keyed by it, so a find for tomorrow can't be silently replaced by one for this afternoon. Drops are a day-of phenomenon, so a future date polls at the slow steady rate; its availability comes from cancellations, which have no schedule.
 
 ## Faster booking
 

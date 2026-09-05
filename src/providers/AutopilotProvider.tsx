@@ -84,7 +84,7 @@ import ClientsContext from '@/contexts/ClientsContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
-import { ParkTime, formatTime, parkDate } from '@/datetime';
+import { ParkTime, formatDate, formatTime, parkDate } from '@/datetime';
 import { now as syncedNow } from '@/timesync';
 
 /**
@@ -265,10 +265,16 @@ export default function AutopilotProvider({
     []
   );
 
-  /** Cached eligibility if warm, otherwise fetched and cached. */
+  /**
+   * Cached eligibility if warm, otherwise fetched and cached.
+   *
+   * Takes the date rather than reading the ref. This is called from inside the
+   * acting loop, after several awaits, and it supplies the guest list the
+   * offer is built from -- so a date change landing mid-tick would fetch
+   * eligibility for one day and spend it booking another.
+   */
   const guestsFor = useCallback(
-    async (experienceId: string): Promise<Guests> => {
-      const date = bookingDateRef.current;
+    async (experienceId: string, date: string): Promise<Guests> => {
       const cached = cacheRef.current.get(experienceId, date, clock());
       if (cached) return cached;
       const fetched = await ll.guests({ id: experienceId }, date);
@@ -330,15 +336,22 @@ export default function AutopilotProvider({
   );
 
   const onTick = useCallback(async () => {
+    // One date for the whole tick, read once. The ref is assigned during
+    // render and this function awaits repeatedly, so re-reading it lets a date
+    // change land between two decisions -- eligibility fetched for one day and
+    // spent booking another. Same reasoning as `currentPlans` below.
+    const date = bookingDateRef.current;
+    const forToday = date === parkDate();
+
     // Let this reject: the poller needs the failure to drive backoff.
     const experiences = await pollExperiences();
 
     // Learn from what just came back. Only on the current park day: a future
     // date's tipboard changes with cancellations, which are not drops, and its
     // times would be filed under the wrong day.
-    if (bookingDateRef.current === parkDate()) {
+    if (forToday) {
       const observedAt = syncedParkTime();
-      const obsDate = bookingDateRef.current;
+      const obsDate = date;
       const next = snapshotOf(experiences);
       const events = detectDropEvents(
         snapshotRef.current,
@@ -379,7 +392,6 @@ export default function AutopilotProvider({
       }
     }
 
-    const date = bookingDateRef.current;
     // One view of plans for the whole tick. `plansRef` is assigned during
     // render, so on a tick that polled plans it still holds the pre-poll
     // snapshot -- React cannot have re-rendered between the await above and
@@ -427,7 +439,7 @@ export default function AutopilotProvider({
           !!findExistingLL(settled, id, date),
           // A redeemed or lapsed pass leaves plans looking exactly like a
           // cancelled one, and only the tracker can tell the two apart.
-          ll.experienced({ id })
+          forToday && ll.experienced({ id })
         );
       }
       // Settling can charge the allowance for a booking whose request never
@@ -476,9 +488,15 @@ export default function AutopilotProvider({
     for (const hit of toAlert) {
       fireAlert({
         title: `${hit.experience.name} is available`,
-        body: `Return time ${formatTime(hit.returnTime)}`,
+        // The date, when it is not today. An alert reading only "Return time
+        // 11:05 AM", arriving at two in the morning, is read as this morning --
+        // and looking like a booking for today is the one thing a future-date
+        // find must never do.
+        body: forToday
+          ? `Return time ${formatTime(hit.returnTime)}`
+          : `Return time ${formatTime(hit.returnTime)} on ${formatDate(date, 'short')}`,
         // Same tag per ride, so a repeat alert replaces rather than stacks.
-        tag: `bg1-autopilot-${hit.experience.id}`,
+        tag: `bg1-autopilot-${date}-${hit.experience.id}`,
       });
     }
 
@@ -499,7 +517,10 @@ export default function AutopilotProvider({
     // booking turns cancellable-but-not-modifiable, or it disappears with
     // EXPERIENCE_LIMIT_REACHED), and the tipboard carries that flag, so this
     // is readable right here without another request.
-    const redeemedToday = experiences.some(exp => exp.experienced);
+    // `forToday` as well as the flag: the tipboard's `experienced` is a fact
+    // about the current park day, so riding something this morning must not
+    // lift the Tier 1 hold on a booking for next Tuesday.
+    const redeemedToday = forToday && experiences.some(exp => exp.experienced);
 
     // Targets that could still consume a Tier 1 slot: armed for booking, and
     // not already held. The tier hold has to reason about attractions that
@@ -589,7 +610,7 @@ export default function AutopilotProvider({
 
       let outcome: AutoBookOutcome | ModifyOutcome | SwapOutcome;
       try {
-        const guests = await guestsFor(experience.id);
+        const guests = await guestsFor(experience.id, date);
         // A Lightning Lane for part of the group is often worse than none: it
         // splits the party and spends the slot. Opt-in, since booking by hand
         // in bg1 or Disney's app books for whoever is eligible.
@@ -606,6 +627,7 @@ export default function AutopilotProvider({
         // branches, so a dry run rehearses it as well.
         if (
           kind === 'book' &&
+          forToday &&
           shouldHoldTierSlot(hit, armed, nowTime, redeemedToday)
         ) {
           bumpSkip('tier-hold');
@@ -675,8 +697,7 @@ export default function AutopilotProvider({
         } else {
           // The effective target: window stripped under book-then-move.
           outcome = await attemptAutoBook(hit.target, experience, {
-            createOffer: (exp, g) =>
-              ll.offer(exp, g, { date: bookingDateRef.current }),
+            createOffer: (exp, g) => ll.offer(exp, g, { date }),
             book: offer => ll.book(offer),
             guests,
             ledger: ledgerRef.current,
@@ -718,18 +739,18 @@ export default function AutopilotProvider({
             ? {
                 title: `Booked ${experience.name}`,
                 body: `Return time ${formatTime(outcome.returnTime)}`,
-                tag: `bg1-autopilot-booked-${experience.id}`,
+                tag: `bg1-autopilot-booked-${date}-${experience.id}`,
               }
             : outcome.status === 'modified'
               ? {
                   title: `Moved ${experience.name} earlier`,
                   body: `${formatTime(outcome.from)} to ${formatTime(outcome.to)}`,
-                  tag: `bg1-autopilot-booked-${experience.id}`,
+                  tag: `bg1-autopilot-booked-${date}-${experience.id}`,
                 }
               : {
                   title: `Swapped in ${experience.name}`,
                   body: `Gave up ${outcome.replaced.name}; return ${formatTime(outcome.to)}`,
-                  tag: `bg1-autopilot-booked-${experience.id}`,
+                  tag: `bg1-autopilot-booked-${date}-${experience.id}`,
                 }
         );
         try {
@@ -753,7 +774,7 @@ export default function AutopilotProvider({
       )
       .map(t => ({ id: t.experienceId }));
     if (toWarm.length > 0) {
-      await prewarmGuests(toWarm, bookingDateRef.current, {
+      await prewarmGuests(toWarm, date, {
         fetchGuests: (experience, date) => ll.guests(experience, date),
         cache: cacheRef.current,
         now: clock,

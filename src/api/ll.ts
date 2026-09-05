@@ -336,7 +336,15 @@ export abstract class LLClient extends ApiClient {
                 ...(exp.additionalShowTimes ?? []),
               ].map(t => ParkTime.from(t))
             : undefined,
-          experienced: this.tracker.experienced(exp),
+          // Only for the current park day. `LLTracker` is day-scoped -- it
+          // loads through `getDaily` and keeps only bookings whose start is
+          // today -- so its answer is always about today, whatever date this
+          // tipboard was fetched for. Stamping it onto a future date said "you
+          // have already ridden this" about a day the party has not been to,
+          // which lifts the one-Tier-1-at-a-time hold for a redemption that
+          // has not happened yet.
+          experienced:
+            date === parkDate() ? this.tracker.experienced(exp) : undefined,
         };
       } catch (error) {
         if (!(error instanceof InvalidId)) throw error;

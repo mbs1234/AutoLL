@@ -93,13 +93,14 @@ function Probe() {
   );
 }
 
-function setup(experiences: Experience[]) {
+function setup(
+  experiences: Experience[],
+  { bookingDate = TODAY }: { bookingDate?: string } = {}
+) {
   const pollExperiences = jest.fn(async () => experiences);
   const pollPlans = jest.fn(async () => []);
   render(
-    <BookingDateContext
-      value={{ bookingDate: TODAY, setBookingDate: () => {} }}
-    >
+    <BookingDateContext value={{ bookingDate, setBookingDate: () => {} }}>
       <ClientsContext
         value={{ ll: { nextBookTimes: [] as ParkTime[] } } as Clients}
       >
@@ -323,7 +324,24 @@ describe('AutopilotProvider', () => {
     await enable();
     await waitFor(() => expect(fireAlert).toHaveBeenCalledTimes(1));
     expect(fireAlert).toHaveBeenCalledWith(
-      expect.objectContaining({ tag: `bg1-autopilot-${BZ}` })
+      expect.objectContaining({ tag: `bg1-autopilot-${TODAY}-${BZ}` })
+    );
+  });
+
+  // Alerting deliberately spans dates, and the tag is what stops a repeat
+  // replacing rather than stacking -- so without the date in it, a find for
+  // today would silently destroy the notification for a future date's find on
+  // the same attraction.
+  it('names the date, and keys the alert by it, on a future date', async () => {
+    saveWatchList([{ experienceId: BZ }]);
+    setup([available(BZ, new ParkTime(11, 5))], { bookingDate: TOMORROW });
+    await enable();
+    await waitFor(() => expect(fireAlert).toHaveBeenCalledTimes(1));
+    expect(fireAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tag: `bg1-autopilot-${TOMORROW}-${BZ}`,
+        body: expect.stringContaining('on '),
+      })
     );
   });
 

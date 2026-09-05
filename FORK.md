@@ -38,6 +38,60 @@ goofy  (static) ──► overlay index/start/news/contact/autoloader/icon/css
                  ──► GitHub Pages
 ```
 
+## Booking
+
+**Whether this build can create a Lightning Lane at Walt Disney World is
+unverified, and the evidence leans against it.** Read this before trusting the
+autopilot with a trip.
+
+The timeline, from upstream's own repository and issue tracker:
+
+- **2025-11-09** — upstream diagnoses the breakage in issue #25: "The breakage
+  is due to use of Akamai Bot Manager in the LL API." A request-level block,
+  not a schema change.
+- **2025-11-12** — `6c069e3`, "Remove LL booking from WDW", sets
+  `LLClientWDW.rules.book = false` and `timeSelect = false`. Its body: "This
+  will be reverted if it becomes possible for BG1 to book LLs again." This is
+  the last commit on `mickey`, and the state this fork was branched from.
+- **2025-12-04** — `d23c0b1` on the `goofy` deploy branch, "LL booking test",
+  restores `book`/`timeSelect` **and** adds `sensor-data.js` plus two request
+  headers: `x-acf-sensor-data` (an Akamai Bot Manager payload) and
+  `x-app-id` (Disney's native app identifier). The site banner changes from
+  "will not be able to book Lightning Lanes... if ever" to "may be able to book
+  Lightning Lanes again".
+- **2026-03-24** — upstream closes issue #25: "Disney apparently removed the
+  bot protection a few weeks ago". Note this observation was made by a client
+  that had been sending the sensor header for four months, so it is not
+  evidence that a header-less client works.
+- **2026-08-14** — `goofy` HEAD moves sensor generation off the browser to a
+  hosted service, and drops the `book` flag entirely. Nobody invests like that
+  in a defence that stopped mattering.
+
+**`mickey` has not moved since 2025-11-13.** Ten months of upstream work —
+including all of the above and the monthly experience-data refreshes — exists
+only as built artifacts on `goofy`. There is no source to merge.
+
+What this fork sends: `Accept-Language`, `Authorization`, `x-user-id`. No
+sensor header, no app id. The request *bodies* are byte-for-byte the shapes
+upstream ships today, so if the bot wall is genuinely down this fork should
+book unmodified; if it is up, every booking action fails and no fork-side data
+work changes that.
+
+**How to find out, in one attempt.** `rules.book` is now `true` again, so the
+tipboard's Book button exists. Book one Lightning Lane by hand. A bot-wall
+block appears as a readable `403` — bg1 runs on Disney's own origin, so these
+calls are same-origin and CORS never hides the status. A `status: 0` is the
+eight-second client timeout, not a block. The autopilot surfaces the same thing
+in its activity log as a `failed` entry carrying the status.
+
+If the wall is up, the failure lands on *eligibility*, one step before any
+offer exists — so polling, alerting and drop learning keep working perfectly
+while booking silently never fires. That is the failure mode to watch for.
+
+A public fork, `jgeurts/bg1`, carries the sensor integration in TypeScript on
+its `mickey` branch. Adopting it is a decision about impersonating Disney's
+first-party app to a bot filter; it is deliberately not done here.
+
 ## Changes against upstream
 
 | Change | Files | Why |

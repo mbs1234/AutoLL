@@ -122,7 +122,14 @@ export class Overlap {
 
 export class LLClientWDW extends LLClient {
   readonly rules = {
-    book: false,
+    // Upstream set this false in 6c069e3 (2025-11-12), when Disney put the
+    // Lightning Lane endpoints behind a bot filter. It gates only two UI entry
+    // points -- the tipboard's Book button and the Modify button -- and this
+    // fork's autopilot never consults it, so leaving it false hid the manual
+    // path while the automatic one carried on regardless. Restoring it also
+    // makes the question answerable by hand: try one booking and read the
+    // status off the failure. See FORK.md, "Booking".
+    book: true,
     maxPartySize: 20,
     parkModify: true,
     prebook: true,

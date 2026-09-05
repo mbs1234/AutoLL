@@ -72,7 +72,11 @@ jobs:
           # Also deliberately skipped:
           #   diu.js         - obfuscated private module; our stub's chunk
           #                    is emitted by the build instead
-          #   sensor-data.js - bot-detection payload, referenced by no page
+          #   sensor-data.js - upstream's deployed bg1.js DOES reference this;
+          #                    an earlier version of this comment said it was
+          #                    referenced by no page, which was wrong. This
+          #                    build has no reference to it either way. See
+          #                    FORK.md, "Booking".
           #   google*.html   - upstream's Google site-verification token
           for f in index.html index.css icon.png start.html news.html \
                    contact.html autoloader.user.js; do
