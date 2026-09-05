@@ -16,7 +16,7 @@ function BookingDateSelectTest() {
       value={{
         plans: bookings,
         refreshPlans: () => {},
-        pollPlans: async () => {},
+        pollPlans: async () => [],
         loaderElem: null,
       }}
     >

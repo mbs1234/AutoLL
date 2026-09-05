@@ -251,9 +251,13 @@ export abstract class LLClient extends ApiClient {
       params: { date },
       userId: true,
     });
+    // Keyed by the date actually requested, not today. The two coincide for
+    // every current caller, but reading `parkDate()` here while the rest of
+    // the method answers for `date` would report today's next booking time as
+    // though it applied to a future park day.
     const nextBookTimeString = (
-      data.eligibility?.geniePlusEligibility?.[parkDate()]
-        ?.flexEligibilityWindows || []
+      data.eligibility?.geniePlusEligibility?.[date]?.flexEligibilityWindows ||
+      []
     ).sort((a, b) => a.time.time.localeCompare(b.time.time))[0]?.time.time;
     this.nextBookTime = nextBookTimeString
       ? ParkTime.from(nextBookTimeString)

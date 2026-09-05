@@ -16,7 +16,7 @@ function renderComponent(plans: Booking[]) {
       value={{
         plans,
         refreshPlans,
-        pollPlans: async () => {},
+        pollPlans: async () => [],
         loaderElem: null,
       }}
     >

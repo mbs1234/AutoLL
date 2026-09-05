@@ -1,5 +1,6 @@
 import { use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { Booking } from '@/api/itinerary';
 import { Guests } from '@/api/ll';
 import {
   AlertPermission,
@@ -53,6 +54,7 @@ import {
   saveSettings,
 } from '@/autopilot/storage';
 import usePoller from '@/autopilot/usePoller';
+import { holdScreenAwake, releaseScreenAwake } from '@/autopilot/wakelock';
 import {
   WatchTarget,
   loadWatchList,
@@ -151,6 +153,11 @@ export default function AutopilotProvider({
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  // Unmount is the one path that bypasses `setEnabled(false)`, and a wake lock
+  // outliving the screen that requested it would keep the phone awake with
+  // nothing running.
+  useEffect(() => () => void releaseScreenAwake(), []);
 
   const bumpSkip = useCallback((reason: string) => {
     setSkipCounts(prev => ({ ...prev, [reason]: (prev[reason] ?? 0) + 1 }));
@@ -261,9 +268,13 @@ export default function AutopilotProvider({
       }
     }
 
+    // Held only when the poll actually succeeded this tick. `plansRef` lags a
+    // render behind, so it cannot distinguish "never booked" from "booked
+    // moments ago" -- and settling booking doubt needs exactly that.
+    let freshPlans: Booking[] | undefined;
     if (tickCountRef.current++ % PLANS_EVERY_N_TICKS === 0) {
       try {
-        await pollPlans();
+        freshPlans = await pollPlans();
       } catch (error) {
         // Supplementary. A plans failure must not stall availability polling
         // or count against the poller's failure budget.
@@ -276,6 +287,17 @@ export default function AutopilotProvider({
       findExistingLL(plansRef.current, experienceId, date);
     const allHeldToday = heldMPToday(plansRef.current, date);
     const partyIsFull = allHeldToday.length >= MAX_HELD_MP;
+
+    // Settle any booking whose fate was unknown. Disney allows booking,
+    // cancelling and rebooking the same attraction, so a permanent attempt
+    // lock would forfeit a better time that appears after a manual cancel.
+    // Only plans fetched during this tick count as evidence.
+    if (freshPlans) {
+      const settled = freshPlans;
+      for (const id of ledgerRef.current.attemptedBookIds) {
+        ledgerRef.current.resolveBook(id, !!findExistingLL(settled, id, date));
+      }
+    }
 
     // Book-then-move: while nothing is held, the window is stripped so any
     // offered time matches and gets booked -- holding *something* beats
@@ -566,12 +588,19 @@ export default function AutopilotProvider({
   });
 
   const setEnabled = useCallback((on: boolean) => {
-    if (on) {
+    if (!on) {
+      void releaseScreenAwake();
+    } else {
       // Both of these must be initiated inside the user gesture that turned
       // autopilot on -- primeAudio synchronously, and the permission request
       // at least called from here.
       primeAudio();
       void requestAlertPermission().then(setNotifications);
+      // A locking screen backgrounds the page and clamps its timers, which
+      // stops the poller as surely as closing it would. Requested from the
+      // gesture for the same reason as the two above. Best-effort throughout:
+      // where it is unsupported or refused, behaviour is unchanged.
+      void holdScreenAwake();
       // Forget past alerts so turning it back on re-alerts anything already
       // available, rather than staying silent about it.
       alertedRef.current = new Set();

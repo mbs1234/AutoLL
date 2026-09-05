@@ -28,7 +28,7 @@ function renderComponent() {
       value={{
         plans: [],
         refreshPlans,
-        pollPlans: async () => {},
+        pollPlans: async () => [],
         loaderElem: null,
       }}
     >

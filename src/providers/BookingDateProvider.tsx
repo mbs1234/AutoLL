@@ -6,6 +6,21 @@ import { modifyDate, parkDate } from '@/datetime';
 import kvdb from '@/kvdb';
 
 export const BOOKING_DATE_KEY = 'bg1.date';
+/**
+ * How far ahead the date picker offers, today inclusive.
+ *
+ * Sized for the longest window Disney grants anyone: a resort guest books from
+ * seven days before check-in and may cover a stay of up to fourteen days, so
+ * the last reachable park day is three weeks out.
+ *
+ * Deliberately an upper bound rather than the rule. An off-site guest actually
+ * books three days before each individual park day, and nothing here knows
+ * which case applies -- so most of these dates are unbookable for most guests,
+ * and requests for them simply fail. Offering too many is the harmless
+ * direction to be wrong in; offering too few would hide a date that is
+ * genuinely bookable. A planner that knew the guest's resort status could
+ * narrow this properly.
+ */
 export const NUM_BOOKING_DAYS = 22;
 
 function getBookingDates() {
@@ -28,10 +43,6 @@ export default function BookingDateProvider({
       ? validDate(kvdb.getDaily<string>(BOOKING_DATE_KEY))
       : parkDate();
   });
-
-  useEffect(() => {
-    kvdb.setDaily<string>(BOOKING_DATE_KEY, bookingDate);
-  }, [bookingDate]);
 
   const setBookingDate = useCallback(
     (date: Parameters<typeof setDate>[0]) => {

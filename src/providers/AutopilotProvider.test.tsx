@@ -6,10 +6,15 @@ import { Booking } from '@/api/itinerary';
 import { Experience, FlexExperience } from '@/api/ll';
 import { fireAlert, primeAudio } from '@/autopilot/alert';
 import {
+  CONFIRM_ABSENT_POLLS,
+  DEFAULT_MAX_PER_SESSION,
+} from '@/autopilot/autobook';
+import {
   appendDropEvents,
   loadCoverage,
   loadDropEvents,
 } from '@/autopilot/observe';
+import { IDLE_INTERVAL_MS } from '@/autopilot/schedule';
 import { loadBookingLog, saveSettings } from '@/autopilot/storage';
 import { saveWatchList } from '@/autopilot/watchlist';
 import AutopilotContext from '@/contexts/AutopilotContext';
@@ -69,7 +74,7 @@ function Probe() {
 
 function setup(experiences: Experience[]) {
   const pollExperiences = jest.fn(async () => experiences);
-  const pollPlans = jest.fn(async () => undefined);
+  const pollPlans = jest.fn(async () => []);
   render(
     <BookingDateContext
       value={{ bookingDate: TODAY, setBookingDate: () => {} }}
@@ -155,7 +160,7 @@ function setupBooking({
     }
   );
   const book = jest.fn(async () => ({ id: 'ent-1' }));
-  const pollPlans = jest.fn(async () => undefined);
+  const pollPlans = jest.fn(async () => []);
   render(
     <BookingDateContext
       value={{ bookingDate: TODAY, setBookingDate: () => {} }}
@@ -369,6 +374,51 @@ describe('AutopilotProvider auto-booking', () => {
       await jest.advanceTimersByTimeAsync(60_000 * 3);
     });
     expect(book).toHaveBeenCalledTimes(1);
+  });
+
+  // The lock covers doubt about whether a request landed, not the session.
+  // Three minutes is well inside it: releasing takes CONFIRM_ABSENT_POLLS
+  // plans polls, and plans are polled every PLANS_EVERY_N_TICKS ticks of a
+  // 45-second idle cadence -- fifteen minutes of the reservation being
+  // consistently absent.
+  it('holds the booking lock until absence is confirmed', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book } = setupBooking();
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(
+        IDLE_INTERVAL_MS * PLANS_EVERY_N_TICKS * CONFIRM_ABSENT_POLLS * 0.5
+      );
+    });
+    expect(book).toHaveBeenCalledTimes(1);
+  });
+
+  // Disney allows booking, cancelling and rebooking the same attraction. This
+  // harness never reports the reservation in plans, which is what a manual
+  // cancellation looks like from here, so the lock should eventually release
+  // and the still-available attraction be taken again.
+  it('rebooks once plans confirm the reservation is gone', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book } = setupBooking();
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    // One interval at a time rather than a single jump: each tick awaits a
+    // chain of polls, an offer and a booking, and a large advance can outrun
+    // it.
+    await act(async () => {
+      const ticks = PLANS_EVERY_N_TICKS * (CONFIRM_ABSENT_POLLS + 2);
+      for (let i = 0; i < ticks; ++i) {
+        await jest.advanceTimersByTimeAsync(IDLE_INTERVAL_MS);
+      }
+    });
+    // Bounds rather than an exact count: the idle interval carries +/-20%
+    // jitter, so how many release windows fit in the run is not fixed. What
+    // matters is that the lock released at all, and that the session cap --
+    // not the lock -- is what stops a harness where the reservation never
+    // appears from booking indefinitely.
+    expect(book.mock.calls.length).toBeGreaterThan(1);
+    expect(book.mock.calls.length).toBeLessThanOrEqual(DEFAULT_MAX_PER_SESSION);
   });
 
   it('refreshes plans after booking so the new reservation shows', async () => {
@@ -871,7 +921,7 @@ describe('AutopilotProvider drop learning', () => {
     for (const exps of polls) pollExperiences.mockResolvedValueOnce(exps);
     // After the scripted polls, keep returning the last one.
     pollExperiences.mockResolvedValue(polls[polls.length - 1] ?? []);
-    const pollPlans = jest.fn(async () => undefined);
+    const pollPlans = jest.fn(async () => []);
     render(
       <BookingDateContext
         value={{ bookingDate: TODAY, setBookingDate: () => {} }}
@@ -992,7 +1042,7 @@ describe('AutopilotProvider learned timing', () => {
                 value={{
                   plans: [],
                   refreshPlans: () => {},
-                  pollPlans: async () => undefined,
+                  pollPlans: async () => [],
                   loaderElem: null,
                 }}
               >
@@ -1036,7 +1086,7 @@ describe('AutopilotProvider learned timing', () => {
                 value={{
                   plans: [],
                   refreshPlans: () => {},
-                  pollPlans: async () => undefined,
+                  pollPlans: async () => [],
                   loaderElem: null,
                 }}
               >

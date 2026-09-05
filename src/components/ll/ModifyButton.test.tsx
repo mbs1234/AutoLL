@@ -51,7 +51,7 @@ function ModifyButtonTest({
       value={{
         plans: [booking],
         refreshPlans: () => {},
-        pollPlans: async () => {},
+        pollPlans: async () => [],
         loaderElem: null,
       }}
     >

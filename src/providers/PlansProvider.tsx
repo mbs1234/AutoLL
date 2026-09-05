@@ -22,13 +22,21 @@ export default function PlansProvider({
    * `loadData` for the visible path.
    */
   const fetchPlans = useCallback(async () => {
-    setPlans(await itinerary.plans());
+    const fetched = await itinerary.plans();
+    setPlans(fetched);
     setPlansLoaded(true);
+    // Returned as well as stored: `plans` will not reflect this until the next
+    // render, so a background caller acting within the same tick needs the
+    // value directly.
+    return fetched;
   }, [itinerary]);
 
   const refreshPlans = useThrottleable(
     useCallback(() => {
-      loadData(fetchPlans);
+      // Return value discarded: the visible path renders from `plans` state.
+      loadData(async () => {
+        await fetchPlans();
+      });
     }, [fetchPlans, loadData])
   );
 

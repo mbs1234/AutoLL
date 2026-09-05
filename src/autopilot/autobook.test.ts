@@ -4,6 +4,7 @@ import { DateTime, ParkTime } from '@/datetime';
 
 import {
   AutoBookLedger,
+  CONFIRM_ABSENT_POLLS,
   DEFAULT_MAX_PER_SESSION,
   attemptAutoBook,
   offerIsAcceptable,
@@ -102,6 +103,124 @@ describe('AutoBookLedger', () => {
     ledger.reset();
     expect(ledger.hasAttempted(BZ)).toBe(false);
     expect(ledger.bookedCount).toBe(0);
+  });
+});
+
+/**
+ * A booking request whose fate is unknown, and the release of the attempt lock
+ * once plans settle it. Disney allows booking, cancelling and rebooking the
+ * same attraction, so the lock covers doubt rather than the whole session.
+ */
+describe('AutoBookLedger doubt-holds', () => {
+  /** Observe the attraction unheld often enough to clear its lock. */
+  function seeAbsent(ledger: AutoBookLedger, times = CONFIRM_ABSENT_POLLS) {
+    for (let i = 0; i < times; ++i) ledger.resolveBook(BZ, false);
+  }
+
+  it('charges the allowance for an attempt that never confirmed', () => {
+    const ledger = new AutoBookLedger(1);
+    ledger.markAttempted(BZ);
+    // The request may have landed. Until plans say otherwise it is treated as
+    // spent, so nothing else can book against the same slot.
+    expect(ledger.remaining).toBe(0);
+    expect(ledger.bookedCount).toBe(0);
+  });
+
+  it('does not double-charge an attempt that confirmed', () => {
+    const ledger = new AutoBookLedger(2);
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    expect(ledger.remaining).toBe(1);
+    expect(ledger.bookedCount).toBe(1);
+  });
+
+  it('charges an unconfirmed attempt once plans show it landed', () => {
+    const ledger = new AutoBookLedger(2);
+    ledger.markAttempted(BZ);
+    ledger.resolveBook(BZ, true);
+    expect(ledger.bookedCount).toBe(1);
+    expect(ledger.remaining).toBe(1);
+  });
+
+  it('leaves a confirmed booking alone when plans agree', () => {
+    const ledger = new AutoBookLedger(2);
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    ledger.resolveBook(BZ, true);
+    expect(ledger.bookedCount).toBe(1);
+  });
+
+  it('keeps the lock while the reservation is held', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    ledger.resolveBook(BZ, true);
+    expect(ledger.hasAttempted(BZ)).toBe(true);
+  });
+
+  // The reason any of this exists: cancel a late return time by hand and the
+  // better one that drops later must still be bookable.
+  it('releases the lock after a booking is cancelled', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    seeAbsent(ledger);
+    expect(ledger.hasAttempted(BZ)).toBe(false);
+  });
+
+  it('refunds the allowance when an attempt turns out not to have landed', () => {
+    const ledger = new AutoBookLedger(1);
+    ledger.markAttempted(BZ);
+    expect(ledger.remaining).toBe(0);
+    seeAbsent(ledger);
+    expect(ledger.remaining).toBe(1);
+    expect(ledger.bookedCount).toBe(0);
+  });
+
+  // Disney can omit a just-made booking from the next plans response. Acting
+  // on a single gap would rebook something already held.
+  it('requires consecutive absences before releasing', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
+    expect(ledger.hasAttempted(BZ)).toBe(true);
+  });
+
+  it('restarts the count when the reservation reappears', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
+    ledger.resolveBook(BZ, true);
+    seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
+    expect(ledger.hasAttempted(BZ)).toBe(true);
+  });
+
+  it('reports unsettled and settled book attempts alike', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    ledger.markAttempted('other', 'modify');
+    expect(ledger.attemptedBookIds).toEqual([BZ]);
+  });
+
+  // Moving and swapping create no doubt-hold of their own, so neither may
+  // settle a booking's.
+  it('leaves booking doubt untouched when a move confirms', () => {
+    const ledger = new AutoBookLedger(2);
+    ledger.markAttempted(BZ);
+    ledger.markAttempted(BZ, 'modify');
+    ledger.markBooked();
+    expect(ledger.remaining).toBe(0);
+  });
+
+  it('clears absence counts on reset', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
+    ledger.reset();
+    ledger.markAttempted(BZ);
+    seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
+    expect(ledger.hasAttempted(BZ)).toBe(true);
   });
 });
 

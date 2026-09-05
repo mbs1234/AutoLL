@@ -24,7 +24,7 @@ function renderComponent(plans: (LLMP | Reservation)[]) {
       value={{
         plans,
         refreshPlans: () => {},
-        pollPlans: async () => {},
+        pollPlans: async () => [],
         loaderElem: null,
       }}
     >
