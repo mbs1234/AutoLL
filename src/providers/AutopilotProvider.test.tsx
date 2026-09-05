@@ -30,7 +30,8 @@ import {
   saveBudget,
   saveSettings,
 } from '@/autopilot/storage';
-import { saveWatchList } from '@/autopilot/watchlist';
+import { releaseScreenAwake, wakeLockHeld } from '@/autopilot/wakelock';
+import { loadWatchList, saveWatchList } from '@/autopilot/watchlist';
 import AutopilotContext from '@/contexts/AutopilotContext';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ClientsContext, { Clients } from '@/contexts/ClientsContext';
@@ -1888,5 +1889,132 @@ describe('AutopilotProvider repeated moves', () => {
     await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
     await runTicks(WAITED);
     expect(book).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The arrangement the app actually ships: Merlock mounts one provider above
+// the whole nav stack, and the NextLL tab mounts a second one inside itself.
+// Opening and leaving that tab therefore mounts and unmounts a provider
+// underneath a running one, and must not disturb it -- Autopilot running
+// across tabs is the whole reason its provider sits where it does.
+describe('AutopilotProvider with a second provider mounted inside it', () => {
+  beforeEach(() => setTime('09:00'));
+
+  /** A wake lock the browser grants, so there is something to lose. */
+  function installWakeLock() {
+    const sentinel = {
+      released: false,
+      release: jest.fn(async () => undefined),
+      addEventListener: jest.fn(),
+    };
+    Object.defineProperty(navigator, 'wakeLock', {
+      value: { request: jest.fn(async () => sentinel) },
+      configurable: true,
+    });
+    return sentinel;
+  }
+
+  afterEach(async () => {
+    await releaseScreenAwake();
+    Reflect.deleteProperty(navigator, 'wakeLock');
+  });
+
+  function setupNested() {
+    const pollExperiences = jest.fn(async () => []);
+    const pollPlans = jest.fn(async () => []);
+    function Tree({ inner }: { inner: boolean }) {
+      return (
+        <BookingDateContext
+          value={{ bookingDate: TODAY, setBookingDate: () => {} }}
+        >
+          <ClientsContext
+            value={{ ll: { nextBookTimes: [] as ParkTime[] } } as Clients}
+          >
+            <ParkContext value={{ park: mk, setPark: () => {} }}>
+              <ExperiencesContext
+                value={{
+                  experiences: [],
+                  refreshExperiences: () => {},
+                  pollExperiences,
+                  loaderElem: null,
+                }}
+              >
+                <PlansContext
+                  value={{
+                    plans: [],
+                    refreshPlans: () => {},
+                    pollPlans,
+                    loaderElem: null,
+                  }}
+                >
+                  <AutopilotProvider>
+                    <Probe />
+                    {inner && (
+                      <AutopilotProvider
+                        watchListKey="bg1.nextll.watchlist"
+                        budgeted={false}
+                        repeatMoves
+                      >
+                        <div />
+                      </AutopilotProvider>
+                    )}
+                  </AutopilotProvider>
+                </PlansContext>
+              </ExperiencesContext>
+            </ParkContext>
+          </ClientsContext>
+        </BookingDateContext>
+      );
+    }
+    const view = render(<Tree inner={false} />);
+    return {
+      pollExperiences,
+      openNextLL: () => view.rerender(<Tree inner />),
+      leaveNextLL: () => view.rerender(<Tree inner={false} />),
+    };
+  }
+
+  // The regression this replaced: the wake lock is a module singleton, and
+  // the inner provider's unmount released it unconditionally. Since it is
+  // only ever requested from the gesture that starts a run, nothing put it
+  // back -- so opening this tab and leaving cost a running Autopilot the lock
+  // for the rest of the day, and the phone would sleep through the drop.
+  it('keeps the screen awake when the second provider goes away', async () => {
+    const sentinel = installWakeLock();
+    const { openNextLL, leaveNextLL } = setupNested();
+    await enable();
+    await waitFor(() => expect(wakeLockHeld()).toBe(true));
+
+    await act(async () => openNextLL());
+    await act(async () => leaveNextLL());
+
+    expect(wakeLockHeld()).toBe(true);
+    expect(sentinel.release).not.toHaveBeenCalled();
+  });
+
+  it('keeps polling across the second provider coming and going', async () => {
+    const { pollExperiences, openNextLL, leaveNextLL } = setupNested();
+    await enable();
+    await runTicks(2);
+    const before = pollExperiences.mock.calls.length;
+
+    await act(async () => openNextLL());
+    await act(async () => leaveNextLL());
+    await runTicks(2);
+
+    expect(pollExperiences.mock.calls.length).toBeGreaterThan(before);
+    expect(screen.getByTestId('mode')).not.toHaveTextContent('off');
+  });
+
+  // Its own key, so a quick search cannot overwrite a list built up all
+  // morning -- nor clear it on the way out.
+  it('leaves the watch list alone', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { openNextLL, leaveNextLL } = setupNested();
+    await enable();
+    await act(async () => openNextLL());
+    await act(async () => leaveNextLL());
+    expect(loadWatchList()).toHaveLength(1);
+    expect(screen.getByTestId('targets')).toHaveTextContent('1');
   });
 });
