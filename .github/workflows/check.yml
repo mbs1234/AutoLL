@@ -1,0 +1,58 @@
+name: Check
+
+# Local development on this fork has no Node toolchain, so this workflow is
+# the only feedback loop for tests, lint and types. It runs on every push and
+# PR to any branch except goofy (which holds only prebuilt static assets and
+# has no package.json).
+
+on:
+  push:
+    branches-ignore: [goofy]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Run each step even if an earlier one fails, so a single push reports
+      # every problem at once instead of one per round trip. That matters a
+      # lot when the runner is the only way to type-check.
+      # Excludes suites already broken in pristine upstream; see
+      # jest.ci.config.js for the list and the reasoning.
+      - name: Tests
+        id: test
+        if: '!cancelled()'
+        run: npm run test:ci
+
+      # Informational: the unfiltered suite, including upstream's known
+      # failures. Never fails the job -- it exists so the pre-existing count is
+      # visible and a change in it is noticeable.
+      - name: Tests (full, informational)
+        if: '!cancelled()'
+        continue-on-error: true
+        run: npm test
+
+      - name: Lint
+        id: lint
+        if: '!cancelled()'
+        run: npm run lint
+
+      - name: Typecheck
+        id: typecheck
+        if: '!cancelled()'
+        run: npm run typecheck
+
+      - name: Build
+        id: build
+        if: '!cancelled()'
+        run: npm run build:fork

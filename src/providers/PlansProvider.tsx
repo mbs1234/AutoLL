@@ -16,19 +16,42 @@ export default function PlansProvider({
   const [plans, setPlans] = useState<Booking[]>([]);
   const [plansLoaded, setPlansLoaded] = useState(false);
 
+  /**
+   * The actual fetch, awaitable and free of UI side effects. Rejects on
+   * failure so background callers can back off; `refreshPlans` wraps it in
+   * `loadData` for the visible path.
+   */
+  const fetchPlans = useCallback(async () => {
+    const fetched = await itinerary.plans();
+    setPlans(fetched);
+    setPlansLoaded(true);
+    // Returned as well as stored: `plans` will not reflect this until the next
+    // render, so a background caller acting within the same tick needs the
+    // value directly.
+    return fetched;
+  }, [itinerary]);
+
   const refreshPlans = useThrottleable(
     useCallback(() => {
+      // Return value discarded: the visible path renders from `plans` state.
       loadData(async () => {
-        setPlans(await itinerary.plans());
-        setPlansLoaded(true);
+        await fetchPlans();
       });
-    }, [itinerary, loadData])
+    }, [fetchPlans, loadData])
   );
 
   useEffect(refreshPlans, [refreshPlans]);
 
   return (
-    <PlansContext value={{ plans, plansLoaded, refreshPlans, loaderElem }}>
+    <PlansContext
+      value={{
+        plans,
+        plansLoaded,
+        refreshPlans,
+        pollPlans: fetchPlans,
+        loaderElem,
+      }}
+    >
       {children}
     </PlansContext>
   );

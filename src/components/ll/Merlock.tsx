@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import AutopilotProvider from '@/providers/AutopilotProvider';
 import BookingDateProvider from '@/providers/BookingDateProvider';
 import DasPartiesProvider from '@/providers/DasPartiesProvider';
 import ExperiencesProvider from '@/providers/ExperiencesProvider';
@@ -18,11 +19,15 @@ export default function Merlock() {
         <BookingDateProvider>
           <ParkProvider>
             <ExperiencesProvider>
-              <RebookingProvider>
-                <NavProvider>
-                  <Home tabName={tabName} />
-                </NavProvider>
-              </RebookingProvider>
+              {/* Below ExperiencesProvider because it needs both experiences
+                  and plans, and PlansProvider is mounted above. */}
+              <AutopilotProvider>
+                <RebookingProvider>
+                  <NavProvider>
+                    <Home tabName={tabName} />
+                  </NavProvider>
+                </RebookingProvider>
+              </AutopilotProvider>
             </ExperiencesProvider>
           </ParkProvider>
         </BookingDateProvider>

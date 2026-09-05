@@ -20,7 +20,14 @@ function renderComponent(plans: (LLMP | Reservation)[]) {
     }),
   }));
   return render(
-    <PlansContext value={{ plans, refreshPlans: () => {}, loaderElem: null }}>
+    <PlansContext
+      value={{
+        plans,
+        refreshPlans: () => {},
+        pollPlans: async () => [],
+        loaderElem: null,
+      }}
+    >
       <OverlappingPlans
         offer={{
           start: new DateTime(TODAY, new ParkTime(12)),

@@ -17,7 +17,7 @@ const server = {
 };
 
 export default defineConfig({
-  base: '/bg1/',
+  base: '/AutoLL/',
   root: 'src',
   resolve: {
     alias: {

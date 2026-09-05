@@ -38,7 +38,7 @@ describe('LoginForm', () => {
     if (!self.OneID) return;
     expect(self.OneID.get).toHaveBeenCalledWith({
       clientId: 'TPR-WDW-LBSDK.IOS',
-      responderPage: 'https://joelface.github.io/bg1/responder.html',
+      responderPage: 'https://mbs1234.github.io/AutoLL/responder.html',
     });
     expect(
       document.querySelector(

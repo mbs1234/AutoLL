@@ -48,7 +48,12 @@ function ModifyButtonTest({
   park ??= b.park;
   return (
     <PlansContext
-      value={{ plans: [booking], refreshPlans: () => {}, loaderElem: null }}
+      value={{
+        plans: [booking],
+        refreshPlans: () => {},
+        pollPlans: async () => [],
+        loaderElem: null,
+      }}
     >
       <BookingDateContext value={{ bookingDate, setBookingDate }}>
         <ParkContext value={{ park, setPark }}>

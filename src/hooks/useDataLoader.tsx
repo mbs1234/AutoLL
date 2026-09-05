@@ -50,23 +50,24 @@ export default function useDataLoader(): {
             if (error instanceof Error && msgs[name]) {
               setFlashArgs(msgs[name], 'error');
             } else if (Number.isInteger(status)) {
-              if (msgs[status]) {
-                setFlashArgs(msgs[status], 'error');
-              } else {
-                const path = error?.path;
-                const endpoint = path
-                  ? path.split('/').pop()
-                  : undefined;
-                const detail = [status, endpoint]
-                  .filter(Boolean)
-                  .join(' ');
-                setFlashArgs(
-                  detail
-                    ? `${msgs.request} (${detail})`
-                    : msgs.request,
-                  'error'
-                );
-              }
+              // The status and the endpoint, when nothing maps the status.
+              // "Network request failed" alone is the fallback for *any*
+              // unmapped status, so it said the same thing for a refused
+              // request as for a dropped connection -- the one distinction
+              // that matters when Disney may be rejecting these calls.
+              //
+              // 0 is not a status: `fetchJson` uses it when fetch itself
+              // threw, so it reads as "no response" rather than as a number
+              // no server sent. It is also falsy, which is why it cannot just
+              // be filtered out of the pair below.
+              const endpoint = error?.path?.split('/').pop();
+              const detail = [status || 'no response', endpoint]
+                .filter(Boolean)
+                .join(' ');
+              setFlashArgs(
+                msgs[status] ? msgs[status] : `${msgs.request} (${detail})`,
+                'error'
+              );
             } else {
               console.error(error);
               setFlashArgs(msgs.error, 'error');

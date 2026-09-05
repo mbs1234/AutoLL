@@ -15,7 +15,14 @@ const refreshPlans = jest.fn();
 
 async function renderComponent() {
   return renderResort(
-    <PlansContext value={{ plans: [], refreshPlans, loaderElem: null }}>
+    <PlansContext
+      value={{
+        plans: [],
+        refreshPlans,
+        pollPlans: async () => [],
+        loaderElem: null,
+      }}
+    >
       <nav.Provider>
         <BookNewReturnTime offer={modOffer} />
       </nav.Provider>

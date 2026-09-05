@@ -56,7 +56,7 @@ class OneId {
         this.clientId = `TPR-${resortId}-LBSDK.${os}`;
         const client = self.OneID.get({
           clientId: this.clientId,
-          responderPage: 'https://joelface.github.io/bg1/responder.html',
+          responderPage: 'https://mbs1234.github.io/AutoLL/responder.html',
         });
         await client.init();
         this.client = client;

@@ -103,6 +103,9 @@ describe('useDataLoader()', () => {
 
     await clickFlash('404', 'Page not found');
 
+    // The button is labelled 500 but throws the 404 error with no message map,
+    // so this is the unmapped-status path: the status is named rather than
+    // hidden behind a word that says "network".
     await clickFlash('500', 'Network request failed (404)');
 
     expect(console.error).toHaveBeenCalledTimes(0);

@@ -84,7 +84,7 @@ export type Experience = ExpData &
   };
 export type FlexExperience = Experience & Required<Pick<Experience, 'flex'>>;
 
-interface ExperiencesResponse {
+export interface ExperiencesResponse {
   availableExperiences: ApiExperience[];
   eligibility?: {
     geniePlusEligibility?: {
@@ -214,6 +214,46 @@ function compareByReason(a: Guest, b: Guest, reason: IneligibleReason) {
   return +(b.ineligibleReason === reason) - +(a.ineligibleReason === reason);
 }
 
+/**
+ * Every moment Disney says a booking window opens on `date`, soonest first.
+ *
+ * Read for the date actually requested rather than today. The two coincide for
+ * every current caller, but reading `parkDate()` here while the rest of
+ * `experiences()` answers for `date` would report today next booking time as
+ * though it applied to a future park day.
+ *
+ * Plural because a party's slots free at different times, and each entry is a
+ * moment Disney has said inventory opens. Keeping only the earliest threw the
+ * rest away, so the poller idled at 45 seconds through every later one.
+ *
+ * Ordered by `ParkTime`, which measures from a 4am day start, rather than by
+ * the raw `HH:MM:SS` string: a window at 00:15 on a late Magic Kingdom night
+ * belongs after 23:00, not at the head of the list where a string sort puts
+ * it. That is a live bug in the single-window code this replaces.
+ *
+ * A window whose time will not parse is dropped rather than thrown on.
+ * `ParkTime.from` throws a RangeError on anything that is not HH:MM:SS, and
+ * this now reads every window instead of one, so a single malformed entry
+ * would fail the whole poll -- and MAX_CONSECUTIVE_FAILURES of those stop
+ * autopilot for the day.
+ */
+export function bookWindows(
+  eligibility: ExperiencesResponse['eligibility'],
+  date: string
+): ParkTime[] {
+  const windows =
+    eligibility?.geniePlusEligibility?.[date]?.flexEligibilityWindows ?? [];
+  return windows
+    .flatMap(w => {
+      try {
+        return w.time?.time ? [ParkTime.from(w.time.time)] : [];
+      } catch {
+        return [];
+      }
+    })
+    .sort((a, b) => +a - +b);
+}
+
 export abstract class LLClient extends ApiClient {
   readonly rules = {
     book: true,
@@ -222,7 +262,24 @@ export abstract class LLClient extends ApiClient {
     prebook: false,
     timeSelect: false,
   };
-  nextBookTime: ParkTime | undefined;
+  /**
+   * Every moment Disney says a booking window opens, soonest first.
+   *
+   * Reassigned wholesale on every `experiences()` call rather than mutated,
+   * so a park or date change cannot leave a stale window behind and the
+   * poller's ref cannot observe a half-written list mid-tick.
+   */
+  nextBookTimes: ParkTime[] = [];
+  /**
+   * Tipboard ids the resort data file does not know, from the last fetch.
+   *
+   * Disney issues a new facility id when an attraction is re-themed, and
+   * `experiences()` drops an unknown id silently -- no row, no watch target,
+   * no alert, no booking, and nothing on screen saying why. Three attractions
+   * went stale this way in 2026, two of them headliners. Recorded here so the
+   * next one is visible the day it happens instead of on the trip.
+   */
+  unknownExperienceIds: string[] = [];
   onUnauthorized = () => undefined;
 
   protected partyIds = new Set<Guest['id']>();
@@ -239,6 +296,17 @@ export abstract class LLClient extends ApiClient {
     return this.#lastOffer;
   }
 
+  /**
+   * The soonest booking window, which is the one the screens name.
+   *
+   * Derived rather than stored alongside the array: two homes for the same
+   * fact drift apart, and both readers want a single time rather than a `[0]`
+   * in their JSX.
+   */
+  get nextBookTime(): ParkTime | undefined {
+    return this.nextBookTimes[0];
+  }
+
   setPartyIds(partyIds: string[]) {
     this.partyIds = new Set(partyIds);
   }
@@ -251,15 +319,12 @@ export abstract class LLClient extends ApiClient {
       params: { date },
       userId: true,
     });
-    const nextBookTimeString = (
-      data.eligibility?.geniePlusEligibility?.[parkDate()]
-        ?.flexEligibilityWindows || []
-    ).sort((a, b) => a.time.time.localeCompare(b.time.time))[0]?.time.time;
-    this.nextBookTime = nextBookTimeString
-      ? ParkTime.from(nextBookTimeString)
-      : undefined;
+    // Unconditional: a response with no eligibility block must clear the
+    // previous park's windows rather than leave them to be burst for.
+    this.nextBookTimes = bookWindows(data.eligibility, date);
 
-    return data.availableExperiences.flatMap(exp => {
+    const unknown: string[] = [];
+    const mapped = data.availableExperiences.flatMap(exp => {
       try {
         return {
           ...replaceTimeStrings(exp),
@@ -271,17 +336,42 @@ export abstract class LLClient extends ApiClient {
                 ...(exp.additionalShowTimes ?? []),
               ].map(t => ParkTime.from(t))
             : undefined,
-          experienced: this.tracker.experienced(exp),
+          // Only for the current park day. `LLTracker` is day-scoped -- it
+          // loads through `getDaily` and keeps only bookings whose start is
+          // today -- so its answer is always about today, whatever date this
+          // tipboard was fetched for. Stamping it onto a future date said "you
+          // have already ridden this" about a day the party has not been to,
+          // which lifts the one-Tier-1-at-a-time hold for a redemption that
+          // has not happened yet.
+          experienced:
+            date === parkDate() ? this.tracker.experienced(exp) : undefined,
         };
       } catch (error) {
-        if (error instanceof InvalidId) return [];
-        throw error;
+        if (!(error instanceof InvalidId)) throw error;
+        // Ids deliberately listed as null are a decision, not staleness.
+        if (!this.resort.knows(exp.id)) unknown.push(exp.id);
+        return [];
       }
     });
+    this.unknownExperienceIds = unknown;
+    return mapped;
   }
 
   track(bookings: Booking[]) {
     this.tracker.update(bookings, this);
+  }
+
+  /**
+   * Whether the party has already used up this attraction today.
+   *
+   * True once a reservation has been redeemed, and also once one has expired
+   * unredeemed -- Disney counts a lapsed pass as ridden, so both leave the
+   * itinerary looking identical to a cancellation while being nothing of the
+   * kind. Read from the tracker rather than the tipboard because a spent
+   * attraction can disappear from the tipboard altogether.
+   */
+  experienced(experience: Pick<Experience, 'id'>): boolean {
+    return this.tracker.experienced(experience);
   }
 
   abstract guests(experience?: { id: string }, date?: string): Promise<Guests>;

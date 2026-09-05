@@ -62,35 +62,33 @@ export default function BookExperience({
 
   async function book() {
     if (!offer || !party) return;
-    loadData(
-      async flash => {
-        try {
-          const booking = await ll.book(offer, party.selected);
-          rebooking.end();
-          const selectedIds = new Set(party.selected.map(g => g.id));
-          const guestsToCancel = booking.guests.filter(
-            g => !selectedIds.has(g.id)
-          );
-          if (guestsToCancel.length > 0) {
-            await ll.cancelBooking(guestsToCancel);
-            booking.guests = booking.guests.filter(g => selectedIds.has(g.id));
-          }
-          goTo(<BookingDetails booking={booking} isNew={true} />, {
-            replace: true,
-          });
-          refreshPlans();
-          ping(resort, 'G');
-        } catch (error: any) {
-          const status = error?.response?.status;
-          if (status === 410) {
-            flash('Offer expired — refreshing…', 'error');
-            setOffer(undefined); // triggers auto-refresh
-          } else {
-            throw error; // let useDataLoader handle other errors
-          }
+    loadData(async flash => {
+      try {
+        const booking = await ll.book(offer, party.selected);
+        rebooking.end();
+        const selectedIds = new Set(party.selected.map(g => g.id));
+        const guestsToCancel = booking.guests.filter(
+          g => !selectedIds.has(g.id)
+        );
+        if (guestsToCancel.length > 0) {
+          await ll.cancelBooking(guestsToCancel);
+          booking.guests = booking.guests.filter(g => selectedIds.has(g.id));
         }
-      },
-    );
+        goTo(<BookingDetails booking={booking} isNew={true} />, {
+          replace: true,
+        });
+        refreshPlans();
+        ping(resort, 'G');
+      } catch (error: any) {
+        const status = error?.response?.status;
+        if (status === 410) {
+          flash('Offer expired — refreshing…', 'error');
+          setOffer(undefined); // triggers auto-refresh
+        } else {
+          throw error; // let useDataLoader handle other errors
+        }
+      }
+    });
   }
 
   const loadParty = useCallback(() => {
@@ -232,40 +230,53 @@ export default function BookExperience({
         )}
       </h2>
       <LandLine land={experience.land} />
-      {(fullExp?.standby || experience.dropTimes || experience.flex?.nextAvailableTime) && (
+      {(fullExp?.standby ||
+        experience.dropTimes ||
+        experience.flex?.nextAvailableTime) && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
-          {fullExp?.standby.available && fullExp.standby.waitTime !== undefined && (
-            <span>
-              Standby:{' '}
-              <span className="font-semibold">
-                {fullExp.standby.waitTime} min
+          {fullExp?.standby.available &&
+            fullExp.standby.waitTime !== undefined && (
+              <span>
+                Standby:{' '}
+                <span className="font-semibold">
+                  {fullExp.standby.waitTime} min
+                </span>
               </span>
-            </span>
-          )}
-          {fullExp?.standby.available && fullExp.standby.waitTime === undefined && (
-            <span>
-              Standby: <span className="font-semibold">now</span>
-            </span>
-          )}
+            )}
+          {fullExp?.standby.available &&
+            fullExp.standby.waitTime === undefined && (
+              <span>
+                Standby: <span className="font-semibold">now</span>
+              </span>
+            )}
           {experience.flex?.nextAvailableTime && (
             <span>
               Next LL:{' '}
-              <Time time={experience.flex.nextAvailableTime} className="font-semibold" />
+              <Time
+                time={experience.flex.nextAvailableTime}
+                className="font-semibold"
+              />
             </span>
           )}
-          {experience.dropTimes && experience.dropTimes.length > 0 && (() => {
-            const upcoming = upcomingTimes(experience.dropTimes!);
-            return upcoming.length > 0 ? (
-              <span>
-                Drop: {upcoming.map((t, i) => (
-                  <span key={+t}>
-                    {i > 0 && ', '}
-                    <Time time={t} className={i === 0 ? 'font-semibold' : ''} />
-                  </span>
-                ))}
-              </span>
-            ) : null;
-          })()}
+          {experience.dropTimes &&
+            experience.dropTimes.length > 0 &&
+            (() => {
+              const upcoming = upcomingTimes(experience.dropTimes!);
+              return upcoming.length > 0 ? (
+                <span>
+                  Drop:{' '}
+                  {upcoming.map((t, i) => (
+                    <span key={+t}>
+                      {i > 0 && ', '}
+                      <Time
+                        time={t}
+                        className={i === 0 ? 'font-semibold' : ''}
+                      />
+                    </span>
+                  ))}
+                </span>
+              ) : null;
+            })()}
         </div>
       )}
       <ExistingBookings experience={experience} />

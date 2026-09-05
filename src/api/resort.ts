@@ -112,6 +112,17 @@ export class Resort {
     }
   }
 
+  /**
+   * Whether this id appears in the data file at all, listed or ignored.
+   *
+   * `experience()` throws the same `InvalidId` for an id deliberately set to
+   * null and for one nobody has heard of, which are very different things: the
+   * first is a decision, the second is data that has gone stale.
+   */
+  knows(id: string): boolean {
+    return this.expsById[id] !== undefined;
+  }
+
   experience(id: string) {
     const exp = this.expsById[id];
     if (exp) return exp;

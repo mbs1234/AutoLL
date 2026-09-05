@@ -12,7 +12,14 @@ const refreshPlans = jest.fn();
 
 function renderComponent(plans: Booking[] = bookings, unmodifiable = false) {
   render(
-    <PlansContext value={{ plans, refreshPlans, loaderElem: null }}>
+    <PlansContext
+      value={{
+        plans,
+        refreshPlans,
+        pollPlans: async () => [],
+        loaderElem: null,
+      }}
+    >
       <NavProvider>
         <YourDay date={TODAY} unmodifiable={unmodifiable} />
       </NavProvider>

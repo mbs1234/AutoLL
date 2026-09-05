@@ -38,6 +38,7 @@ describe('useSort()', () => {
           value={{
             experiences,
             refreshExperiences: () => null,
+            pollExperiences: async () => [],
             loaderElem: null,
           }}
         >

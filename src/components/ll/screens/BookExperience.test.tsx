@@ -308,7 +308,7 @@ describe('BookExperience', () => {
     await mockBook(410);
     see('Offer expired');
     await mockBook(0);
-    see('Network request failed');
+    see('Network request failed (no response)');
     await mockBook(-1);
     see('Unknown error occurred');
   });
