@@ -137,23 +137,44 @@ export class LLClientWDW extends LLClient {
       const expIds = new Set(exps.map(exp => exp.id));
       const dateParkId = date + park.id;
       if (!this.#closedExpIds[dateParkId]) {
-        const { data } = await this.request<{
-          tiers: {
-            experiences: { facilityId: string; isAvailable?: boolean }[];
-          }[];
-        }>({
-          path: '/ea-vas/planning/api/v1/experiences/availability/bundles/experiences',
-          data: {
-            parkId: park.id,
-            date,
-            guestIds: [await this.primaryGuestId()],
-            existingOfferIds: [],
-            orderId: null,
-          },
-        });
-        this.#closedExpIds[dateParkId] = data.tiers.flatMap(t =>
-          t.experiences.map(exp => exp.facilityId).filter(id => !expIds.has(id))
-        );
+        // Best effort, and deliberately unable to fail the call it enriches.
+        //
+        // The tipboard has already come back by this point; everything below
+        // only adds the attractions it omits because they are closed. Letting
+        // this throw threw away a good result and, because the poller reads a
+        // thrown tick as a failed one, drove it into exponential backoff --
+        // then stopped it after MAX_CONSECUTIVE_FAILURES. On a future date
+        // the condition above is true on every poll and nothing is cached
+        // until the request succeeds, so a single unavailable endpoint turned
+        // a working Autopilot into one checking every sixty seconds and then
+        // not at all. This is an extra: it may not be worth a request, and it
+        // is certainly not worth the poll.
+        try {
+          const { data } = await this.request<{
+            tiers: {
+              experiences: { facilityId: string; isAvailable?: boolean }[];
+            }[];
+          }>({
+            path: '/ea-vas/planning/api/v1/experiences/availability/bundles/experiences',
+            data: {
+              parkId: park.id,
+              date,
+              guestIds: [await this.primaryGuestId()],
+              existingOfferIds: [],
+              orderId: null,
+            },
+          });
+          this.#closedExpIds[dateParkId] = data.tiers.flatMap(t =>
+            t.experiences
+              .map(exp => exp.facilityId)
+              .filter(id => !expIds.has(id))
+          );
+        } catch (error) {
+          // Cached as "nothing to add" so the next poll does not pay for the
+          // same failure. Cleared with the rest of the day's state on reload.
+          console.error(error);
+          this.#closedExpIds[dateParkId] = [];
+        }
       }
 
       for (const id of this.#closedExpIds[dateParkId] ?? []) {

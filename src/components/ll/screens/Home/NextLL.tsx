@@ -9,6 +9,7 @@ import {
 } from '@/autopilot/nextll';
 import { WatchTarget, parseBound, saveWatchList } from '@/autopilot/watchlist';
 import Button from '@/components/Button';
+import Disclosure from '@/components/Disclosure';
 import Tab from '@/components/Tab';
 import { Time } from '@/components/Time';
 import AutopilotContext from '@/contexts/AutopilotContext';
@@ -296,8 +297,7 @@ export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
           </p>
 
           {bookingLog.length > 0 && (
-            <>
-              <h3>What happened</h3>
+            <Disclosure title="What happened" count={bookingLog.length}>
               <ul className="text-sm">
                 {bookingLog.map((entry, i) => (
                   <li key={`${entry.name}-${i}`} className="py-0.5">
@@ -320,7 +320,7 @@ export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
                   </li>
                 ))}
               </ul>
-            </>
+            </Disclosure>
           )}
         </>
       )}
