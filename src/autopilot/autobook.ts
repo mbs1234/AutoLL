@@ -174,10 +174,12 @@ export class AutoBookLedger {
    * 2. Absence must then be seen `CONFIRM_ABSENT_POLLS` times running, so a
    *    single flaky itinerary response cannot release a live reservation.
    *
-   * Poll count rather than elapsed time is deliberate but worth knowing: polls
-   * are ~15 minutes apart at the idle cadence and ~24 seconds apart in a drop
-   * burst, so a cancellation is noticed far faster during a drop -- which is
-   * when it matters. Condition 1 is what makes that compression safe.
+   * Poll count rather than elapsed time is deliberate but worth knowing. Plans
+   * are fetched every tenth poll tick, so they are ~7.5 minutes apart at the
+   * idle cadence and ~12 seconds apart in a drop burst; the two absences a
+   * release needs therefore take ~15 minutes idle and ~24 seconds mid-drop. A
+   * cancellation is noticed far faster during a drop, which is when it matters,
+   * and condition 1 is what makes that 37x compression safe.
    *
    * Redemption is deliberately *not* handled here: a redeemed attraction leaves
    * the party ineligible, and `attemptAutoBook` skips on eligibility long

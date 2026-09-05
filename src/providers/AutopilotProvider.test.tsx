@@ -115,6 +115,27 @@ async function enable() {
   });
 }
 
+/**
+ * Advance one interval at a time: each tick awaits a chain of polls, an offer
+ * and a booking, and a single large jump outruns it.
+ */
+async function runTicks(count: number, intervalMs = IDLE_INTERVAL_MS) {
+  await act(async () => {
+    for (let i = 0; i < count; ++i) {
+      await jest.advanceTimersByTimeAsync(intervalMs);
+    }
+  });
+}
+
+/**
+ * Ticks needed for a booking lock to release, with margin.
+ *
+ * Any test asserting that something happens *at most once* has to outlast this
+ * to mean anything: shorter than it, the assertion holds for the trivial reason
+ * that no release window elapsed.
+ */
+const RELEASE_TICKS = PLANS_EVERY_N_TICKS * (CONFIRM_ABSENT_POLLS + 2);
+
 beforeEach(() => {
   localStorage.clear();
   jest.clearAllMocks();
@@ -426,20 +447,6 @@ describe('AutopilotProvider auto-booking', () => {
     });
     expect(book).toHaveBeenCalledTimes(1);
   });
-
-  /**
-   * Advance one interval at a time: each tick awaits a chain of polls, an
-   * offer and a booking, and a single large jump outruns it.
-   */
-  async function runTicks(count: number, intervalMs = IDLE_INTERVAL_MS) {
-    await act(async () => {
-      for (let i = 0; i < count; ++i) {
-        await jest.advanceTimersByTimeAsync(intervalMs);
-      }
-    });
-  }
-
-  const RELEASE_TICKS = PLANS_EVERY_N_TICKS * (CONFIRM_ABSENT_POLLS + 2);
 
   // Disney allows booking, cancelling and rebooking the same attraction, so a
   // reservation that appears and then disappears should free the attraction.
@@ -1217,9 +1224,12 @@ describe('AutopilotProvider dry run', () => {
     await waitFor(() =>
       expect(loadBookingLog().some(e => e.status === 'dry-run')).toBe(true)
     );
-    await act(async () => {
-      await jest.advanceTimersByTimeAsync(60_000 * 5);
-    });
+    // Past a full release window on purpose. A rehearsal marks the attraction
+    // only so this logs once; were that mark to take part in settling, the
+    // lock would release and the same rehearsal would log again. Five minutes
+    // -- the previous span -- is shorter than the window, so the assertion
+    // used to hold for no reason at all.
+    await runTicks(RELEASE_TICKS);
     expect(loadBookingLog().filter(e => e.status === 'dry-run')).toHaveLength(
       1
     );

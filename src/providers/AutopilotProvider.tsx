@@ -510,6 +510,13 @@ export default function AutopilotProvider({
       if (outcome.status === 'skipped') bumpSkip(outcome.reason);
       else logOutcome(experience.name, outcome);
 
+      // After every attempt, not only a successful one: a booking request that
+      // errored has already taken a doubt-hold on the allowance, so a
+      // success-only refresh would show a slot that autopilot will not spend.
+      // Harmless on a skip, where nothing moved and React bails out.
+      setBookedCount(ledgerRef.current.bookedCount);
+      setBookingsRemaining(ledgerRef.current.remaining);
+
       if (
         outcome.status === 'booked' ||
         outcome.status === 'modified' ||
@@ -518,8 +525,6 @@ export default function AutopilotProvider({
         // Any change shifts eligibility across every experience at once via
         // party, tier and overlap limits, so the whole cache is invalid.
         cacheRef.current.clear();
-        setBookedCount(ledgerRef.current.bookedCount);
-        setBookingsRemaining(ledgerRef.current.remaining);
         fireAlert(
           outcome.status === 'booked'
             ? {

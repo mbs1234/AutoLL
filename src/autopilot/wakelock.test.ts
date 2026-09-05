@@ -113,6 +113,66 @@ describe('holdScreenAwake()', () => {
   });
 });
 
+// `setEnabled` fires holdScreenAwake without awaiting it, so turning autopilot
+// straight back off can land while the request is still outstanding.
+describe('acquire/release races', () => {
+  /** A request the test resolves by hand, to hold it open across a release. */
+  function deferredRequest() {
+    let grant: (sentinel: unknown) => void = () => undefined;
+    const request = () =>
+      new Promise(resolve => {
+        grant = resolve;
+      });
+    return { request, grant: (s: unknown) => grant(s) };
+  }
+
+  it('gives back a lock granted after the release', async () => {
+    const sentinel = fakeSentinel();
+    const { request, grant } = deferredRequest();
+    installWakeLock(request as (t: string) => Promise<unknown>);
+
+    const held = holdScreenAwake();
+    await releaseScreenAwake();
+    grant(sentinel);
+    await held;
+
+    expect(wakeLockHeld()).toBe(false);
+    expect(sentinel.release).toHaveBeenCalled();
+  });
+
+  it('makes one request when two acquires overlap', async () => {
+    const sentinel = fakeSentinel();
+    const { request, grant } = deferredRequest();
+    const wakeLock = installWakeLock(
+      request as (t: string) => Promise<unknown>
+    );
+
+    const first = holdScreenAwake();
+    const second = holdScreenAwake();
+    grant(sentinel);
+    await Promise.all([first, second]);
+
+    expect(wakeLock.request).toHaveBeenCalledTimes(1);
+    expect(wakeLockHeld()).toBe(true);
+  });
+
+  it('can acquire again after a release interrupted a request', async () => {
+    const stranded = fakeSentinel();
+    const { request, grant } = deferredRequest();
+    installWakeLock(request as (t: string) => Promise<unknown>);
+    const held = holdScreenAwake();
+    await releaseScreenAwake();
+    grant(stranded);
+    await held;
+
+    // A fresh, ordinary request must still work afterwards.
+    const wanted = fakeSentinel();
+    installWakeLock(async () => wanted);
+    await holdScreenAwake();
+    expect(wakeLockHeld()).toBe(true);
+  });
+});
+
 describe('releaseScreenAwake()', () => {
   it('releases a held lock', async () => {
     const sentinel = fakeSentinel();

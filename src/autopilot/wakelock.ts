@@ -20,6 +20,18 @@ import onVisible from '@/onVisible';
 let sentinel: WakeLockSentinel | undefined;
 /** Detaches the visibility listener that re-acquires after a release. */
 let stopWatching: (() => void) | undefined;
+/**
+ * Bumped on every release, so a request still in flight can tell that its
+ * result is no longer wanted.
+ *
+ * `navigator.wakeLock.request` is asynchronous, and turning autopilot off is
+ * the gesture most likely to land while one is outstanding -- `setEnabled`
+ * fires the acquire without awaiting it. Without this, the lock granted after
+ * the release would be stored and held with nothing polling.
+ */
+let generation = 0;
+/** The outstanding request, shared so concurrent callers do not each make one. */
+let pending: Promise<void> | undefined;
 
 export function wakeLockSupported(): boolean {
   return typeof navigator !== 'undefined' && 'wakeLock' in navigator;
@@ -32,21 +44,41 @@ export function wakeLockHeld(): boolean {
 
 async function acquire(): Promise<void> {
   if (!wakeLockSupported() || sentinel) return;
-  try {
-    const lock = await navigator.wakeLock.request('screen');
-    // The browser releases the lock on its own when the page is hidden, on
-    // low battery, and in other cases it does not have to explain. Clearing
-    // the handle here is what lets `onVisible` re-acquire rather than seeing a
-    // stale sentinel and assuming the screen is still held.
-    lock.addEventListener('release', () => {
-      if (sentinel === lock) sentinel = undefined;
-    });
-    sentinel = lock;
-  } catch {
-    // Rejected -- hidden document, insecure context, or unsupported. The
-    // caller has no better option than continuing without it.
-    sentinel = undefined;
-  }
+  // Share one request rather than starting a second: a visibility event
+  // arriving while the first is outstanding would otherwise strand a lock,
+  // since only one of the two can be stored in `sentinel`.
+  if (pending) return pending;
+  const wanted = generation;
+  pending = (async () => {
+    try {
+      const lock = await navigator.wakeLock.request('screen');
+      if (wanted !== generation) {
+        // Released while this was in flight. Give the lock straight back --
+        // storing it would keep the screen on with autopilot off.
+        try {
+          await lock.release();
+        } catch {
+          // Nothing held either way.
+        }
+        return;
+      }
+      // The browser releases the lock on its own when the page is hidden, on
+      // low battery, and in other cases it does not have to explain. Clearing
+      // the handle here is what lets `onVisible` re-acquire rather than seeing
+      // a stale sentinel and assuming the screen is still held.
+      lock.addEventListener('release', () => {
+        if (sentinel === lock) sentinel = undefined;
+      });
+      sentinel = lock;
+    } catch {
+      // Rejected -- hidden document, insecure context, or unsupported. The
+      // caller has no better option than continuing without it.
+      if (wanted === generation) sentinel = undefined;
+    } finally {
+      pending = undefined;
+    }
+  })();
+  return pending;
 }
 
 /**
@@ -64,6 +96,9 @@ export async function holdScreenAwake(): Promise<void> {
 
 /** Release the lock and stop re-acquiring. Safe to call when none is held. */
 export async function releaseScreenAwake(): Promise<void> {
+  // Before anything else: a request already in flight must not store its
+  // result once this returns.
+  ++generation;
   stopWatching?.();
   stopWatching = undefined;
   const lock = sentinel;
