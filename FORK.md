@@ -40,9 +40,16 @@ goofy  (static) ──► overlay index/start/news/contact/autoloader/icon/css
 
 ## Booking
 
-**Whether this build can create a Lightning Lane at Walt Disney World is
-unverified, and the evidence leans against it.** Read this before trusting the
-autopilot with a trip.
+**This build cannot create a Lightning Lane at Walt Disney World. Confirmed by
+test on 2026-09-05: the booking attempt returns 403.** Read this before
+trusting the autopilot with a trip.
+
+The 403 is the answer to the open question below. It is Disney refusing the
+request, not a timeout: `fetchJson` reports a thrown fetch as status 0, and
+this was a real status from a real response. It also retires upstream's March
+2026 "Disney apparently removed the bot protection" as evidence for anything
+here — that observation was made by a client which had been sending the sensor
+header for four months.
 
 The timeline, from upstream's own repository and issue tracker:
 
@@ -77,14 +84,21 @@ upstream ships today, so if the bot wall is genuinely down this fork should
 book unmodified; if it is up, every booking action fails and no fork-side data
 work changes that.
 
-**How to find out, in one attempt.** `rules.book` is now `true` again, so the
-tipboard's Book button exists. Book one Lightning Lane by hand. A bot-wall
-block appears as a readable `403` — bg1 runs on Disney's own origin, so these
-calls are same-origin and CORS never hides the status. A `status: 0` is the
-eight-second client timeout, not a block. The autopilot surfaces the same thing
-in its activity log as a `failed` entry carrying the status.
+**How this was established.** `rules.book` was restored to `true`, so the
+tipboard's Book button exists again, and one booking was attempted by hand on
+2026-09-05. It returned 403. bg1 runs on Disney's own origin, so these calls
+are same-origin and CORS never hides the status.
 
-If the wall is up, the failure lands on *eligibility*, one step before any
+`useDataLoader` now prints the status rather than saying only "Network request
+failed" — that string is its fallback for *any* unmapped status, so it read
+identically for a refusal and for a dropped connection, and the first attempt
+settled nothing.
+
+**To re-test after any change** — Disney has switched this on and off before —
+repeat exactly that: Book by hand and read the number. `403` is the wall; "(no
+response)" is the eight-second client timeout, not a block.
+
+The failure lands on *eligibility*, one step before any
 offer exists — so polling, alerting and drop learning keep working perfectly
 while booking silently never fires. That is the failure mode to watch for.
 
