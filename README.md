@@ -25,9 +25,9 @@ AutoLL is an unofficial client for Lightning Lane Multi Pass reservations and vi
 
 A fourth tab, to the right of Plans. One attraction, one goal, one button: pick a ride, optionally say "return by", tap **Find it**. It takes the first Lightning Lane it can get and then keeps trying to move it earlier.
 
-Same engine underneath — it is `book then move` with a single target — but none of the levers, because at 7am with one hand the levers are the problem. It inherits the park and the saved party from the LL tab, and differs from Autopilot in three deliberate ways:
+Same engine underneath — it is `book then move` with a single target — but none of the levers, because at 7am with one hand the levers are the problem. It shares the saved party with the LL tab and carries a park selector of its own, and differs from Autopilot in three deliberate ways:
 
-- **It polls flat-out.** No drop schedule to pace against; it is waiting for someone else to cancel, which has no schedule. Short runs, watched by a person.
+- **It polls hard.** Every 0.6s, twice a drop burst — there is no drop schedule to pace against when you are waiting for someone else to cancel. Not faster than that: the client's rate limit throws rather than throttles, and the cooldown would land at the worst moment.
 - **It ignores the day's action budget.** One named attraction with somebody standing over it is bounded by its own shape, and a morning of Autopilot should not silently disable an afternoon search.
 - **It moves a reservation as often as it can improve it.** Autopilot allows one move per attraction per session to stop it thrashing; here "keep moving it earlier" is the entire request, and every move must still clear the 30-minute improvement bar.
 

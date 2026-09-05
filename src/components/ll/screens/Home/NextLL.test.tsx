@@ -10,10 +10,11 @@ import ClientsContext, { Clients } from '@/contexts/ClientsContext';
 import ExperiencesContext from '@/contexts/ExperiencesContext';
 import ParkContext from '@/contexts/ParkContext';
 import PlansContext from '@/contexts/PlansContext';
+import TabsContext from '@/contexts/TabContext';
 import { DateTime, ParkTime } from '@/datetime';
 import { TODAY } from '@/testing';
 
-import { NextLL } from './NextLL';
+import { NEXTLL, NextLL } from './NextLL';
 
 const BZ = '80010114';
 const OFF: PollerStatus = { mode: 'off', consecutiveFailures: 0, polls: 0 };
@@ -58,60 +59,83 @@ function setup({
   const addTarget = jest.fn();
   const removeTarget = jest.fn();
   const setPartyIds = jest.fn();
+  const changeTab = jest.fn();
+  const tab = (name: string) => ({ name, icon: null, component: () => null });
+  const tabs = [tab('LL'), tab('Plans'), tab(NEXTLL)];
   render(
     <ClientsContext value={{ ll: { setPartyIds } } as unknown as Clients}>
-      <ParkContext value={{ park: mk, setPark: () => {} }}>
-        <BookingDateContext
-          value={{ bookingDate: TODAY, setBookingDate: () => {} }}
-        >
-          <PlansContext
-            value={{
-              plans,
-              plansLoaded: true,
-              refreshPlans: () => {},
-              pollPlans: async () => plans,
-              loaderElem: null,
-            }}
+      <TabsContext
+        value={{
+          tabs,
+          active: tabs[2]!,
+          changeTab,
+          scrollPos: { get: () => 0, set: () => {} },
+        }}
+      >
+        <ParkContext value={{ park: mk, setPark: () => {} }}>
+          <BookingDateContext
+            value={{ bookingDate: TODAY, setBookingDate: () => {} }}
           >
-            <ExperiencesContext
+            <PlansContext
               value={{
-                experiences: [llExperience(BZ)],
-                refreshExperiences: () => {},
-                pollExperiences: async () => [],
+                plans,
+                plansLoaded: true,
+                refreshPlans: () => {},
+                pollPlans: async () => plans,
                 loaderElem: null,
               }}
             >
-              <AutopilotContext
-                value={
-                  {
-                    enabled,
-                    setEnabled,
-                    status,
-                    targets: [],
-                    isWatched: () => false,
-                    addTarget,
-                    removeTarget,
-                    bookingLog: [],
-                    bookedCount: 0,
-                    bookingsRemaining: 10,
-                    ...rest,
-                  } as unknown as AutopilotState
-                }
+              <ExperiencesContext
+                value={{
+                  experiences: [llExperience(BZ)],
+                  refreshExperiences: () => {},
+                  pollExperiences: async () => [],
+                  loaderElem: null,
+                }}
               >
-                <NextLL />
-              </AutopilotContext>
-            </ExperiencesContext>
-          </PlansContext>
-        </BookingDateContext>
-      </ParkContext>
+                <AutopilotContext
+                  value={
+                    {
+                      enabled,
+                      setEnabled,
+                      status,
+                      targets: [],
+                      isWatched: () => false,
+                      addTarget,
+                      removeTarget,
+                      bookingLog: [],
+                      bookedCount: 0,
+                      bookingsRemaining: 10,
+                      ...rest,
+                    } as unknown as AutopilotState
+                  }
+                >
+                  <NextLL />
+                </AutopilotContext>
+              </ExperiencesContext>
+            </PlansContext>
+          </BookingDateContext>
+        </ParkContext>
+      </TabsContext>
     </ClientsContext>
   );
-  return { setEnabled, addTarget, removeTarget, setPartyIds };
+  return { setEnabled, addTarget, removeTarget, setPartyIds, changeTab };
 }
 
 const name = wdw.experience(BZ).name;
 
 describe('NextLL', () => {
+  // The only way back to the rest of the app. Rendering a bare div instead of
+  // a Tab drops the whole footer, which is easy to do and invisible until the
+  // screen is open on a phone with nothing to press.
+  it('keeps the tab bar, so there is a way back to the LL tab', () => {
+    const { changeTab } = setup();
+    fireEvent.click(screen.getByText('LL'));
+    expect(changeTab).toHaveBeenLastCalledWith('LL');
+    fireEvent.click(screen.getByText('Plans'));
+    expect(changeTab).toHaveBeenLastCalledWith('Plans');
+  });
+
   // The whole point of the screen: one attraction, one goal, one button. If
   // this grows a second decision it has stopped being NextLL.
   it('asks for an attraction and nothing else that is required', () => {
