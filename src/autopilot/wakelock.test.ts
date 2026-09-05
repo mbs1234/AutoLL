@@ -238,17 +238,24 @@ describe('with more than one owner', () => {
   });
 
   it('keeps re-acquiring for the owner that is left', async () => {
-    const wakeLock = installWakeLock(async () => fakeSentinel());
+    const sentinel = fakeSentinel();
+    const wakeLock = installWakeLock(async () => sentinel);
     await holdScreenAwake(OUTER);
     await holdScreenAwake(INNER);
     await releaseScreenAwake(INNER);
 
-    // The browser drops locks on its own; returning to the page is when the
-    // listener puts it back. Detaching that listener with an owner still
-    // holding would leave the screen sleeping for a running poller.
+    // The browser drops locks on its own -- a dimming screen, a low battery.
+    // Returning to the page is when the listener puts one back, and detaching
+    // that listener with an owner still holding would leave the screen
+    // sleeping for a running poller.
+    //
+    // The drop is the whole test: without it `acquire` short-circuits on the
+    // sentinel it still holds, so no second request could happen either way
+    // and the assertion would be satisfied by the first one.
+    sentinel.dropFromBrowser();
     becomeVisible();
     await Promise.resolve();
-    expect(wakeLock.request).toHaveBeenCalled();
+    expect(wakeLock.request).toHaveBeenCalledTimes(2);
   });
 
   it('ignores a second release from the same owner', async () => {

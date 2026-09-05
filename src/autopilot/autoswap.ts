@@ -2,7 +2,7 @@ import { Booking, LLMP, isLLMP, isMultipleExperiences } from '@/api/itinerary';
 import { Guest, Guests, Offer, OfferError, OfferExperience } from '@/api/ll';
 import { ParkTime, parkDate } from '@/datetime';
 
-import { AutoBookLedger, ClashCheck } from './autobook';
+import { AutoBookLedger, ClashCheck, actionWasRejected } from './autobook';
 import { comparePriority, isTier1 } from './priority';
 import { WatchTarget, inWindow } from './watchlist';
 
@@ -37,6 +37,8 @@ export type SwapOutcome =
       status: 'failed';
       error: string;
       /** The HTTP status, when there was one. */ httpStatus?: number;
+      /** Whether nothing was swapped, so a retry is safe. */
+      rejected?: boolean;
     };
 
 /**
@@ -199,6 +201,7 @@ export async function attemptAutoSwap(
       // out of a formatted string would be guesswork.
       httpStatus: (error as { response?: { status?: number } })?.response
         ?.status,
+      rejected: actionWasRejected(error),
     };
   }
 }

@@ -1,11 +1,14 @@
+import { RequestError } from '@/api/client';
 import { LLMP } from '@/api/itinerary';
 import { Guest, Guests, Offer, OfferError } from '@/api/ll';
 import { DateTime, ParkTime } from '@/datetime';
+import { RateLimitExceeded } from '@/ratelimit';
 
 import {
   AutoBookLedger,
   CONFIRM_ABSENT_POLLS,
   DEFAULT_ACTIONS_PER_DAY,
+  actionWasRejected,
   attemptAutoBook,
   offerIsAcceptable,
   shouldAttempt,
@@ -438,9 +441,35 @@ describe('attemptAutoBook()', () => {
       }),
     });
     const result = await attemptAutoBook(target(), experience, d);
-    expect(result).toEqual({ status: 'failed', error: 'boom' });
+    // `rejected: false` is the load-bearing half: an error with no response
+    // may have booked anyway, so the lock has to stand.
+    expect(result).toEqual({
+      status: 'failed',
+      error: 'boom',
+      rejected: false,
+    });
     expect(d.ledger.hasAttempted(BZ)).toBe(true);
     expect(d.ledger.bookedCount).toBe(0);
+  });
+
+  // The other half: Disney answered, and the answer was no. Nothing was
+  // booked, so the caller is free to try again later.
+  it('reports a rejection as one, so it can be tried again', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const d = deps({
+      book: jest.fn(async () => {
+        throw new RequestError({ ok: false, status: 410, data: {} });
+      }),
+    });
+    const result = await attemptAutoBook(target(), experience, d);
+    expect(result).toMatchObject({
+      status: 'failed',
+      httpStatus: 410,
+      rejected: true,
+    });
+    // Still held: releasing is the caller's decision, and only under
+    // `repeatMoves`.
+    expect(d.ledger.hasAttempted(BZ)).toBe(true);
   });
 
   // No offer for this party right now is an ordinary mid-drop outcome, not a
@@ -466,7 +495,11 @@ describe('attemptAutoBook()', () => {
       }),
     });
     const result = await attemptAutoBook(target(), experience, d);
-    expect(result).toEqual({ status: 'failed', error: 'network down' });
+    expect(result).toEqual({
+      status: 'failed',
+      error: 'network down',
+      rejected: false,
+    });
   });
 
   it('stops at the session cap', async () => {
@@ -556,5 +589,69 @@ describe('AutoBookLedger.releaseAttempt()', () => {
     const spent = ledger.spent;
     ledger.releaseAttempt(BZ, 'modify');
     expect(ledger.spent).toBe(spent);
+  });
+
+  // A book attempt also charges the day's allowance, on the chance that a
+  // request whose outcome we never learned did succeed. Releasing is only
+  // ever done for one we did learn about -- Disney refused it, or our own
+  // limiter never sent it -- so the charge has to come back, or a run of lost
+  // races quietly spends a day of Lightning Lanes on bookings that do not
+  // exist.
+  it('gives back the doubt-hold a book attempt charged', () => {
+    const ledger = new AutoBookLedger(10);
+    ledger.markAttempted(BZ);
+    expect(ledger.remaining).toBe(9);
+    ledger.releaseAttempt(BZ, 'book');
+    expect(ledger.remaining).toBe(10);
+    expect(ledger.hasAttempted(BZ)).toBe(false);
+  });
+
+  // A modify puts a reservation already held through a round trip. It spends
+  // no entitlement and takes no doubt-hold, so there is none to give back.
+  it('leaves the allowance alone for a modify', () => {
+    const ledger = new AutoBookLedger(10);
+    ledger.markAttempted(BZ, 'modify');
+    ledger.releaseAttempt(BZ, 'modify');
+    expect(ledger.remaining).toBe(10);
+  });
+});
+
+// The ledger takes its lock before the request goes out, so a failure leaves
+// it held. `repeatMoves` gives it back only where nothing can have happened.
+describe('actionWasRejected()', () => {
+  const withStatus = (status: number) =>
+    new RequestError({ ok: false, status, data: {} });
+
+  // The ordinary way a fast search loses: the offer it was holding went to
+  // somebody else between generating it and committing it.
+  it.each([400, 404, 409, 410, 422])('is true for a %i', status => {
+    expect(actionWasRejected(withStatus(status))).toBe(true);
+  });
+
+  // Thrown as the first statement of ApiClient.request, before anything is
+  // sent -- so this is the most certain "nothing happened" of the lot, and it
+  // is the one that used to read as unknown, because it carries no response.
+  it('is true when our own limiter refused to send it', () => {
+    expect(actionWasRejected(new RateLimitExceeded())).toBe(true);
+  });
+
+  // No response at all. The request may well have applied, and repeating it
+  // would book or move a second time.
+  it.each([
+    ['a network failure', new Error('Network request failed')],
+    ['nothing at all', undefined],
+  ])('is false for %s', (_, error) => {
+    expect(actionWasRejected(error)).toBe(false);
+  });
+
+  // The server broke after receiving it, so the outcome is just as unknown.
+  it.each([500, 502, 503])('is false for a %i', status => {
+    expect(actionWasRejected(withStatus(status))).toBe(false);
+  });
+
+  // Both mean stop asking. A 403 is the bot filter, which refusal.ts watches
+  // and which hammering makes worse; a 429 is being throttled.
+  it.each([403, 429])('is false for a %i', status => {
+    expect(actionWasRejected(withStatus(status))).toBe(false);
   });
 });

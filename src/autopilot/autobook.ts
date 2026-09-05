@@ -8,6 +8,7 @@ import {
   OfferItineraryItem,
 } from '@/api/ll';
 import { ParkTime } from '@/datetime';
+import { RateLimitExceeded } from '@/ratelimit';
 
 import { WatchTarget, inWindow } from './watchlist';
 
@@ -64,6 +65,7 @@ export type SkipReason =
   | 'not-enabled'
   | 'budget-exhausted'
   | 'already-attempted'
+  | 'waiting-to-retry'
   | 'no-eligible-guests'
   | 'offer-outside-window'
   | 'overlaps-plans';
@@ -75,7 +77,46 @@ export type AutoBookOutcome =
       status: 'failed';
       error: string;
       /** The HTTP status, when there was one. */ httpStatus?: number;
+      /** Whether nothing was booked, so trying again is safe. */
+      rejected?: boolean;
     };
+
+/**
+ * Whether a failed action provably changed nothing on Disney's side.
+ *
+ * The ledger takes its lock *before* the request goes out, because a booking
+ * that times out may still have succeeded and repeating it would spend a
+ * second entitlement. That is right when the outcome is unknown, and needless
+ * when it is not: losing a race for an offer somebody else committed a
+ * few hundred milliseconds earlier is the ordinary way a contested drop goes,
+ * and it must not permanently retire an attraction from a search whose whole
+ * purpose is to keep trying.
+ *
+ * Three cases say nothing happened:
+ *
+ * - `RateLimitExceeded`, which our own limiter throws as the first statement
+ *   of `ApiClient.request`, before anything is sent.
+ * - A client error the server returned, other than the two that mean stop
+ *   asking. A 403 is the bot filter, which `refusal.ts` watches and which is
+ *   made worse by hammering; a 429 is being throttled, where retrying is the
+ *   one guaranteed way to make it worse still.
+ *
+ * Everything else -- no response at all, or a 5xx -- leaves the outcome
+ * genuinely unknown, and the lock stands.
+ *
+ * This says only that a retry would be *safe*. It says nothing about how soon
+ * one should happen: a rejection usually leaves every input to the decision
+ * unchanged, so an immediate retry would re-run the same request against the
+ * same evidence. Pacing is the caller's problem; see `RETRY_AFTER_MS`.
+ */
+export function actionWasRejected(error: unknown): boolean {
+  if (error instanceof RateLimitExceeded) return true;
+  const status = (error as { response?: { status?: number } })?.response
+    ?.status;
+  if (status === undefined) return false;
+  if (status === 403 || status === 429) return false;
+  return status >= 400 && status < 500;
+}
 
 /**
  * Whether a return time collides with plans already made.
@@ -232,6 +273,13 @@ export class AutoBookLedger {
    */
   releaseAttempt(experienceId: string, kind: ActionKind): void {
     this.attempted.delete(`${kind}:${experienceId}`);
+    // A book attempt also takes a doubt-hold against the allowance, on the
+    // chance that a request whose outcome we never learned did succeed. This
+    // is only ever called for one we did learn about -- Disney rejected it,
+    // or our own limiter never sent it -- so there is nothing left to doubt,
+    // and leaving the hold would charge the day for a booking that does not
+    // exist.
+    if (kind === 'book' && this.unresolved.delete(experienceId)) this.notify();
   }
 
   /**
@@ -458,6 +506,7 @@ export async function attemptAutoBook(
       // out of a formatted string would be guesswork.
       httpStatus: (error as { response?: { status?: number } })?.response
         ?.status,
+      rejected: actionWasRejected(error),
     };
   }
 }

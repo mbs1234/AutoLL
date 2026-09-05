@@ -6,7 +6,6 @@ import { AutoBookLedger } from './autobook';
 import {
   MIN_IMPROVEMENT_MINUTES,
   attemptAutoModify,
-  canRetryModify,
   findExistingLL,
   improvementMinutes,
   shouldModify,
@@ -346,7 +345,12 @@ describe('attemptAutoModify()', () => {
       at(11),
       d
     );
-    expect(result).toEqual({ status: 'failed', error: 'boom' });
+    expect(result).toEqual({
+      status: 'failed',
+      error: 'boom',
+      // No response, so it may have applied after all: the lock must stand.
+      rejected: false,
+    });
     expect(d.ledger.hasAttempted(BZ, 'modify')).toBe(true);
     // Recorded as a move, not a booking.
     expect(d.ledger.hasAttempted(BZ, 'book')).toBe(false);
@@ -389,36 +393,5 @@ describe('attemptAutoModify()', () => {
       status: 'skipped',
       reason: 'offer-not-an-improvement',
     });
-  });
-});
-
-// The ledger lock is taken before the request goes out, because a modify that
-// times out may have applied. `repeatMoves` releases it on success -- and,
-// without this, on nothing else, so one lost race ended a search whose whole
-// job was to keep moving the time earlier.
-describe('canRetryModify()', () => {
-  // The ordinary way a fast search loses: the offer it was holding went to
-  // somebody else between fetching it and committing.
-  it.each([400, 404, 409, 410, 422])('retries after a %i', status => {
-    expect(canRetryModify(status)).toBe(true);
-  });
-
-  // No response at all. The modify may well have applied, and repeating it
-  // would move the same reservation a second time.
-  it('does not retry when the request never reached a server', () => {
-    expect(canRetryModify(undefined)).toBe(false);
-  });
-
-  // The server broke after receiving it, so the outcome is just as unknown.
-  it.each([500, 502, 503])('does not retry after a %i', status => {
-    expect(canRetryModify(status)).toBe(false);
-  });
-
-  // Both mean stop asking, and both are reached at 600ms intervals. A 403 is
-  // the bot filter, which the refusal tracker is already watching; a 429 is
-  // being throttled, where retrying is the one guaranteed way to make it
-  // worse.
-  it.each([403, 429])('does not retry after a %i', status => {
-    expect(canRetryModify(status)).toBe(false);
   });
 });

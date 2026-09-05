@@ -305,7 +305,12 @@ describe('attemptAutoSwap()', () => {
       full(),
       d
     );
-    expect(result).toEqual({ status: 'failed', error: 'boom' });
+    expect(result).toEqual({
+      status: 'failed',
+      error: 'boom',
+      // No response, so it may have applied after all: the lock must stand.
+      rejected: false,
+    });
     expect(d.ledger.hasAttempted('new', 'swap')).toBe(true);
     expect(d.ledger.bookedCount).toBe(0);
   });

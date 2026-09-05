@@ -2,7 +2,7 @@ import { Booking, LLMP, isLLMP } from '@/api/itinerary';
 import { Guest, Guests, Offer, OfferError, OfferExperience } from '@/api/ll';
 import { ParkTime, parkDate } from '@/datetime';
 
-import { AutoBookLedger, ClashCheck } from './autobook';
+import { AutoBookLedger, ClashCheck, actionWasRejected } from './autobook';
 import { WatchTarget, inWindow } from './watchlist';
 
 /**
@@ -33,6 +33,8 @@ export type ModifyOutcome =
       status: 'failed';
       error: string;
       /** The HTTP status, when there was one. */ httpStatus?: number;
+      /** Whether the reservation certainly did not move, so a retry is safe. */
+      rejected?: boolean;
     };
 
 /**
@@ -124,34 +126,6 @@ export interface AutoModifyDeps {
 }
 
 /**
- * Whether a failed modify may be attempted again this session.
- *
- * The ledger lock is taken before the request is sent, because a modify that
- * times out may still have applied and re-running it would move the same
- * reservation twice. That is the right call for an unknown outcome and the
- * wrong one for a known outcome: losing the race for an offer somebody else
- * took is the ordinary way a fast search spends its time, and it must not
- * quietly end a search whose whole job is to keep moving the time earlier.
- *
- * So: only a client error the server actually returned, and not the two that
- * mean stop asking. A 403 is the bot filter -- tracked separately, and worth
- * backing away from rather than hammering. A 429 is being throttled, where
- * retrying is the one thing guaranteed to make it worse. Everything else --
- * no response at all, or a 5xx -- leaves the outcome genuinely unknown, and
- * the lock stands.
- *
- * Deliberately uncapped. The bound on retrying is not a count but the
- * improvement bar: another attempt needs a fresh offer that clears
- * MIN_IMPROVEMENT_MINUTES, so it can only happen when there is a materially
- * better time actually on offer.
- */
-export function canRetryModify(httpStatus?: number): boolean {
-  if (httpStatus === undefined) return false;
-  if (httpStatus === 403 || httpStatus === 429) return false;
-  return httpStatus >= 400 && httpStatus < 500;
-}
-
-/**
  * Try to move an existing reservation to a better time.
  *
  * The guard that matters more here than anywhere else: the modify offer that
@@ -237,6 +211,7 @@ export async function attemptAutoModify(
       // out of a formatted string would be guesswork.
       httpStatus: (error as { response?: { status?: number } })?.response
         ?.status,
+      rejected: actionWasRejected(error),
     };
   }
 }

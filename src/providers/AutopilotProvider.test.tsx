@@ -40,7 +40,10 @@ import PlansContext from '@/contexts/PlansContext';
 import { DateTime, ParkTime } from '@/datetime';
 import { TODAY, TOMORROW, setTime } from '@/testing';
 
-import AutopilotProvider, { PLANS_EVERY_N_TICKS } from './AutopilotProvider';
+import AutopilotProvider, {
+  PLANS_EVERY_N_TICKS,
+  RETRY_AFTER_MS,
+} from './AutopilotProvider';
 
 // An explicit factory rather than an auto-mock: auto-mocking makes
 // requestAlertPermission return undefined, and the provider calls .then() on
@@ -1738,6 +1741,11 @@ describe('AutopilotProvider refusals', () => {
 // time it can get, then keeps moving that reservation earlier for as long as
 // the screen is open.
 describe('AutopilotProvider repeated moves', () => {
+  // Not inherited: an earlier test in this file moves the clock to the next
+  // park day and leaves it there, and the retry wait is measured in real
+  // milliseconds against whatever the clock says.
+  beforeEach(() => setTime('09:00'));
+
   function heldAt(hour: number): Booking {
     return {
       type: 'LL',
@@ -1752,14 +1760,28 @@ describe('AutopilotProvider repeated moves', () => {
     } as unknown as Booking;
   }
 
-  const watchBZ = () => saveWatchList([{ experienceId: BZ, autoModify: true }]);
+  /** Ticks that span the retry wait, with margin. */
+  const WAITED = Math.ceil(RETRY_AFTER_MS / IDLE_INTERVAL_MS) + 2;
+  /**
+   * The same wait measured in burst ticks, for the pacing test.
+   *
+   * At the idle cadence one tick already outlasts the wait, so nothing can be
+   * observed happening inside it. Bursting is also the honest case: it is the
+   * cadence closest to NextLL's own, and the one where a spin costs the most.
+   */
+  const BURSTING = { nextBookTimes: [new ParkTime(9, 0, 20)] };
+  const BURST_TICKS_INSIDE_WAIT = Math.floor(
+    RETRY_AFTER_MS / BURST_INTERVAL_MS / 2
+  );
+  const BURST_TICKS_PAST_WAIT =
+    Math.ceil(RETRY_AFTER_MS / BURST_INTERVAL_MS) + 4;
 
   // The lock is taken before the request goes out, so a failed modify used to
   // hold it for the rest of the session: `repeatMoves` released it only on
   // success. Losing one race therefore ended the improvement loop while the
   // screen went on saying it was still looking.
   it('tries again after a move that the server rejected', async () => {
-    watchBZ();
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
     const { book } = setupBooking({
       offerHour: 11,
       plans: [heldAt(19)],
@@ -1768,16 +1790,48 @@ describe('AutopilotProvider repeated moves', () => {
     });
     await enable();
     await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
-    await runTicks(2);
-    // The point is that a second attempt happens at all: before the release,
-    // the first rejection held the lock for the rest of the session.
+    await runTicks(WAITED);
     expect(book.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // A rejection leaves every input to the decision unchanged -- the
+  // reservation did not move, and plans are re-polled only after a success --
+  // so retrying at once would re-run the same three requests against the same
+  // evidence every 600ms, on a limiter shared with the other provider and the
+  // user's own taps.
+  it('waits before retrying rather than spinning on the same evidence', async () => {
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
+    const { book, offer } = setupBooking({
+      offerHour: 11,
+      plans: [heldAt(19)],
+      repeatMoves: true,
+      ...BURSTING,
+      // Every attempt is refused, so nothing but the wait can bound this.
+      bookErrors: Array(200).fill(409),
+    });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+
+    // Well inside the wait, across several ticks: no second attempt, and --
+    // the part that matters for the rate limiter -- no second offer request
+    // either. Each spin would cost both.
+    await runTicks(BURST_TICKS_INSIDE_WAIT, BURST_INTERVAL_MS);
+    expect(book).toHaveBeenCalledTimes(1);
+    expect(offer).toHaveBeenCalledTimes(1);
+
+    await runTicks(BURST_TICKS_PAST_WAIT, BURST_INTERVAL_MS);
+    expect(book.mock.calls.length).toBeGreaterThanOrEqual(2);
+    // Paced, not spinning: an unbounded retry would attempt on every one of
+    // the ticks that have now elapsed.
+    expect(book.mock.calls.length).toBeLessThan(
+      (BURST_TICKS_INSIDE_WAIT + BURST_TICKS_PAST_WAIT) / 3
+    );
   });
 
   // A modify that never reached a server may still have applied, and doing it
   // again would move the same reservation twice. Unknown stays locked.
   it('does not try again when the request never got a response', async () => {
-    watchBZ();
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
     const { book } = setupBooking({
       offerHour: 11,
       plans: [heldAt(19)],
@@ -1786,15 +1840,45 @@ describe('AutopilotProvider repeated moves', () => {
     });
     await enable();
     await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
-    await runTicks(RELEASE_TICKS);
+    await runTicks(WAITED);
     expect(book).toHaveBeenCalledTimes(1);
   });
 
-  // Autopilot's rule is one move per attraction per session, which is what
+  // The booking leg of book-then-move, which is what NextLL runs while
+  // nothing is held. A lost race at 7am used to retire the attraction for the
+  // day under copy promising it would take the first Lightning Lane it could
+  // get.
+  it('tries again after a booking the server rejected', async () => {
+    saveWatchList([{ experienceId: BZ, bookThenMove: true }]);
+    const { book } = setupBooking({ repeatMoves: true, bookErrors: [410] });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    await runTicks(WAITED);
+    expect(book.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // The doubt-hold a book attempt charges must come back with the lock, or a
+  // run of lost races quietly spends the day's allowance on bookings that do
+  // not exist.
+  it('gives the allowance back for a booking that never happened', async () => {
+    saveWatchList([{ experienceId: BZ, bookThenMove: true }]);
+    setupBooking({ repeatMoves: true, bookErrors: Array(50).fill(410) });
+    await enable();
+    await waitFor(() =>
+      expect(screen.getByTestId('remaining')).toHaveTextContent('9')
+    );
+    await runTicks(WAITED);
+    // Back to the full allowance between attempts: nothing was ever booked.
+    expect(Number(screen.getByTestId('remaining').textContent)).toBeGreaterThan(
+      8
+    );
+  });
+
+  // Autopilot's rule is one action per attraction per session, which is what
   // stops it thrashing a reservation as availability shifts. A rejection must
   // not become a way around that.
   it('leaves Autopilot at one move per attraction', async () => {
-    watchBZ();
+    saveWatchList([{ experienceId: BZ, autoModify: true }]);
     const { book } = setupBooking({
       offerHour: 11,
       plans: [heldAt(19)],
@@ -1802,7 +1886,7 @@ describe('AutopilotProvider repeated moves', () => {
     });
     await enable();
     await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
-    await runTicks(RELEASE_TICKS);
+    await runTicks(WAITED);
     expect(book).toHaveBeenCalledTimes(1);
   });
 });

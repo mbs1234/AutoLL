@@ -22,7 +22,6 @@ import {
 import {
   ModifyOutcome,
   attemptAutoModify,
-  canRetryModify,
   findExistingLL,
   shouldModify,
 } from '@/autopilot/automodify';
@@ -100,6 +99,25 @@ import { now as syncedNow } from '@/timesync';
 export const PLANS_EVERY_N_TICKS = 10;
 
 /**
+ * How long a rejected action waits before it may be tried again.
+ *
+ * Only `repeatMoves` retries at all, and the wait is what makes retrying safe
+ * rather than merely legal. A rejection changes none of the inputs to the
+ * decision that produced it: the reservation did not move, plans are only
+ * re-polled after a *success*, and the tipboard is served through a CDN that
+ * may well hand back the same bytes. So the next tick would re-run the same
+ * three requests against the same evidence, 600ms later, indefinitely -- and
+ * `RateLimit(5)` is shared with the other provider and with the user's own
+ * taps, where tripping it costs every call in the app a five-second cooldown
+ * at the worst possible moment.
+ *
+ * Twenty seconds is long enough that a stuck search costs a request every
+ * thirty-odd ticks instead of every one, and short enough that a lost race
+ * during a drop is retried while the drop is still running.
+ */
+export const RETRY_AFTER_MS = 20_000;
+
+/**
  * Wires the poller, watch list, alerting, prewarming and auto-booking
  * together.
  *
@@ -171,6 +189,10 @@ export default function AutopilotProvider({
   // second one inside the app's own. Without it, this component's unmount
   // released the lock a different, still-running provider was holding.
   const wakeLockOwner = useRef({}).current;
+
+  // When each rejected action may be tried again, keyed `kind:experienceId`.
+  // Session state like the ledger's own locks, and cleared with them.
+  const retryAtRef = useRef(new Map<string, number>());
 
   const alertedRef = useRef<ReadonlySet<string>>(new Set());
   const tickCountRef = useRef(0);
@@ -633,7 +655,16 @@ export default function AutopilotProvider({
         : partyIsFull && wantsSwap
           ? 'swap'
           : 'book';
-      if (ledgerRef.current.hasAttempted(experience.id, kind)) continue;
+      if (ledgerRef.current.hasAttempted(experience.id, kind)) {
+        // Held for good, unless this is a rejection whose wait has run out.
+        const retryAt = retryAtRef.current.get(`${kind}:${experience.id}`);
+        if (retryAt === undefined || Date.now() < retryAt) {
+          if (retryAt !== undefined) bumpSkip('waiting-to-retry');
+          continue;
+        }
+        retryAtRef.current.delete(`${kind}:${experience.id}`);
+        ledgerRef.current.releaseAttempt(experience.id, kind);
+      }
       if (kind === 'modify' && !wantsModify) continue;
       if (kind === 'book' && !wantsBook) continue;
 
@@ -796,19 +827,21 @@ export default function AutopilotProvider({
       setBookedCount(ledgerRef.current.bookedCount);
       setBookingsRemaining(ledgerRef.current.remaining);
 
-      // A modify takes the ledger lock before it commits, so a failure leaves
-      // it held -- and `repeatMoves` only ever releases it on success. One
-      // lost race therefore ended the improvement loop for the rest of the
-      // session while the screen went on saying it was still looking. Give
-      // the lock back where the server told us the move definitely did not
-      // happen; see canRetryModify for why that is narrower than "it failed".
-      if (
-        repeatMoves &&
-        kind === 'modify' &&
-        outcome.status === 'failed' &&
-        canRetryModify(outcome.httpStatus)
-      ) {
-        ledgerRef.current.releaseAttempt(experience.id, 'modify');
+      // Both legs take their ledger lock before committing, so a failure
+      // leaves it held -- and `repeatMoves` gave it back only on success. One
+      // lost race therefore retired the attraction for the rest of the
+      // session while the screen went on saying it was still looking, which
+      // for a search whose entire promise is "keep trying" is the whole
+      // feature failing silently. Where the request provably changed nothing,
+      // schedule a retry rather than releasing on the spot: see
+      // RETRY_AFTER_MS for why the wait is the part that makes it safe.
+      //
+      // Autopilot keeps one action per attraction per session either way.
+      if (repeatMoves && outcome.status === 'failed' && outcome.rejected) {
+        retryAtRef.current.set(
+          `${kind}:${experience.id}`,
+          Date.now() + RETRY_AFTER_MS
+        );
       }
 
       if (

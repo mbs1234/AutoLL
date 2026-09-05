@@ -6,7 +6,11 @@ import { Booking } from '@/api/itinerary';
 import { Experience } from '@/api/ll';
 import { NEXTLL_PENDING_KEY, PendingSearch } from '@/autopilot/nextll';
 import { PollerStatus } from '@/autopilot/usePoller';
-import { WatchTarget, loadWatchList } from '@/autopilot/watchlist';
+import {
+  WatchTarget,
+  loadWatchList,
+  saveWatchList,
+} from '@/autopilot/watchlist';
 import AutopilotContext, { AutopilotState } from '@/contexts/AutopilotContext';
 import BookingDateContext from '@/contexts/BookingDateContext';
 import ClientsContext, { Clients } from '@/contexts/ClientsContext';
@@ -267,11 +271,19 @@ describe('NextLL', () => {
 // armed target behind, and leaving enough to offer the search back.
 describe('NextLL when its tab goes away', () => {
   it('clears the target so it cannot re-arm behind the next search', () => {
+    // Seeded, because this harness renders NextLL under a hand-built context
+    // rather than the real provider -- so nothing else writes the key, and an
+    // unseeded assertion would hold whether or not the cleanup ran.
+    saveWatchList(
+      [{ experienceId: BZ, bookThenMove: true }],
+      NEXTLL_WATCHLIST_KEY
+    );
     const { unmount } = setup({
       enabled: true,
       status: RUNNING,
       targets: [{ experienceId: BZ }],
     });
+    expect(loadWatchList(NEXTLL_WATCHLIST_KEY)).toHaveLength(1);
     unmount();
     expect(loadWatchList(NEXTLL_WATCHLIST_KEY)).toEqual([]);
   });
@@ -337,11 +349,19 @@ describe('NextLL on returning to the tab', () => {
     expect(kvdb.getDaily(NEXTLL_PENDING_KEY)).toBeUndefined();
   });
 
-  it('refills the form so the goal is visible, not just applied', () => {
+  // Resume applies the goal and hides the form, so the refill is observable
+  // only once the search is stopped again -- which is exactly when it
+  // matters: the picker has to come back holding what was resumed rather than
+  // empty, or pressing Find it again silently arms an unbounded search.
+  it('refills the form, so stopping does not lose the goal', () => {
     pending('13:00:00');
     setup();
     fireEvent.click(screen.getByText('Resume'));
-    expect(screen.queryByText(/Still looking for/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('Stop looking'));
+    expect(screen.getByRole('combobox')).toHaveValue(BZ);
+    expect(screen.getByLabelText('Latest acceptable return time')).toHaveValue(
+      '13:00'
+    );
   });
 
   it('drops the offer without arming anything', () => {
