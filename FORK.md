@@ -40,25 +40,26 @@ goofy  (static) ──► overlay index/start/news/contact/autoloader/icon/css
 
 ## Booking
 
-**A booking attempt from this build returns 403 (tested 2026-09-05). Why is not
-yet settled.** Read this before trusting the autopilot with a trip.
+**This build cannot create a Lightning Lane at Walt Disney World. A booking
+attempt returns 403 (tested 2026-09-05, twice).** Read this before trusting the
+autopilot with a trip.
 
-Two candidate causes, and they lead to very different places:
+**Tested and refuted: it is not about cookies.** `fetchJson` sets
+`credentials: 'omit'` on every request, so bg1 sends none of the cookies the
+browser holds for `disneyworld.disney.go.com` — including the ones Disney's CDN
+sets to tell a browser apart from a script. That looked like a plausible reason
+for the refusal and a much smaller decision than adopting sensor generation, so
+it was tried: `credentials: 'same-origin'` in `ApiClient.request`. The retest
+returned 403 again.
 
-1. **The bot wall wants the sensor header** upstream started sending in
-   December 2025. If so, nothing this fork can honestly do will fix it.
-2. **The requests looked like a bare client.** `fetchJson` sets
-   `credentials: 'omit'` on everything, so bg1 was stripping the cookies the
-   browser already holds for `disneyworld.disney.go.com` — including the ones
-   Disney's CDN sets to distinguish a browser from a script. bg1 runs
-   *injected into that page*, so those cookies are genuinely its own; omitting
-   them is the anomaly, not sending them.
+It is also refuted independently of the retest. Upstream's deployed bundle —
+the one that books successfully — still does `t.credentials ??= 'omit'` and
+never overrides it, so a working client sends no cookies either. The change was
+reverted rather than kept: it bought nothing and deviated from a known-good
+reference.
 
-The second was untested when the 403 was recorded, and it is a one-line fix
-(`credentials: 'same-origin'` in `ApiClient.request`, scoped so the
-cross-origin time-sync and live-data calls stay cookie-less). **That fix has
-landed and the test has not been re-run since.** Do that before concluding
-anything.
+That leaves the sensor header as the only known difference between this build
+and one that books.
 
 The 403 is the answer to the open question below. It is Disney refusing the
 request, not a timeout: `fetchJson` reports a thrown fetch as status 0, and

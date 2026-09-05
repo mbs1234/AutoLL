@@ -31,10 +31,6 @@ export function expectFetch(
       method,
       params,
       data,
-      // Asserted rather than ignored: these calls are same-origin with the
-      // page bg1 is injected into, and dropping the browser's own cookies for
-      // that origin is what made every request look like a bare client.
-      credentials: 'same-origin',
       headers: {
         'Accept-Language': 'en-US',
         Authorization: `BEARER ${accessToken}`,

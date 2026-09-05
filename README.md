@@ -8,11 +8,15 @@ Deployed at **<https://mbs1234.github.io/bg1/>**.
 
 BG1 is an unofficial client for Lightning Lane Multi Pass reservations and virtual queue boarding groups at Disney parks in the United States. For background on the original, read the [upstream documentation](https://joelface.github.io/bg1/).
 
-> ### ⚠️ Booking is currently refused — cause not yet settled
+> ### ⚠️ This build cannot currently book
 >
-> Tested by hand on **2026-09-05**: a Lightning Lane booking attempt returns **403**. Every *booking* feature below — auto-book, book-then-move, swap in, and the manual Book button — fails until that changes.
+> Tested by hand on **2026-09-05**, twice: a Lightning Lane booking attempt returns **403**. Every *booking* feature below — auto-book, book-then-move, swap in, and the manual Book button — fails.
 >
-> **Retest before drawing conclusions.** That attempt ran with `credentials: 'omit'` on every API call, so bg1 was stripping the cookies the browser already holds for Disney's own origin — the ones their CDN sets to tell a browser from a bare client. A request that carries none of them is an obvious anomaly, and may be the whole reason for the 403. That is now fixed, and the test has not been re-run since.
+> A cookie hypothesis was tried between the two tests and refuted; see **[FORK.md](FORK.md)** for what was ruled out and why.
+>
+> **What still works:** watching, alerting, drop learning, the return-time windows, the corrected attraction data. bg1 tells you the second something becomes available; you book it in Disney's own app. On a December morning that is most of the practical advantage.
+>
+> The failure lands on *eligibility*, one step before an offer exists — so autopilot looks perfectly healthy while never acting. Watch for that.
 >
 > **What still works:** watching, alerting, drop learning, the return-time windows, the corrected attraction data. bg1 tells you the second something becomes available; you book it in Disney's own app. On a December morning that is most of the practical advantage.
 >
