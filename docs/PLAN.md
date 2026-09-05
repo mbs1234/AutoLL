@@ -17,6 +17,11 @@ and deliberately absent here. This document is about making the booker smarter.
 
 ## Status
 
+This plan was written for the `mbs1234/bg1` fork. That work now lives in
+**AutoLL**, merged onto [jgeurts/bg1](https://github.com/jgeurts/bg1) so that
+Lightning Lane booking works; see FORK.md, "Booking". Section numbers below are
+unchanged.
+
 **Landed:** all of Phase 0 (§3) and all of Phase 1 (§4).
 
 Phase 0 and P1.1–P1.4: the three missing facility ids plus an on-screen warning

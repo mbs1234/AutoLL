@@ -60,9 +60,18 @@ output on `goofy`; there is no source to merge.
 **What this repository does about it.** Nothing directly. The base here is
 [jgeurts/bg1](https://github.com/jgeurts/bg1), which implements that header in
 TypeScript on its `mickey` branch (`a4383d0`, "Add sensor data support"). It is
-inherited wholesale, was verified working against the live API on 2026-09-05,
-and is **not maintained here**. `src/api/sensor-data.ts` and the header
-construction in `ApiClient.request` belong to that base.
+inherited wholesale and is **not maintained here**. `src/api/sensor-data.ts`
+and the header construction in `ApiClient.request` belong to that base. A
+booking from this build was confirmed working on 2026-09-05.
+
+**One deployment trap, already sprung once.** `sensor-data.js` is loaded by
+dynamic import at runtime and is *not* a rollup input, so `vite build` does not
+emit it — it has to be copied into `dist/` by the deploy workflow, from
+`gh-pages` rather than `goofy` (both branches carry that filename and they are
+different vintages). When it is missing the import rejects with an error
+carrying no HTTP status, so `useDataLoader` shows "Unknown error occurred" and
+every booking fails without naming a cause. The overlay step now fails the
+build rather than warning, so this cannot recur silently.
 
 If Disney changes the scheme again, that repair is not part of this project.
 Disney has moved four times in ten months — off in November 2025, worked around
