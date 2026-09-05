@@ -1,10 +1,13 @@
+import { Booking } from '@/api/itinerary';
 import { Guest, Guests } from '@/api/ll';
-import { ParkTime } from '@/datetime';
+import { DateTime, ParkTime } from '@/datetime';
 
 import {
   GUEST_TTL_MS,
   GuestCache,
   earliestEligibleAfter,
+  entitlementsChanged,
+  heldEntitlements,
   prewarmGuests,
 } from './prewarm';
 
@@ -185,5 +188,92 @@ describe('prewarmGuests()', () => {
     const result = await prewarmGuests([], DATE, deps(fetchGuests));
     expect(fetchGuests).not.toHaveBeenCalled();
     expect(result).toEqual({ warmed: [], failed: [] });
+  });
+});
+
+/**
+ * The fingerprint of what the party holds, and the change detector built on
+ * it. Between them they are what notices that eligibility has moved for a
+ * reason no clock predicted.
+ */
+describe('heldEntitlements()', () => {
+  const booking = (
+    id: string,
+    guestIds: string[],
+    rest: Record<string, unknown> = {}
+  ) =>
+    ({
+      type: 'LL',
+      subtype: 'MP',
+      id,
+      facilityId: `fac-${id}`,
+      name: id,
+      start: new DateTime(DATE, at(15)),
+      end: new DateTime(DATE, at(16)),
+      cancellable: true,
+      modifiable: true,
+      guests: guestIds.map(g => guest(g)),
+      ...rest,
+    }) as unknown as Booking;
+
+  it('yields one key per guest per reservation', () => {
+    const keys = heldEntitlements([booking('b1', ['a', 'b'])], DATE);
+    expect(keys).toEqual(new Set(['b1|a', 'b1|b']));
+  });
+
+  // Keyed by booking as well as guest, so the same person on two reservations
+  // is two entitlements and losing one is visible.
+  it('keeps the same guest on two reservations distinct', () => {
+    const keys = heldEntitlements(
+      [booking('b1', ['a']), booking('b2', ['a'])],
+      DATE
+    );
+    expect(keys.size).toBe(2);
+  });
+
+  // Anything that no longer occupies a slot is already gone from the party's
+  // holdings, so it must not appear here either -- otherwise the fully
+  // redeemed case would look like a permanent entitlement.
+  it('ignores what no longer occupies a slot', () => {
+    const ignored = [
+      booking('other-day', ['a'], {
+        start: new DateTime('2026-09-05', at(15)),
+      }),
+      booking('released', ['a'], { cancellable: false }),
+      booking('redeemed', []),
+      booking('mep', ['a'], { choices: [{ id: 'x' }] }),
+    ];
+    expect(heldEntitlements(ignored, DATE)).toEqual(new Set());
+  });
+});
+
+describe('entitlementsChanged()', () => {
+  // The first plans poll of a run is a baseline, not an event. Firing here
+  // would clear the cache on every reload.
+  it('is false with no previous look, however much is held', () => {
+    expect(entitlementsChanged(undefined, new Set(['b1|a', 'b1|b']))).toBe(
+      false
+    );
+  });
+
+  it('is false when nothing moved', () => {
+    const keys = ['b1|a', 'b1|b'];
+    expect(entitlementsChanged(new Set(keys), new Set(keys))).toBe(false);
+  });
+
+  // A guest tapping in disappears from the reservation while the others stay,
+  // which is what a split-party redemption looks like from here.
+  it('is true when one guest disappears from a reservation', () => {
+    expect(
+      entitlementsChanged(new Set(['b1|a', 'b1|b']), new Set(['b1|a']))
+    ).toBe(true);
+  });
+
+  // The dangerous direction: a booking made in Disney's own app tightens
+  // eligibility, and autopilot clears its cache only for its own actions.
+  it('is true when something new is held', () => {
+    expect(
+      entitlementsChanged(new Set(['b1|a']), new Set(['b1|a', 'b2|a']))
+    ).toBe(true);
   });
 });

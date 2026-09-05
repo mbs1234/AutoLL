@@ -85,6 +85,19 @@ describe('overlappingPlans()', () => {
     expect(overlappingPlans(at(18, 30), tomorrow, { date: DATE })).toEqual([]);
   });
 
+  // Disney issues one of these when a ride you hold goes down: it is good any
+  // time before park close, at any of several attractions. It parses with a
+  // start time and sits in plans until used, so counting it would refuse a
+  // 100-minute band of return times for the rest of the day to protect a pass
+  // that constrains nothing.
+  it('ignores a Multiple Experiences Pass', () => {
+    const pass = {
+      ...(llAt('mep', at(18)) as unknown as Record<string, unknown>),
+      choices: [{ id: 'a' }, { id: 'b' }],
+    } as unknown as Booking;
+    expect(overlappingPlans(at(18, 30), [pass], { date: DATE })).toEqual([]);
+  });
+
   it('ignores plans with no time of day', () => {
     const parkPass = {
       type: 'APR',

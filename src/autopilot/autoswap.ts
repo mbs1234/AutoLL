@@ -21,7 +21,7 @@ export type SwapSkipReason =
   | 'no-worse-reservation'
   | 'offer-outside-window'
   | 'already-attempted'
-  | 'session-cap'
+  | 'budget-exhausted'
   | 'no-eligible-guests'
   | 'overlaps-plans';
 
@@ -52,8 +52,11 @@ export type SwapOutcome =
  *   still occupies a slot"; the two paths disagreeing about what held means is
  *   how the bug above went unnoticed.
  * - **Multiple Experiences Pass.** A replacement entitlement rather than one
- *   of the three selections. Excluding it can at worst cost a rejected offer;
- *   including it would cost a real reservation to a needless swap.
+ *   of the three selections. A guard at the boundary rather than a live fix:
+ *   Disney converts a pass by changing its kind, so `isLLMP` above already
+ *   rejects every such pass the parser can currently produce. It stays because
+ *   this is where arbitrary plans enter, and because getting it wrong costs a
+ *   real reservation to a needless swap.
  */
 export function heldMPToday(plans: Booking[], date: string): LLMP[] {
   return plans.filter(
@@ -109,7 +112,7 @@ export function shouldSwap(
   if (ledger.hasAttempted(target.experienceId, 'swap')) {
     return { ok: false, reason: 'already-attempted' };
   }
-  if (ledger.remaining <= 0) return { ok: false, reason: 'session-cap' };
+  if (ledger.remaining <= 0) return { ok: false, reason: 'budget-exhausted' };
   const victim = chooseSwapVictim(held, incoming);
   if (!victim) return { ok: false, reason: 'no-worse-reservation' };
   return { ok: true, victim };

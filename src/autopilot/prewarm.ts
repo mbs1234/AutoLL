@@ -1,5 +1,8 @@
+import { Booking } from '@/api/itinerary';
 import { Guests } from '@/api/ll';
 import { ParkTime } from '@/datetime';
+
+import { heldMPToday } from './autoswap';
 
 /**
  * How long a cached eligibility result stays usable.
@@ -97,6 +100,53 @@ export class GuestCache {
   get size(): number {
     return this.entries.size;
   }
+}
+
+/**
+ * One key per guest per Multi Pass reservation the party currently holds.
+ *
+ * A fingerprint of "what the party has", used to notice that eligibility has
+ * moved for a reason no clock predicted. Keyed by booking and guest id rather
+ * than `entitlementId`: that field comes straight off the API item, and a
+ * response omitting it would key every guest on a booking as `undefined`,
+ * collapsing the set so a real change never shows.
+ *
+ * Built from `heldMPToday`, so "held" means the same thing here as it does to
+ * the swap logic. That is what makes a tap-in visible at all: `Itinerary`
+ * drops a guest with no redemptions left from `booking.guests`, so the guest
+ * disappears from this set the moment they walk through the Lightning Lane.
+ */
+export function heldEntitlements(plans: Booking[], date: string): Set<string> {
+  return new Set(
+    heldMPToday(plans, date).flatMap(booking =>
+      booking.guests.map(guest => `${booking.id}|${guest.id}`)
+    )
+  );
+}
+
+/**
+ * Whether what the party holds has changed since the last look.
+ *
+ * `undefined` for `prev` is the first plans poll of a run, which establishes
+ * the baseline rather than being an event -- treating it as a change would
+ * clear the cache on every reload.
+ *
+ * Deliberately symmetrical. A loss loosens eligibility: a tap-in, an expiry,
+ * or a reservation cancelled by hand all free a slot and lift the block that
+ * went with it. A gain tightens it: a booking made in Disney's own app while
+ * autopilot runs consumes a slot, the tier slot, and starts the 120-minute
+ * clock, and autopilot clears its cache only for bookings it made itself. The
+ * second direction is the dangerous one, since a cache that overstates
+ * eligibility books for a party that cannot book.
+ */
+export function entitlementsChanged(
+  prev: ReadonlySet<string> | undefined,
+  next: ReadonlySet<string>
+): boolean {
+  if (!prev) return false;
+  if (prev.size !== next.size) return true;
+  for (const key of prev) if (!next.has(key)) return true;
+  return false;
 }
 
 export interface PrewarmDeps {

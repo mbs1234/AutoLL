@@ -1,4 +1,4 @@
-import { Booking } from '@/api/itinerary';
+import { Booking, isMultipleExperiences } from '@/api/itinerary';
 import { ParkTime, parkDate } from '@/datetime';
 
 /**
@@ -74,6 +74,13 @@ export function overlappingPlans(
   const ignored = new Set(ignoreIds);
   return plans.filter(booking => {
     if (ignored.has(booking.id)) return false;
+    // A Multiple Experiences Pass is redeemable any time before park close, at
+    // any of several attractions, so its start is the beginning of validity
+    // rather than a return window to protect. It parses with a start time all
+    // the same, and it sits in plans until it is used -- so treating it as
+    // timed would refuse every return time in a 100-minute band for the rest
+    // of the day, on the strength of a pass that constrains nothing.
+    if (isMultipleExperiences(booking)) return false;
     if (!isTimed(booking)) return false;
     if (parkDate(booking.start) !== date) return false;
     const { from, to } = clashWindow(booking);
