@@ -15,6 +15,20 @@ against Disney's live data.
 Platform work — the Capacitor app and the Fly.io service — is a separate track
 and deliberately absent here. This document is about making the booker smarter.
 
+## Status
+
+**Landed:** all of Phase 0 (§3) and P1.1–P1.4 (§4). That is the three missing
+facility ids plus an on-screen warning for the next one, the priority, land and
+drop-time corrections, the return-time window UI, slot accounting, the overlap
+guard, and treating an expired pass as ridden. Two extras fell out of the work:
+`heldMPToday` now also excludes a Multiple Experiences Pass (part of P1.7), and
+a section-consistency test found two Disneyland entries filed under the wrong
+park.
+
+**Outstanding:** P1.5–P1.8 (§4), and Phases 2–5 (§5–§8). Section numbers below
+are unchanged, so an item still described in the present tense there and not
+listed as landed above has not been built.
+
 ---
 
 ## 1. Start here: three attractions are invisible to bg1 right now

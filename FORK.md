@@ -120,13 +120,14 @@ this is the map.
 | `priority.ts` | Priority ordering (same comparator as the LL list) and the Tier 1 hold. |
 | `autobook.ts` / `automodify.ts` / `autoswap.ts` | The three actions, each guarded on the offer's *real* time; shared per-action ledger. |
 | `party.ts` | Whole-party guard. |
+| `overlap.ts` | Whether a return time clashes with an existing plan, using Disney's own window from `api/ll/wdw.ts`. |
 | `observe.ts` / `learned.ts` | Drop-time learning: detection, coverage, clustering, and merging learned times into the cadence. |
 | `storage.ts` | Persisted settings and the day-scoped activity log. |
 
 Design rules that hold throughout, and that a future change should keep:
 
 - **Pure core, thin shell.** Every decision is a pure function with its own
-  tests; the provider only sequences them. Almost all of the ~590 tests in
+  tests; the provider only sequences them. Almost all of the ~620 tests in
   `test:ci` are on these.
 - **Never commit an offer without re-checking its real time.** The tipboard
   time you matched on and the offer Disney returns can differ; booking, moving
@@ -134,7 +135,14 @@ Design rules that hold throughout, and that a future change should keep:
   ever to trade down.
 - **Mark attempts before the request goes out.** A timed-out request may have
   succeeded server-side; retrying is the dangerous option.
-- **Only a literal `true` arms anything** when reading persisted flags.
+- **Only a literal `true` arms anything** when reading persisted flags. The one
+  exception is `avoidOverlaps`, which defaults on and so needs a literal
+  `false` -- the asymmetry follows the cost of guessing wrong.
+- **Resort data is checked, not assumed.** `src/api/resortData.test.ts` scans
+  each entry against the `// <Park> - <Type>` section it is declared under, and
+  pins the facility ids that went stale in 2026. It lives outside
+  `src/api/data/` on purpose: `loadResort` dynamic-imports `./data/${id}.ts`
+  with a variable, so Rollup bundles every `.ts` in that directory.
 - **On/off never persists;** per-attraction arming does. That asymmetry is
   what makes persisted arming safe.
 

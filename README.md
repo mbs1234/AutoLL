@@ -1,165 +1,114 @@
 # BG1 — personal fork
 
-A personal fork of **[joelface/bg1](https://github.com/joelface/bg1)** by Joel Face, the original author of everything this is built on. All of the Lightning Lane, virtual queue, DAS and itinerary work is his; this fork adds an availability watcher, optional automatic booking, and fixes for a few things needed to build and run it independently. Licensed **GPL-3.0-only**, same as upstream.
+A personal fork of **[joelface/bg1](https://github.com/joelface/bg1)** by Joel Face, who wrote everything this is built on: the Lightning Lane, virtual queue, DAS and itinerary work is all his. This fork adds an availability watcher with optional automatic booking, corrects the attraction data, and fixes what was needed to build and run it independently. **GPL-3.0-only**, same as upstream.
 
 Deployed at **<https://mbs1234.github.io/bg1/>**.
 
 **WARNING! Use at your own risk. BG1 is highly experimental, for demonstration purposes only, and provided "as is" without warranty of any kind. It is in no way endorsed by or associated with the Walt Disney Company and could stop working at any time for any reason. To ensure the intended experience, always use the official Disney app.**
 
-BG1 is an unofficial, experimental client for obtaining Lightning Lane Multi Pass reservations and virtual queue boarding groups at Disney theme parks in the United States. For background on the original, read the [upstream BG1 documentation](https://joelface.github.io/bg1/).
+BG1 is an unofficial client for Lightning Lane Multi Pass reservations and virtual queue boarding groups at Disney parks in the United States. For background on the original, read the [upstream documentation](https://joelface.github.io/bg1/).
 
 ---
 
-## Enhancements in this fork
+## Getting started
 
-### Autopilot — drop-aware watching with alerts
+1. Open <https://mbs1234.github.io/bg1/> on your phone and install the bookmarklet (or userscript).
+2. Run it on `disneyworld.disney.go.com/vas/` and sign in.
+3. On the **LL** tab, tap the **clock button** to open Autopilot.
+4. Star the attractions you want watched, then **Turn on autopilot** and allow notifications.
+5. Leave the page open and in the foreground.
 
-Upstream refreshes only when you tap the refresh button. Autopilot watches for you and tells you when something you want becomes bookable.
+The header button is green while watching, yellow in dry run, red if it stopped after repeated errors.
 
-**How to use it**
+## Autopilot
 
-1. Open <https://mbs1234.github.io/bg1/> on your phone and follow the setup instructions to install the bookmarklet (or the userscript).
-2. Go to `disneyworld.disney.go.com/vas/` and run it, then sign in with your Disney account.
-3. On the **LL** tab, tap the **clock button** in the header to open the Autopilot screen.
-4. Tap the star next to each attraction you want watched. Your list is saved between sessions.
-5. Tap **Turn on autopilot**, and allow notifications when prompted.
-6. Leave the page open and in the foreground. When a watched attraction becomes available you get a chime, a vibration (Android), and a notification naming the ride and its return time.
+Upstream refreshes only when you tap refresh. Autopilot watches for you, alerts you, and — if you arm it — books.
 
-The header button turns green while watching and shows how many attractions are on your list; it turns red if the watcher stopped because of repeated errors.
-
-**How the pacing works.** Rather than polling at a fixed rate, Autopilot adjusts to what is coming up:
+**Pacing.** Rather than a fixed rate, it adjusts to what is coming:
 
 | Mode | When | Interval |
 | --- | --- | --- |
 | Watching | nothing imminent | ~45s |
-| Drop approaching | within 5 min of a drop or your next booking window | ~6s |
+| Drop approaching | within 5 min of a drop or your booking window | ~6s |
 | Checking rapidly | 30s before to 120s after a drop | ~1.2s |
 
-Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and from `nextBookTime`, which Disney's tipboard reports. The lead exists because inventory sometimes releases a few seconds early; the longer trail exists because dropped inventory trickles in and good return times are gone within a minute. Every interval gets ±20% jitter so the request pattern has no fixed period.
+Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and from Disney's own `nextBookTime`. The lead exists because inventory sometimes releases early; the trail because it trickles in and good times are gone within a minute. Every interval carries ±20% jitter. Timing runs on the drift-corrected clock in `src/timesync.ts`, which upstream computes but only ever uses to render the on-screen clock.
 
-Autopilot also uses the **drift-corrected clock** that upstream computes in `src/timesync.ts` but only ever uses to render the on-screen clock — all of upstream's internal logic runs on the raw device clock. For hitting a drop on the correct second, that difference matters.
+**Per-attraction toggles.** Each is off by default and independent, because the risks differ.
 
-**Limits worth knowing**
+| Toggle | What it does |
+| --- | --- |
+| **Auto-book** | Books it when it appears inside your window. |
+| **Auto-move** | Moves a reservation you already hold to a better time — at least 30 minutes better, never later, never outside your window. |
+| **Book then move** | Books the first time offered *even outside your window*, then works it into the window. Wait Magic's "start wide, then narrow in": holding something beats holding nothing. Implies both of the above. |
+| **Pause** | Keeps watching and alerting but takes no action — use it to force a higher-priority attraction to be booked first. |
+| **Swap in** | When all three slots are full, gives up your lowest-priority reservation for this one, preferring a non-Tier-1 and never trading down. A single atomic request, so the old one is released only if the new one is secured. |
 
-- **Multi Pass only, by design.** Matching reads the `flex` field, and BG1 has no Single Pass booking flow. Most famous headliners — TRON, Rise of the Resistance, Seven Dwarfs Mine Train, Guardians, Flight of Passage — are Single Pass and are deliberately *not* watchable here; Slinky Dog Dash is the one Multi Pass headliner. This is settled scope rather than a missing feature: Single Pass is a separate paid-per-ride product, and watching something this app cannot book would be worse than not offering it.
-- **Must stay foregrounded.** Mobile browsers heavily throttle timers in background tabs. While autopilot runs it holds a **screen wake lock**, so the phone will not lock itself out from under you mid-drop — but that only keeps the screen on; switching to another app still backgrounds the page and throttles it. The rest cannot be fixed with a service worker: BG1 runs injected into a page on Disney's own origin, and a service worker must be served from the same origin as the page it controls — so a worker hosted on this fork's Pages site can never be registered for it. Background operation would require a server acting on your behalf, which is a different product with far greater account exposure.
-- **Off after a reload,** by design: a watcher resuming with no user gesture behind it cannot unlock audio, and silently issuing requests on page load is a surprising default. Your watch list persists; the on/off state does not.
-- **On iOS,** notifications require adding the page to your Home Screen. Without that you still get the chime.
-- Alerts are edge-triggered per attraction: one alert when it becomes available, then silence until it goes away and comes back.
+**Return-time window.** Set an earliest and latest return time per attraction. The window governs what Autopilot will *take*; it deliberately does not silence alerts, so an out-of-window offer is still reported rather than hidden.
 
-### Automatic booking
+**Ordering.** When two armed attractions appear in the same tick, the better one is booked first, ranked by the same order the LL list's **Priority** sort uses. When a higher-ranked Tier 1 is armed and still has a drop ahead of it, Autopilot passes on a lesser Tier 1 rather than spend the party's Tier 1 slot — releasing that hold once the better attraction's drops have passed, **or as soon as your party redeems its first Lightning Lane**, since the one-Tier-1 limit only applies until then.
 
-Autopilot can book for you instead of only telling you. It is **opt-in per attraction and off by default**, because alerting is cheap to get wrong and booking is not.
+**Dry run.** Everything except acting: it watches, alerts, checks eligibility and applies every guard, then logs *"would have booked Slinky Dog Dash for 11:05 AM"*. Nothing is committed and none of it counts against the session limit. The recommended way to spend a first park day with it. Deliberately loud — yellow banner, yellow header button — because a forgotten dry run looks exactly like a broken booker.
 
-**How to use it**
+**Whole party only.** Off by default, matching how booking by hand works: Autopilot books for whoever is eligible. Turn it on and it acts only when everyone in your saved party is eligible.
 
-1. Add an attraction to your watch list as above.
-2. On the Autopilot screen, tap **Auto-book off** next to it — it flips to **Auto-book on**.
-3. Set a time window for that attraction if you care when the return time is. With no window, any offered time is acceptable.
-4. Turn autopilot on. When the attraction appears, it books without asking and notifies you with the return time it got.
+**Avoid clashes.** On by default. Autopilot refuses a return time that lands on top of a reservation you already hold, dining included — checked before the offer is requested and again on the offer's real time. Booking by hand only warns about this; Autopilot has nobody to warn.
 
-If two armed attractions become available at once, the better one is booked first, ranked by the same priority order the LL list's **Priority** sort uses. And when a higher-ranked Tier 1 attraction is armed and still has a drop ahead of it, Autopilot will pass on a lesser Tier 1 offer rather than spend the party's Tier 1 slot on it — releasing that hold on its own once the better attraction's drops have passed, **or as soon as your party redeems its first Lightning Lane of the day**, since the one-Tier-1 limit only applies until then.
+**Alerts** are edge-triggered per attraction: one alert when it becomes available, silence while it stays, eligible again once it goes away and returns. On iOS, notifications require adding the page to your Home Screen; without that you still get the chime.
 
-The screen shows a **Booking activity** log of what was booked and anything that failed.
+### Safety limits
 
-**The guard that matters.** Matching runs against the return time the tipboard advertises, but the offer that actually comes back can carry a *later* time — inventory moves between the two requests, and Disney sometimes places a third Lightning Lane between two you already hold. So the real return time is re-checked against your window before booking, and an offer outside it is abandoned rather than booked. A Lightning Lane is not free to undo, so handing you a time you explicitly excluded would be the worst outcome. An abandoned offer stays retryable — the next check is about a second away.
+- **Three actions per session.** Bookings, moves and swaps share one budget, so a matching bug cannot burn a day of Lightning Lanes. Resets on reload.
+- **One attempt per attraction per action,** recorded *before* the request goes out — a timed-out request may have succeeded, so retrying is the dangerous option. **Booking is the exception:** Disney lets you book, cancel and rebook the same attraction, and only *redeeming* it is once per day. A booking lock therefore lifts once the itinerary has shown the reservation and then shown it gone. A booking never seen keeps its lock, since absence cannot be told from an itinerary that has not caught up; so does one whose entitlement was redeemed or expired unredeemed, which Disney counts as ridden.
+- **An unsettled booking holds a slot.** A request that never returned may still have landed, so it counts against the allowance until plans settle it. The cap bounds Lightning Lanes *possibly* spent, and the on-screen "N left" follows it.
+- **Fresh allowance and empty cache** each time you turn Autopilot on, so a stale eligibility result cannot drive a booking.
+- **Arming persists, running does not.** Auto-book choices are saved; Autopilot is always off after a reload.
+- **The offer's real time is re-checked** before booking. Matching runs on the tipboard's advertised time, but the offer that comes back can be later — inventory moves, and Disney sometimes places a third Lightning Lane between two you hold. An offer outside your window is abandoned, and the next check is a second away.
 
-**Other safety limits**
+### Scope
 
-- **Three actions per session** — bookings, moves, and swaps share one budget — so a bug in matching cannot burn a whole day of Lightning Lanes. The count resets only on reload.
-- **One attempt at a time per attraction.** Moving and swapping are each tried at most once per attraction per session. Each attempt is recorded *before* the request goes out: a request that times out may still have succeeded server-side, so retrying risks doing it twice. **Booking is the exception,** because Disney lets you book, cancel and rebook the same attraction — only *redeeming* it is once per day. So a booking stays locked until the itinerary shows the reservation and then shows it gone, at which point autopilot may take that attraction again; cancelling a late return time by hand no longer forfeits the earlier one that drops an hour later. A booking never seen in your plans keeps its lock for the session, since absence there cannot be told apart from an itinerary that has not caught up. The wait is not instant: plans are checked every tenth poll, so a cancellation frees the attraction in roughly 15 minutes at the idle rate — and about 24 seconds during a drop, which is when it matters.
-- **A fresh allowance and empty cache every time you turn autopilot on**, so a stale eligibility result cannot drive a booking.
-- **Arming persists, running does not.** Your auto-book choices are saved, but autopilot itself is always off after a reload — nothing can book until you deliberately turn it on again.
+**Multi Pass only, by design.** Matching reads the `flex` field and BG1 has no Single Pass booking flow, so TRON, Rise of the Resistance, Seven Dwarfs Mine Train, Guardians and Flight of Passage are deliberately not watchable. **Must stay foregrounded:** mobile browsers throttle background timers. Autopilot holds a screen wake lock so the phone will not lock mid-drop, but switching apps still backgrounds the page. A service worker cannot fix this — BG1 runs injected into Disney's origin, and a worker must be served from the origin it controls.
 
-### Automatic re-timing
+## Learning and diagnostics
 
-Autopilot can also move a reservation you **already hold** to a better time. Separate per-attraction toggle from booking, because the risks differ: booking spends an entitlement you did not have, while moving puts one you already hold through a round trip.
+**Learned drop times.** The built-in schedule comes from third-party reports that bucket to five minutes. Autopilot watches at up to one-second resolution, so it records when availability *actually* appears and compares. A drop counts as an attraction becoming available, or its earliest return time jumping ≥15 minutes earlier; observations within two minutes are one drop. It also records **when it was watching**, so a scheduled time reads as *"seen 2 of 2 watched days"*, or in red *"seen 0 of 3"* — real evidence the schedule is wrong — or *"not watched yet"*, which says nothing. A drop seen on **two or more distinct days** is added to the times Autopilot bursts for, so the schedule self-corrects. Kept for 30 days.
 
-**How to use it**
+**Why nothing was booked.** Skips are counted rather than logged — during a drop they happen every second — and shown ranked: *"7× not everyone in the party was eligible"*, *"3× it clashed with something already booked"*.
 
-1. Watch the attraction, then tap **Auto-move off** next to it so it reads **Auto-move on**.
-2. Turn autopilot on. If a much better return time appears for something you hold, it moves the reservation and tells you both times.
+**Activity log.** What was booked, moved, swapped or failed, surviving a reload for the rest of the park day.
 
-**What it guarantees**
+**Unknown attractions.** If Disney's tipboard lists a facility ID this build does not know, the Autopilot screen says so. Unknown IDs are otherwise dropped in silence — no row, no alert, no booking, and nothing explaining why.
 
-- **Never moves you later.** A modify offer can come back with a different time than the tipboard advertised, including a worse one. The real time is re-checked before anything is committed, so it will not trade an 11am return for a 7pm one — a failure mode plain booking does not have.
-- **At least 30 minutes better,** or it does not bother. Swapping 7:10pm for 6:55pm is not worth putting a held reservation through a round trip.
-- **Stays inside your window,** same as booking.
-- **One move per attraction per session,** sharing the overall action cap — so it will not thrash a reservation back and forth as availability shifts. A move is tracked separately from a booking, which is what lets *book then move* work.
-- **Skips reservations Disney marks unmodifiable.**
+## Improving pre-booked selections before your trip
 
-If you hold a reservation and have both toggles on, moving takes precedence — booking a second one for the same attraction would just be rejected.
+Auto-move works on future dates. Pick a later date in the LL tab, watch what you pre-booked, and arm **Auto-move**; Autopilot improves those times as cancellations open up. Drops are a day-of phenomenon, so future dates poll at the slow rate. Reservations are matched to the park day being watched, so today never touches tomorrow.
 
-### Book then move
+## Faster booking
 
-The strategy Thrill Data's Wait Magic recommends: **start wide, then narrow in.** A wide search finds availability far more often than a narrow one, and holding *something* beats holding nothing while you wait for the perfect time.
+Booking costs three sequential requests: eligibility, offer, book. Eligibility is the only one that does not change second to second, so it is fetched in advance for armed attractions and cached — a third of the round trips removed from the moment a drop lands. The cache expires as soon as an ineligible guest's eligibility time passes, and clears entirely after any booking, since party, tier and overlap limits shift eligibility for every attraction at once. Prewarm requests go one at a time; a fan-out is exactly the burst that trips the rate limiter.
 
-Tap **Book then move off** next to a watched attraction so it reads **Book then move on**. While you hold nothing for that attraction, Autopilot books the first time offered — **even outside your window** — so you have a reservation. Once you hold one, your window becomes the goal, and Autopilot moves the reservation into it when a qualifying time appears (same 30-minute-gain and never-later rules as re-timing). It implies both booking and moving; you don't need the other toggles on.
+## Fixes and corrections
 
-### Pause
+**Attraction data**
 
-**Pause** keeps an attraction watched and alerting but takes no action on it — no booking, moving, or swapping. Use it to control order by hand: pause the lesser attractions so a higher-priority one gets booked first, then resume them. A paused attraction also stops making Autopilot hold the Tier 1 slot for it, since pausing it means "not now."
+- **Three attractions were invisible.** Disney re-issues a facility ID when a ride is re-themed, and `LLClient.experiences()` drops an unknown ID silently. Rock 'n' Roller Coaster Starring The Muppets (`412573652`), Soarin' Across America (`412577054`) and Disney Jr. Mickey Mouse Clubhouse Live! (`412521565`) all had new IDs this build lacked — two of them headliners — so they could not be listed, watched or booked. Added, with the retired IDs kept as `null`, and unknown IDs now surfaced on screen instead of only in the console.
+- **Two attractions were in the wrong park.** Zootopia and Moana (Character Landing) pointed at EPCOT's World Discovery instead of Animal Kingdom's Discovery Island, so a held Zootopia Lightning Lane made Autopilot poll EPCOT's tipboard on an Animal Kingdom day. A test now scans every entry against the section it is declared under.
+- **Priorities re-ranked** where the published order had moved on: Big Thunder Mountain Railroad to the top of Magic Kingdom's Tier 1, Buzz Lightyear out of the unbadgeable band, Kilimanjaro Safaris above Expedition Everest (they collide at the 12:47 drop), Little Mermaid below Alien Swirling Saucers, plus Soarin' and Zootopia. Big Thunder deliberately carries no `avgWait`: no trustworthy post-reopening average exists, and an invented one would decide swaps.
+- **Drop times added,** cross-checked against TouringPlans, WDWMagic observer logs and BlogMickey: Tiana's Bayou Adventure 14:17, Expedition Everest 14:47 and 15:47.
 
-### Swap in
+**Correctness**
 
-When **all three** Multi Pass slots are taken and a watched attraction marked **Swap in** appears, Autopilot gives up your **lowest-priority** reservation for it — preferring to let go of a non-Tier-1, which is easier to claim again later, and never giving up anything ranked equal to or better than the incoming attraction.
-
-This is the safe form of "don't be afraid to cancel." The swap is a **single request**: Disney releases the old reservation only if the new one is secured, so there is no moment where you hold nothing. With a slot free, it simply books instead. The offered time is still checked against your window before anything is committed.
-
-### Improving pre-booked selections before your trip
-
-Auto-move works on future dates too. Select a later date in the LL tab's date picker, watch the attractions you pre-booked, and turn on **Auto-move**; Autopilot will improve those return times as cancellations open up. Drop times are a day-of phenomenon, so on a future date it polls at its slow steady rate rather than bursting. Reservations are matched to the specific park day being watched, so watching today never touches tomorrow's selections.
-
-### Dry run — rehearse before you trust it
-
-Turn on **Dry run** on the Autopilot screen and Autopilot does everything except act: it watches, alerts, checks eligibility, applies the whole-party guard and the Tier 1 hold, and then writes *"would have booked Slinky Dog Dash for 11:05 AM"* to the activity log instead of booking. No offer is generated; nothing is committed. Each rehearsed action is logged once, and none of it counts against the session limit.
-
-This is the recommended way to spend a first park day with it: arm whatever you like, watch the log fill with what it *would* have done, and flip dry run off once you've seen it be right. Because a forgotten dry run looks exactly like a broken booker, it is deliberately loud — a yellow banner on the screen, and the header button turns yellow instead of green while running. The setting is remembered, so a rehearsal set up the night before survives to the park.
-
-### Whole-party guard, activity log, and diagnostics
-
-**Whole party only.** By default Autopilot books for whoever is eligible — the way booking by hand in bg1 or Disney's app does. If two of your five are eligible, you get a Lightning Lane for two. Turn on **Whole party only** on the Autopilot screen and it will not book, move, or swap unless *everyone in your saved party* is eligible; a Lightning Lane for part of the group is often worse than none. Guests outside your saved party never count against this. The setting is remembered.
-
-**Activity log.** What Autopilot booked, moved, swapped, or failed at is listed on the screen and now **survives a reload for the rest of the park day.** (Autopilot itself is still off after a reload — only the record persists.)
-
-**Why nothing was booked.** Attempts that were skipped are deliberately kept out of the log — during a drop they happen every second and would bury the real entries. Instead they are counted, and the screen shows a ranked list such as *"7× not everyone in the party was eligible"* or *"3× the offered time was outside the window"*, so a quiet day is explainable rather than mysterious. The counts reset each time you turn Autopilot on.
-
-### Learned drop times
-
-The built-in drop schedule comes from third-party reports, and the best of those sources bucket their observations to five minutes — which is why one site publishes `:45` for drops this fork places at `:47`. Autopilot is already watching the tipboard at up to one-second resolution whenever it runs, so it now **records when availability actually appears** and compares that with the schedule.
-
-Two things count as a drop: an attraction going from unavailable to available, or its earliest offered return time jumping at least 15 minutes *earlier* (which is what a release of new inventory does even to an attraction that was already available). Observations within two minutes of each other are treated as one drop, labelled by the earliest minute — the poller lands at or just after a release, never before.
-
-Crucially, Autopilot also records **when it was watching**. A scheduled drop shows as *"seen 2 of 2 watched days"*, or in red as *"seen 0 of 3 watched days"* — real evidence that the schedule is wrong for that attraction — or *"not watched yet"*, which says nothing at all. Absence is never reported as evidence unless the poller was actually running at that time.
-
-The **Learned drop times** section on the Autopilot screen shows this per attraction, counting distinct park days rather than raw events so one busy day cannot masquerade as a pattern. Attractions that drop on no written schedule are reported too. Evidence accumulates across visits and is kept for 30 days.
-
-**And it acts on what it learns.** A drop seen on **two or more distinct days** at the same minute is added to the times Autopilot speeds up for — marked *"used for timing"* on the screen — so a drop the built-in table lacks gets burst for once it has been seen twice, and the schedule genuinely self-corrects rather than only reporting. One day is an anecdote; two is a pattern. A learned time within two minutes of a scheduled one is treated as the same drop, so nothing is polled twice. Only attractions in the park you are watching contribute.
-
-### Faster booking
-
-Booking a new Lightning Lane costs three sequential requests: guest eligibility, then offer generation, then the booking itself. Eligibility is the only one that does not change second to second, so Autopilot fetches it in advance for armed attractions and caches it — removing a third of the round trips from the moment a drop lands, which is exactly when seconds decide whether you get an 11am return time or a 7pm one.
-
-The cache invalidates aggressively, because a wrong answer here is expensive:
-
-- It expires as soon as an ineligible guest's eligibility time passes. Reusing it past that point would silently book for part of your party and leave the rest out.
-- It clears entirely after any booking, since party, tier and overlap limits shift eligibility for *every* attraction at once, not just the one that changed.
-
-Prewarm requests go out one at a time rather than in parallel — a fan-out across several attractions is exactly the burst that trips the shared rate limiter.
-
-### Fixes and corrections
-
-- **`RateLimit` no longer latches permanently.** Upstream set an "exceeded" flag on the first violation and never cleared it, so one burst of 6 requests in a second rejected *every* later API call — refreshes and bookings alike — until a page reload. Now a short cooldown applies and the limiter recovers. This was the prerequisite for any automated polling.
-- **The tree actually builds.** Upstream's `src/api/diu` module is gitignored and never published, and its build script deletes the public shim, so a clean clone cannot resolve the import and `vite build` fails. A stub restores it. Only Disneyland calls it, so Walt Disney World is unaffected.
-- **Two missing drop times added,** cross-checked against TouringPlans, WDWMagic observer logs, and BlogMickey: Tiana's Bayou Adventure 14:17, Expedition Everest 15:47.
-- **A silent, awaitable poll path.** Upstream's refresh functions return `undefined` and swallow errors into a toast, so no caller can sequence polls or detect failure. The new path resolves with the data and rejects on error.
+- **Slot accounting counted spent reservations.** A fully-redeemed Lightning Lane survives in the itinerary with no guests, and counting it meant that after the first tap-in of the day Autopilot believed the party was full and swapped a reservation away instead of booking into the slot that had just come free. Now only cancellable reservations with a guest left count, and Multiple Experiences Passes are excluded.
+- **Booking locks are released by evidence, not at session end,** so cancelling a late return time by hand no longer forfeits the earlier one that drops an hour later. During a drop plans are polled roughly every 12 seconds, so the two consecutive absences a release needs are about 24 seconds apart.
+- **The return-time window had no UI.** It was declared, persisted, revived and gating four code paths, but the only way to set one was to hand-edit `localStorage`.
+- **`RateLimit` no longer latches permanently.** Upstream set an "exceeded" flag on the first violation and never cleared it, so one burst rejected *every* later API call until a reload. This was the prerequisite for any automated polling.
+- **The tree actually builds.** Upstream's `src/api/diu` module is gitignored and never published, and its build script deletes the public shim, so a clean clone cannot resolve the import. A stub restores it; only Disneyland calls it.
+- **A silent, awaitable poll path.** Upstream's refresh functions return `undefined` and swallow errors into a toast, so nothing could sequence polls or detect failure.
+- **The screen stays awake** while Autopilot runs. Degrades silently where unsupported (needs iOS Safari 16.4+).
+- **`nextBookTime` is read for the date you asked about,** not always today.
 - **The usage ping is disabled** — a personal build has no reason to phone home.
-- **Booking locks are released by evidence, not at session end.** Disney permits booking, cancelling and rebooking the same attraction, so locking one for the whole session was stricter than the rules require and forfeited a better time that appeared after a manual cancel. The lock now lifts once the itinerary has shown the reservation and then shown it gone. A booking never observed keeps its lock — during a drop, plans are polled roughly every 12 seconds, so the two consecutive absences a release needs are only about 24 seconds apart, and absence that soon after booking usually means Disney has not caught up rather than that nothing was booked.
-- **An unsettled booking holds a slot.** A request that never returned may still have succeeded, so it counts against the three-per-session allowance until the itinerary settles it. The cap now bounds Lightning Lanes *possibly* spent rather than only those seen to succeed, and the on-screen "N left" follows it.
-- **The screen stays awake while autopilot runs.** A locking screen backgrounds the page and clamps its timers, which stopped the poller as surely as closing it would. Degrades silently where the browser does not support it (iOS Safari 16.4+).
-- **`nextBookTime` is read for the date you asked about,** not always today — it previously reported today's next booking window regardless of the park day being viewed.
 
-`src/timesync.ts` and `src/api/livedata.ts` still call `bg1.joelface.com` deliberately: the first for clock correction, the second for show times unavailable through Disney's tipboard.
+`src/timesync.ts` and `src/api/livedata.ts` still call `bg1.joelface.com` deliberately: clock correction, and show times unavailable through Disney's tipboard.
 
 ## Development
 
@@ -171,26 +120,21 @@ npm run build:fork    # vite build, keeping the diu stub
 npm start             # dev server
 ```
 
-Upstream ships a red test suite — 8 suites fail in a clean checkout of upstream `mickey`, mostly stale fixtures. CI gates on `test:ci` so it stays a useful signal, and also runs the full suite for visibility. See **[FORK.md](FORK.md)** for the exclusion list, why a plain `mickey` build fails, and how to sync upstream.
+Upstream ships a red test suite — 8 suites fail in a clean checkout of upstream `mickey`, mostly stale fixtures. CI gates on `test:ci` so it stays a useful signal, and runs the full suite for visibility. See **[FORK.md](FORK.md)** for the exclusion list and how to sync upstream, and **[docs/PLAN.md](docs/PLAN.md)** for the research behind the data corrections and what is planned next.
 
-Pushing to `mickey` builds and deploys to GitHub Pages, merging in the static pages from the `goofy` branch — see `.github/workflows/deploy.yml`.
+Pushing to `mickey` builds and deploys to GitHub Pages, merging in the static pages from `goofy` — see `.github/workflows/deploy.yml`.
 
 ## Acknowledgments
 
-First and foremost, **[Joel Face](https://github.com/joelface)**, who wrote BG1. This fork is a small addition to a large amount of his work.
+First and foremost **[Joel Face](https://github.com/joelface)**, who wrote BG1. This fork is a small addition to a large amount of his work.
 
 Upstream's acknowledgments, preserved:
 
 - **Len Testa:** For helping me get as close as I could ever reasonably expect to accomplish a not very serious childhood dream of almost being an Imagineer. Also for creating [Touring Plans](https://touringplans.com/), which is pretty rad.
-
 - **Barry, Stacy, Jeff, Michelle, Jim, Stuart, Bob, Kimberly, Milissa, Jennifer, Erin & Erin, Kristina, Lemonia, Scott, Jorge, Phil, Kellianne, Joshua, Brandon, Megan, Jennifer, Gary, Alexander, and others:** For helping me test and improve BG1.
-
 - **Arialvetica:** For creating the awesome BG1 logo.
-
 - **[ThemeParks.wiki](https://themeparks.wiki/):** For the free API used for showtime data not available via Disney's tipboard.
-
 - **[Thrill Data](https://www.thrill-data.com/):** For providing data used to help determine Lightning Lane priorities.
-
 - **[IcoMoon](https://icomoon.io/#icons-icomoon):** For the free icons, provided under a [Creative Commons license](https://creativecommons.org/licenses/by/4.0/).
 
-Additionally, for this fork: **[TouringPlans](https://touringplans.com/)**, **WDWMagic** forum observers, and **BlogMickey** for independently reported drop-time data used to verify and correct the drop schedule.
+For this fork additionally: **[ThemeParks.wiki](https://themeparks.wiki/)** for the live facility IDs that surfaced the three stale ones, and **[TouringPlans](https://touringplans.com/)**, **WDWMagic** forum observers and **BlogMickey** for the drop-time reports.
