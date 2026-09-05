@@ -46,10 +46,19 @@
     <main>
       <h2>Install</h2>
       <p>
-        Drag this to your bookmarks bar, or copy it and save it as a bookmark
-        whose address is the copied text:
+        Copy this, then save it as a bookmark whose <em>address</em> is the
+        copied text:
       </p>
-      <p><a class="bm-code" href="#">NextLL</a></p>
+      <code class="bm-code"></code>
+      <p>
+        <button id="copy">Copy bookmarklet</button> <span id="copied"></span>
+      </p>
+      <p>
+        The rest is identical to installing AutoLL, so follow
+        <a href="./index.html">its instructions</a> for your browser &mdash;
+        just paste this code instead of that one. Give the bookmark a name you
+        will recognise, like <b>NextLL</b>.
+      </p>
 
       <h2>Use</h2>
       <ol>
@@ -86,8 +95,31 @@
         .replace(/;$/, '')
         .replace(/\s*([;,{}=>+])\s*/g, '$1');
       const scriptText = `(${body})()`;
+      const bookmarklet = 'javascript:' + encodeURIComponent(scriptText);
+      // The text IS the bookmarklet, as on the AutoLL page: it has to be
+      // selectable, because on a phone there is no bookmarks bar to drag a
+      // link onto and copying the address is the only way in.
       document.querySelectorAll('.bm-code').forEach(code => {
-        code.href = 'javascript:' + encodeURIComponent(scriptText);
+        code.textContent = bookmarklet;
+      });
+
+      document.getElementById('copy').addEventListener('click', async () => {
+        const said = document.getElementById('copied');
+        try {
+          await navigator.clipboard.writeText(bookmarklet);
+          said.textContent = 'Copied.';
+        } catch {
+          // Clipboard access needs a secure context and a permission some
+          // mobile browsers withhold. Select it instead so the copy is one
+          // tap away rather than a failure.
+          const code = document.querySelector('.bm-code');
+          const range = document.createRange();
+          range.selectNodeContents(code);
+          const sel = getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          said.textContent = 'Selected — copy it now.';
+        }
       });
     </script>
   </body>
