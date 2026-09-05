@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import { mk, wdw } from '@/__fixtures__/resort';
 import { Experience } from '@/api/ll';
@@ -37,6 +37,7 @@ const OFF: PollerStatus = { mode: 'off', consecutiveFailures: 0, polls: 0 };
 function setup({
   experiences = [llExperience(BZ), llExperience(DB)],
   watched = [] as string[],
+  unknownExperienceIds = [] as string[],
   status = OFF,
   enabled = false,
   notifications = 'granted' as AlertPermission,
@@ -44,6 +45,7 @@ function setup({
 }: Partial<AutopilotState> & {
   experiences?: Experience[];
   watched?: string[];
+  unknownExperienceIds?: string[];
 } = {}) {
   const setEnabled = jest.fn();
   const addTarget = jest.fn();
@@ -55,6 +57,8 @@ function setup({
   const toggleAutoSwap = jest.fn();
   const setRequireWholeParty = jest.fn();
   const setDryRun = jest.fn();
+  const setAvoidOverlaps = jest.fn();
+  const setTargetWindow = jest.fn();
   render(
     <ParkContext value={{ park: mk, setPark: () => {} }}>
       <ExperiencesContext
@@ -62,6 +66,7 @@ function setup({
           experiences,
           refreshExperiences: () => {},
           pollExperiences: async () => [],
+          unknownExperienceIds,
           loaderElem: null,
         }}
       >
@@ -79,11 +84,14 @@ function setup({
             toggleBookThenMove,
             togglePaused,
             toggleAutoSwap,
+            setTargetWindow,
             notifications,
             requireWholeParty: false,
             setRequireWholeParty,
             dryRun: false,
             setDryRun,
+            avoidOverlaps: true,
+            setAvoidOverlaps,
             skipCounts: {},
             dropSummaries: [],
             bookingLog: [],
@@ -108,6 +116,8 @@ function setup({
     toggleAutoSwap,
     setRequireWholeParty,
     setDryRun,
+    setAvoidOverlaps,
+    setTargetWindow,
   };
 }
 
@@ -639,5 +649,70 @@ describe('Autopilot screen dry run', () => {
     expect(items.some(t => /would have booked A/.test(t))).toBe(true);
     expect(items.some(t => /would have moved B/.test(t))).toBe(true);
     expect(items.some(t => /would have swapped in C/.test(t))).toBe(true);
+  });
+});
+
+describe('return-time window', () => {
+  // The window is declared, persisted, revived and gates four code paths, but
+  // until this existed the only way to set one was to hand-edit localStorage.
+  it('sets a bound from the time inputs', () => {
+    const { setTargetWindow } = setup({ watched: [BZ] });
+    const name = wdw.experience(BZ).name;
+    fireEvent.change(
+      screen.getByLabelText(`Earliest return time for ${name}`),
+      {
+        target: { value: '15:30' },
+      }
+    );
+    expect(setTargetWindow).toHaveBeenCalledWith(BZ, 'after', '15:30');
+  });
+
+  it('shows the bounds already set', () => {
+    setup({
+      watched: [BZ],
+      targets: [
+        {
+          experienceId: BZ,
+          after: new ParkTime(15, 30),
+          before: new ParkTime(19),
+        },
+      ],
+    });
+    const name = wdw.experience(BZ).name;
+    expect(
+      screen.getByLabelText(`Earliest return time for ${name}`)
+    ).toHaveValue('15:30');
+    expect(screen.getByLabelText(`Latest return time for ${name}`)).toHaveValue(
+      '19:00'
+    );
+  });
+
+  // Alerting wide is the point: a window that silenced alerts would hide the
+  // one thing worth knowing.
+  it('says the window limits acting rather than alerting', () => {
+    setup({ watched: [BZ] });
+    expect(screen.getByText(/still alerts/)).toBeVisible();
+  });
+});
+
+describe('unknown attractions', () => {
+  // An id missing from the data file is dropped silently: no row, no watch
+  // target, no booking, and nothing on screen saying why.
+  it('warns when Disney lists an attraction this build does not know', () => {
+    setup({ unknownExperienceIds: ['412573652'] });
+    expect(screen.getByText(/does not recognise/)).toBeVisible();
+  });
+
+  it('says nothing when every listed attraction is known', () => {
+    setup({});
+    expect(screen.queryByText(/does not recognise/)).not.toBeInTheDocument();
+  });
+});
+
+describe('clash avoidance', () => {
+  it('can be turned off', () => {
+    const { setAvoidOverlaps } = setup({ avoidOverlaps: true });
+    screen.getByTitle('Allow times that clash with existing plans').click();
+    expect(setAvoidOverlaps).toHaveBeenCalledWith(false);
   });
 });

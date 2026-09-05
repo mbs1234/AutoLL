@@ -103,12 +103,30 @@ describe('settings persistence', () => {
   });
 
   it('round-trips', () => {
-    saveSettings({ requireWholeParty: true, dryRun: true });
-    expect(loadSettings()).toEqual({ requireWholeParty: true, dryRun: true });
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: true,
+      dryRun: true,
+    });
+    expect(loadSettings()).toEqual({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: true,
+      dryRun: true,
+    });
   });
 
   it('defaults dry run to off', () => {
     expect(DEFAULT_SETTINGS.dryRun).toBe(false);
+  });
+
+  // The opposite default to the other two, and so the opposite parse: this one
+  // costs a wasted slot when wrongly off, not a booking when wrongly on.
+  it('defaults to avoiding clashes, and only a literal false turns it off', () => {
+    expect(DEFAULT_SETTINGS.avoidOverlaps).toBe(true);
+    kvdb.set(SETTINGS_KEY, { avoidOverlaps: 0 });
+    expect(loadSettings().avoidOverlaps).toBe(true);
+    kvdb.set(SETTINGS_KEY, { avoidOverlaps: false });
+    expect(loadSettings().avoidOverlaps).toBe(false);
   });
 
   it('treats a non-boolean dry-run value as off', () => {

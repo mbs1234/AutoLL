@@ -18,6 +18,9 @@ export default function ExperiencesProvider({
   const { bookingDate } = use(BookingDateContext);
   const { loadData, loaderElem } = useDataLoader();
   const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [unknownExperienceIds, setUnknownExperienceIds] = useState<string[]>(
+    []
+  );
 
   /**
    * The actual fetch, awaitable and free of UI side effects. Rejects if the
@@ -40,6 +43,9 @@ export default function ExperiencesProvider({
     // Lightning Lane data wins over live show data on key collisions.
     const merged = Object.values({ ...(await showsPromise), ...exps });
     setExperiences(merged);
+    // Held in state rather than read from the client: the client mutates the
+    // list in place, which would never re-render the warning that shows it.
+    setUnknownExperienceIds(ll.unknownExperienceIds);
     return merged;
   }, [park, bookingDate, ll, liveData]);
 
@@ -61,6 +67,7 @@ export default function ExperiencesProvider({
         experiences,
         refreshExperiences,
         pollExperiences: fetchExperiences,
+        unknownExperienceIds,
         loaderElem,
       }}
     >

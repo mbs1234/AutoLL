@@ -1,8 +1,8 @@
-import { Booking, LLMP, isLLMP } from '@/api/itinerary';
+import { Booking, LLMP, isLLMP, isMultipleExperiences } from '@/api/itinerary';
 import { Guest, Guests, Offer, OfferError, OfferExperience } from '@/api/ll';
 import { ParkTime, parkDate } from '@/datetime';
 
-import { AutoBookLedger } from './autobook';
+import { AutoBookLedger, ClashCheck } from './autobook';
 import { comparePriority, isTier1 } from './priority';
 import { WatchTarget, inWindow } from './watchlist';
 
@@ -22,7 +22,8 @@ export type SwapSkipReason =
   | 'offer-outside-window'
   | 'already-attempted'
   | 'session-cap'
-  | 'no-eligible-guests';
+  | 'no-eligible-guests'
+  | 'overlaps-plans';
 
 export type SwapOutcome =
   | {
@@ -34,11 +35,34 @@ export type SwapOutcome =
   | { status: 'skipped'; reason: SwapSkipReason }
   | { status: 'failed'; error: string };
 
-/** Every Multi Pass reservation the party holds on a given park day. */
+/**
+ * Every Multi Pass reservation that occupies one of the party's three slots
+ * on a given park day.
+ *
+ * "Held" has to mean "still taking up a slot", not merely "present in the
+ * itinerary", because this is what decides whether the party is full:
+ *
+ * - **Redeemed.** `Itinerary` drops guests with `redemptionsRemaining === 0`
+ *   but keeps the booking, so a fully-redeemed reservation survives with an
+ *   empty `guests` array. Counting it means that after the first tap-in of the
+ *   day autopilot believes the party is full and swaps away a reservation it
+ *   never needed to give up, rather than booking into the slot that just came
+ *   free.
+ * - **Not cancellable.** The same signal `LLTracker` already treats as "this
+ *   still occupies a slot"; the two paths disagreeing about what held means is
+ *   how the bug above went unnoticed.
+ * - **Multiple Experiences Pass.** A replacement entitlement rather than one
+ *   of the three selections. Excluding it can at worst cost a rejected offer;
+ *   including it would cost a real reservation to a needless swap.
+ */
 export function heldMPToday(plans: Booking[], date: string): LLMP[] {
   return plans.filter(
     (booking): booking is LLMP =>
-      isLLMP(booking) && parkDate(booking.start) === date
+      isLLMP(booking) &&
+      parkDate(booking.start) === date &&
+      !!booking.cancellable &&
+      booking.guests.length > 0 &&
+      !isMultipleExperiences(booking)
   );
 }
 
@@ -105,6 +129,8 @@ export interface AutoSwapDeps {
   book: (offer: Offer<LLMP>) => Promise<LLMP>;
   guests: Guests;
   ledger: AutoBookLedger;
+  /** Optional; when it reports a clash, the swap is abandoned. */
+  clashes?: ClashCheck;
 }
 
 /**
@@ -120,7 +146,7 @@ export async function attemptAutoSwap(
   target: WatchTarget,
   incoming: OfferExperience,
   held: LLMP[],
-  { createSwapOffer, book, guests, ledger }: AutoSwapDeps
+  { createSwapOffer, book, guests, ledger, clashes }: AutoSwapDeps
 ): Promise<SwapOutcome> {
   const allowed = shouldSwap(target, incoming, held, ledger);
   if (!allowed.ok) return { status: 'skipped', reason: allowed.reason };
@@ -136,6 +162,11 @@ export async function attemptAutoSwap(
     }
     if (!inWindow(offer.start.time, target)) {
       return { status: 'skipped', reason: 'offer-outside-window' };
+    }
+    // The victim is excluded: it is released by this very request, so the
+    // slot it occupies is not a conflict with what replaces it.
+    if (clashes?.(offer.start.time, offer.itinerary, victim)) {
+      return { status: 'skipped', reason: 'overlaps-plans' };
     }
 
     // Marked before committing: a timed-out swap may still have applied.

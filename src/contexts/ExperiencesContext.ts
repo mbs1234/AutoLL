@@ -26,6 +26,16 @@ interface ExperiencesState {
    * render's value.
    */
   pollExperiences: () => Promise<Experience[]>;
+  /**
+   * Tipboard ids the build does not recognise, from the last fetch.
+   *
+   * Surfaced rather than only logged: an unknown id is dropped silently, so
+   * the attraction simply is not there -- unwatchable and unbookable, with
+   * nothing on screen to explain it.
+   *
+   * Optional so the many places that stub this context need not be touched.
+   */
+  unknownExperienceIds?: string[];
   loaderElem: ReturnType<typeof useDataLoader>['loaderElem'];
 }
 
@@ -33,5 +43,6 @@ export default createContext<ExperiencesState>({
   experiences: [],
   refreshExperiences: () => undefined,
   pollExperiences: () => Promise.resolve([]),
+  unknownExperienceIds: [],
   loaderElem: null,
 });

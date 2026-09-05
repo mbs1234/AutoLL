@@ -2,7 +2,7 @@ import { Booking, LLMP, isLLMP } from '@/api/itinerary';
 import { Guest, Guests, Offer, OfferError, OfferExperience } from '@/api/ll';
 import { ParkTime, parkDate } from '@/datetime';
 
-import { AutoBookLedger } from './autobook';
+import { AutoBookLedger, ClashCheck } from './autobook';
 import { WatchTarget, inWindow } from './watchlist';
 
 /**
@@ -23,7 +23,8 @@ export type ModifySkipReason =
   | 'offer-not-an-improvement'
   | 'already-attempted'
   | 'session-cap'
-  | 'no-eligible-guests';
+  | 'no-eligible-guests'
+  | 'overlaps-plans';
 
 export type ModifyOutcome =
   | { status: 'modified'; booking: LLMP; from: ParkTime; to: ParkTime }
@@ -114,6 +115,8 @@ export interface AutoModifyDeps {
   guests: Guests;
   ledger: AutoBookLedger;
   minImprovementMinutes?: number;
+  /** Optional; when it reports a clash, the move is abandoned. */
+  clashes?: ClashCheck;
 }
 
 /**
@@ -143,6 +146,7 @@ export async function attemptAutoModify(
     guests,
     ledger,
     minImprovementMinutes = MIN_IMPROVEMENT_MINUTES,
+    clashes,
   }: AutoModifyDeps
 ): Promise<ModifyOutcome> {
   const allowed = shouldModify(
@@ -176,6 +180,10 @@ export async function attemptAutoModify(
     // Never trade down. This is the whole point of re-checking.
     if (improvementMinutes(from, to) < minImprovementMinutes) {
       return { status: 'skipped', reason: 'offer-not-an-improvement' };
+    }
+    // An earlier time that lands on top of dinner is not an improvement.
+    if (clashes?.(to, offer.itinerary, allowed.existing)) {
+      return { status: 'skipped', reason: 'overlaps-plans' };
     }
 
     // Marked before committing: a timed-out modify may still have applied, and

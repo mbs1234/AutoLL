@@ -223,6 +223,16 @@ export abstract class LLClient extends ApiClient {
     timeSelect: false,
   };
   nextBookTime: ParkTime | undefined;
+  /**
+   * Tipboard ids the resort data file does not know, from the last fetch.
+   *
+   * Disney issues a new facility id when an attraction is re-themed, and
+   * `experiences()` drops an unknown id silently -- no row, no watch target,
+   * no alert, no booking, and nothing on screen saying why. Three attractions
+   * went stale this way in 2026, two of them headliners. Recorded here so the
+   * next one is visible the day it happens instead of on the trip.
+   */
+  unknownExperienceIds: string[] = [];
   onUnauthorized = () => undefined;
 
   protected partyIds = new Set<Guest['id']>();
@@ -263,7 +273,8 @@ export abstract class LLClient extends ApiClient {
       ? ParkTime.from(nextBookTimeString)
       : undefined;
 
-    return data.availableExperiences.flatMap(exp => {
+    const unknown: string[] = [];
+    const mapped = data.availableExperiences.flatMap(exp => {
       try {
         return {
           ...replaceTimeStrings(exp),
@@ -278,14 +289,31 @@ export abstract class LLClient extends ApiClient {
           experienced: this.tracker.experienced(exp),
         };
       } catch (error) {
-        if (error instanceof InvalidId) return [];
-        throw error;
+        if (!(error instanceof InvalidId)) throw error;
+        // Ids deliberately listed as null are a decision, not staleness.
+        if (!this.resort.knows(exp.id)) unknown.push(exp.id);
+        return [];
       }
     });
+    this.unknownExperienceIds = unknown;
+    return mapped;
   }
 
   track(bookings: Booking[]) {
     this.tracker.update(bookings, this);
+  }
+
+  /**
+   * Whether the party has already used up this attraction today.
+   *
+   * True once a reservation has been redeemed, and also once one has expired
+   * unredeemed -- Disney counts a lapsed pass as ridden, so both leave the
+   * itinerary looking identical to a cancellation while being nothing of the
+   * kind. Read from the tracker rather than the tipboard because a spent
+   * attraction can disappear from the tipboard altogether.
+   */
+  experienced(experience: Pick<Experience, 'id'>): boolean {
+    return this.tracker.experienced(experience);
   }
 
   abstract guests(experience?: { id: string }, date?: string): Promise<Guests>;

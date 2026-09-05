@@ -26,6 +26,8 @@ const SKIP_TEXT: Record<string, string> = {
   'no-worse-reservation': 'nothing held was worth giving up',
   'already-attempted': 'a booking for it was already held or in flight',
   'session-cap': 'the session limit was reached',
+  'outside-window': 'the advertised time was outside the window',
+  'overlaps-plans': 'it clashed with something already booked',
   'not-modifiable': 'Disney marked the reservation unmodifiable',
 };
 
@@ -100,10 +102,13 @@ export default function Autopilot() {
     setRequireWholeParty,
     dryRun,
     setDryRun,
+    avoidOverlaps,
+    setAvoidOverlaps,
+    setTargetWindow,
     skipCounts,
     dropSummaries,
   } = use(AutopilotContext);
-  const { experiences } = use(ExperiencesContext);
+  const { experiences, unknownExperienceIds } = use(ExperiencesContext);
   const { park } = use(ParkContext);
 
   const targetFor = (experienceId: string) =>
@@ -191,12 +196,42 @@ export default function Autopilot() {
         >
           {requireWholeParty ? 'Whole party only: on' : 'Whole party only: off'}
         </Button>
+        <Button
+          type="small"
+          title={
+            avoidOverlaps
+              ? 'Allow times that clash with existing plans'
+              : 'Refuse times that clash with existing plans'
+          }
+          color={
+            avoidOverlaps ? 'bg-red-700 text-white' : 'bg-gray-200 text-black'
+          }
+          onClick={() => setAvoidOverlaps(!avoidOverlaps)}
+        >
+          {avoidOverlaps ? 'Avoid clashes: on' : 'Avoid clashes: off'}
+        </Button>
       </div>
       <p className="mt-1 text-xs text-gray-600">
         {requireWholeParty
           ? 'Autopilot will not book, move, or swap unless everyone in your party is eligible. A Lightning Lane for part of the group is often worse than none.'
           : 'Autopilot books for whoever is eligible, the way booking by hand does. Turn this on to guarantee the group is never split.'}
       </p>
+
+      <p className="mt-1 text-xs text-gray-600">
+        {avoidOverlaps
+          ? 'Autopilot will not take a return time that lands on top of a reservation you already hold &mdash; dining included. Booking by hand only warns about this; here there is nobody to warn.'
+          : 'Autopilot will take any time that fits, even one overlapping an existing reservation.'}
+      </p>
+
+      {unknownExperienceIds && unknownExperienceIds.length > 0 && (
+        <p className="mt-3 rounded-sm bg-red-100 p-2 text-sm font-semibold text-red-900">
+          Disney is listing {unknownExperienceIds.length} attraction
+          {unknownExperienceIds.length === 1 ? '' : 's'} this build does not
+          recognise ({unknownExperienceIds.join(', ')}). They cannot be watched,
+          alerted on, or booked. This is what a re-themed ride looks like:
+          Disney issues a new facility ID and the old one stops appearing.
+        </p>
+      )}
 
       {notifications === 'denied' && (
         <p className="mt-3 text-sm font-semibold text-red-700">
@@ -220,6 +255,13 @@ export default function Autopilot() {
       )}
 
       <h3>Watching ({targets.length})</h3>
+      {watched.length > 0 && (
+        <p className="text-xs text-gray-600">
+          A return-time window limits what Autopilot will <em>take</em>, not
+          what it tells you about: an attraction outside its window still
+          alerts, so a window can never hide the fact that something came back.
+        </p>
+      )}
       {watched.length === 0 ? (
         <p className="text-sm text-gray-600">
           Nothing selected yet. Pick attractions below.
@@ -323,6 +365,34 @@ export default function Autopilot() {
                   >
                     {autoSwap ? 'Swap in on' : 'Swap in off'}
                   </Button>
+                </div>
+                {/* The window governs booking, moving and swapping. Leaving a
+                    bound empty means unbounded on that side. */}
+                <div className="mt-1 ml-11 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-gray-600">Return between</span>
+                  <input
+                    type="time"
+                    aria-label={`Earliest return time for ${exp.name}`}
+                    className="rounded-sm border border-gray-300 px-1 py-0.5"
+                    value={
+                      target?.after ? String(target.after).slice(0, 5) : ''
+                    }
+                    onChange={e =>
+                      setTargetWindow(exp.id, 'after', e.target.value)
+                    }
+                  />
+                  <span className="text-gray-600">and</span>
+                  <input
+                    type="time"
+                    aria-label={`Latest return time for ${exp.name}`}
+                    className="rounded-sm border border-gray-300 px-1 py-0.5"
+                    value={
+                      target?.before ? String(target.before).slice(0, 5) : ''
+                    }
+                    onChange={e =>
+                      setTargetWindow(exp.id, 'before', e.target.value)
+                    }
+                  />
                 </div>
               </li>
             );

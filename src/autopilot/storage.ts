@@ -105,11 +105,23 @@ export interface AutopilotSettings {
    * on, so it cannot be quietly forgotten.
    */
   dryRun: boolean;
+  /**
+   * Refuse a return time that lands on top of something already planned.
+   *
+   * The manual booking screen shows an "Overlapping Plans" warning and lets
+   * you book anyway; autopilot has nobody to warn, so it skips instead. That
+   * is stricter than the warning it models, which is why it can be turned off
+   * -- but a December day with a Candlelight Processional dining package is
+   * exactly the case where a slot spent on top of dinner is a slot wasted, so
+   * it defaults on.
+   */
+  avoidOverlaps: boolean;
 }
 
 export const DEFAULT_SETTINGS: AutopilotSettings = {
   requireWholeParty: false,
   dryRun: false,
+  avoidOverlaps: true,
 };
 
 /** Not day-scoped: a preference about the party, not about a visit. */
@@ -120,6 +132,10 @@ export function loadSettings(): AutopilotSettings {
     // Only a literal true enables it; anything else stored reads as off.
     requireWholeParty: stored?.requireWholeParty === true,
     dryRun: stored?.dryRun === true,
+    // Defaults on, so only a literal false turns it off. The asymmetry is
+    // deliberate: the two above cost bookings when wrongly on, this one costs
+    // a wasted slot when wrongly off.
+    avoidOverlaps: stored?.avoidOverlaps !== false,
   };
 }
 

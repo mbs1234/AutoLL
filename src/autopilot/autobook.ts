@@ -1,5 +1,12 @@
 import { LLMP } from '@/api/itinerary';
-import { Guest, Guests, Offer, OfferError, OfferExperience } from '@/api/ll';
+import {
+  Guest,
+  Guests,
+  Offer,
+  OfferError,
+  OfferExperience,
+  OfferItineraryItem,
+} from '@/api/ll';
 import { ParkTime } from '@/datetime';
 
 import { WatchTarget, inWindow } from './watchlist';
@@ -30,12 +37,31 @@ export type SkipReason =
   | 'session-cap'
   | 'already-attempted'
   | 'no-eligible-guests'
-  | 'offer-outside-window';
+  | 'offer-outside-window'
+  | 'overlaps-plans';
 
 export type AutoBookOutcome =
   | { status: 'booked'; booking: LLMP; returnTime: ParkTime }
   | { status: 'skipped'; reason: SkipReason }
   | { status: 'failed'; error: string };
+
+/**
+ * Whether a return time collides with plans already made.
+ *
+ * Passed in rather than computed here so the helpers stay pure and the
+ * provider owns the day's plans. The optional itinerary is the offer's own
+ * view of the conflict, which is unioned with plans: a booking made a minute
+ * ago can be in one and not the other.
+ *
+ * `release` is the reservation about to be given up -- the one being moved,
+ * or the one a swap trades away. It cannot clash with its own replacement, and
+ * counting it would refuse every swap into the slot it currently occupies.
+ */
+export type ClashCheck = (
+  time: ParkTime,
+  itinerary?: OfferItineraryItem[],
+  release?: Pick<LLMP, 'id' | 'facilityId'>
+) => boolean;
 
 /** The two things autopilot can do to a reservation slot. */
 export type ActionKind = 'book' | 'modify' | 'swap';
@@ -181,11 +207,12 @@ export class AutoBookLedger {
    * cancellation is noticed far faster during a drop, which is when it matters,
    * and condition 1 is what makes that 37x compression safe.
    *
-   * Redemption is deliberately *not* handled here: a redeemed attraction leaves
-   * the party ineligible, and `attemptAutoBook` skips on eligibility long
-   * before it reaches the ledger.
+   * `spent` closes the third case: an entitlement that has been redeemed, or
+   * has expired unredeemed, is gone rather than cancelled. Eligibility usually
+   * stops a rebooking attempt first, but not always -- and the lock is the
+   * cheaper place to be certain.
    */
-  resolveBook(experienceId: string, stillHeld: boolean): void {
+  resolveBook(experienceId: string, stillHeld: boolean, spent = false): void {
     // A rehearsal stands for no request, so there is nothing to settle.
     // `attemptedBookIds` already excludes these; guarding here too keeps the
     // invariant true for any caller.
@@ -194,6 +221,14 @@ export class AutoBookLedger {
       this.absences.delete(experienceId);
       this.confirmed.add(experienceId);
       if (this.unresolved.delete(experienceId)) ++this.booked;
+      return;
+    }
+    // A spent entitlement leaves plans exactly as a cancellation does, and
+    // Disney will not sell it again: an unredeemed pass whose window lapses
+    // counts as ridden. Releasing the lock here would spend the session
+    // allowance rebooking something that cannot be rebooked.
+    if (spent) {
+      this.absences.delete(experienceId);
       return;
     }
     if (!this.confirmed.has(experienceId)) return;
@@ -272,6 +307,8 @@ export interface AutoBookDeps {
   /** Cached or freshly fetched eligibility for this experience. */
   guests: Guests;
   ledger: AutoBookLedger;
+  /** Optional; when it reports a clash, the offer is abandoned unbooked. */
+  clashes?: ClashCheck;
 }
 
 /**
@@ -286,7 +323,7 @@ export interface AutoBookDeps {
 export async function attemptAutoBook(
   target: WatchTarget,
   experience: OfferExperience,
-  { createOffer, book, guests, ledger }: AutoBookDeps
+  { createOffer, book, guests, ledger, clashes }: AutoBookDeps
 ): Promise<AutoBookOutcome> {
   const allowed = shouldAttempt(target, ledger);
   if (!allowed.ok) return { status: 'skipped', reason: allowed.reason };
@@ -300,6 +337,12 @@ export async function attemptAutoBook(
     const acceptable = offerIsAcceptable(offer, target);
     if (!acceptable.ok) {
       return { status: 'skipped', reason: acceptable.reason };
+    }
+    // Re-checked against the offer's real time, not the advertised one: the
+    // time that comes back is often later, and a Lightning Lane on top of a
+    // dining reservation spends a slot to gain nothing.
+    if (clashes?.(offer.start.time, offer.itinerary)) {
+      return { status: 'skipped', reason: 'overlaps-plans' };
     }
 
     // Mark before booking: a timed-out request may still have succeeded, and

@@ -62,6 +62,15 @@ export interface WatchHit {
   target: WatchTarget;
   experience: FlexExperience;
   returnTime: ParkTime;
+  /**
+   * Whether `returnTime` falls inside the target's window.
+   *
+   * Carried rather than filtered on, so the window can govern *acting* while
+   * alerts stay wide. A window that also silenced alerts would hide the one
+   * thing worth knowing -- that the ride came back at all -- and leave the
+   * user staring at a screen that says nothing happened.
+   */
+  inWindow: boolean;
 }
 
 /**
@@ -92,8 +101,10 @@ export function inWindow(returnTime: ParkTime, target: WatchTarget): boolean {
 }
 
 /**
- * Watched experiences that are bookable right now within their window.
+ * Watched experiences that are bookable right now.
  *
+ * Every available match is returned, each flagged with whether its return time
+ * falls inside the target's window; the caller decides what the window gates.
  * Pure: takes the experience list the poller just fetched and returns matches,
  * so the interesting logic is testable without a clock, a network, or React.
  */
@@ -112,8 +123,12 @@ export function matchWatchList(
     if (experience.experienced) continue;
     if (!hasFlexOffer(experience)) continue;
     const returnTime = experience.flex.nextAvailableTime;
-    if (!inWindow(returnTime, target)) continue;
-    hits.push({ target, experience, returnTime });
+    hits.push({
+      target,
+      experience,
+      returnTime,
+      inWindow: inWindow(returnTime, target),
+    });
   }
   return hits;
 }
@@ -157,7 +172,7 @@ interface StoredTarget {
 }
 
 /** `ParkTime.from` throws on garbage; treat an unparseable bound as absent. */
-function parseBound(value?: string): ParkTime | undefined {
+export function parseBound(value?: string): ParkTime | undefined {
   if (!value) return undefined;
   try {
     return ParkTime.from(value);

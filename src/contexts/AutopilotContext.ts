@@ -49,6 +49,18 @@ export interface AutopilotState {
   togglePaused: (experienceId: string) => void;
   /** When full, give up the worst held reservation for this attraction. */
   toggleAutoSwap: (experienceId: string) => void;
+  /**
+   * Set or clear one end of an attraction's acceptable return-time window.
+   *
+   * Takes the raw `<input type="time">` value; an empty or unparseable one
+   * clears that bound. The window gates booking, moving and swapping, and
+   * deliberately not alerting.
+   */
+  setTargetWindow: (
+    experienceId: string,
+    bound: 'after' | 'before',
+    value: string
+  ) => void;
   notifications: AlertPermission;
   /** The most recent alert, for showing what was found without a toast. */
   lastHit?: AutopilotHit;
@@ -62,6 +74,9 @@ export interface AutopilotState {
   /** Rehearse every guard but commit nothing. Persisted. */
   dryRun: boolean;
   setDryRun: (on: boolean) => void;
+  /** Refuse a time that lands on top of an existing plan. Persisted. */
+  avoidOverlaps: boolean;
+  setAvoidOverlaps: (on: boolean) => void;
   /**
    * How often each reason stopped an action this session. Skips are the
    * ordinary outcome and are kept out of the log, so this is where "why did
@@ -89,6 +104,7 @@ export default createContext<AutopilotState>({
   toggleBookThenMove: () => undefined,
   togglePaused: () => undefined,
   toggleAutoSwap: () => undefined,
+  setTargetWindow: () => undefined,
   notifications: 'unsupported',
   bookingLog: [],
   bookedCount: 0,
@@ -97,6 +113,8 @@ export default createContext<AutopilotState>({
   setRequireWholeParty: () => undefined,
   dryRun: false,
   setDryRun: () => undefined,
+  avoidOverlaps: true,
+  setAvoidOverlaps: () => undefined,
   skipCounts: {},
   dropSummaries: [],
 });

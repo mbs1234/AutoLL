@@ -161,6 +161,34 @@ describe('AutoBookLedger doubt-holds', () => {
     expect(ledger.hasAttempted(BZ)).toBe(true);
   });
 
+  // A pass that has been redeemed -- or has simply expired unredeemed, which
+  // Disney counts the same way -- leaves plans looking exactly like a
+  // cancelled one. Releasing the lock there would spend the session allowance
+  // rebooking something Disney will not sell again.
+  it('keeps the lock when the entitlement was spent rather than cancelled', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    seeHeld(ledger);
+    for (let i = 0; i < CONFIRM_ABSENT_POLLS + 2; ++i) {
+      ledger.resolveBook(BZ, false, true);
+    }
+    expect(ledger.hasAttempted(BZ)).toBe(true);
+  });
+
+  // Absences seen while the pass was still live must not carry over: the
+  // release needs CONFIRM_ABSENT_POLLS *consecutive* ones.
+  it('forgets earlier absences once an entitlement is spent', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ);
+    ledger.markBooked(BZ);
+    seeHeld(ledger);
+    ledger.resolveBook(BZ, false);
+    ledger.resolveBook(BZ, false, true);
+    ledger.resolveBook(BZ, false);
+    expect(ledger.hasAttempted(BZ)).toBe(true);
+  });
+
   // The reason any of this exists: cancel a late return time by hand and the
   // better one that drops later must still be bookable.
   it('releases the lock after an observed booking is cancelled', () => {

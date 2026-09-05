@@ -13,6 +13,7 @@ import {
   ActionKind,
   AutoBookLedger,
   AutoBookOutcome,
+  ClashCheck,
   attemptAutoBook,
   shouldAttempt,
 } from '@/autopilot/autobook';
@@ -43,6 +44,7 @@ import {
   snapshotOf,
   summarizeDrops,
 } from '@/autopilot/observe';
+import { overlappingPlans } from '@/autopilot/overlap';
 import { wholePartyEligible } from '@/autopilot/party';
 import { GuestCache, prewarmGuests } from '@/autopilot/prewarm';
 import { orderByPriority, shouldHoldTierSlot } from '@/autopilot/priority';
@@ -59,6 +61,7 @@ import {
   WatchTarget,
   loadWatchList,
   matchWatchList,
+  parseBound,
   saveWatchList,
   selectNewAlerts,
 } from '@/autopilot/watchlist';
@@ -293,6 +296,29 @@ export default function AutopilotProvider({
     const allHeldToday = heldMPToday(plansRef.current, date);
     const partyIsFull = allHeldToday.length >= MAX_HELD_MP;
 
+    /**
+     * Whether a return time lands on top of something already planned.
+     *
+     * Called twice per action: once on the advertised time before an offer is
+     * requested, which is what keeps a doomed round trip out of a drop and
+     * makes the guard rehearsable in dry run, and once on the offer's real
+     * time, which is usually later and is the one actually booked. The
+     * offer's own itinerary is unioned in rather than trusted alone, since a
+     * booking made a minute ago may be in plans and not yet in the offer.
+     */
+    const clashes: ClashCheck = (time, itinerary, release) => {
+      if (!settingsRef.current.avoidOverlaps) return false;
+      const inPlans = overlappingPlans(time, plansRef.current, {
+        date,
+        ...(release ? { ignoreIds: [release.id] } : {}),
+      });
+      if (inPlans.length > 0) return true;
+      return !!itinerary?.some(
+        item =>
+          item.facilityId !== release?.facilityId && item.overlap.contains(time)
+      );
+    };
+
     // Settle any booking whose fate was unknown. Disney allows booking,
     // cancelling and rebooking the same attraction, so a permanent attempt
     // lock would forfeit a better time that appears after a manual cancel.
@@ -300,7 +326,13 @@ export default function AutopilotProvider({
     if (freshPlans) {
       const settled = freshPlans;
       for (const id of ledgerRef.current.attemptedBookIds) {
-        ledgerRef.current.resolveBook(id, !!findExistingLL(settled, id, date));
+        ledgerRef.current.resolveBook(
+          id,
+          !!findExistingLL(settled, id, date),
+          // A redeemed or lapsed pass leaves plans looking exactly like a
+          // cancelled one, and only the tracker can tell the two apart.
+          ll.experienced({ id })
+        );
       }
       // Settling can charge the allowance for a booking whose request never
       // returned, so the on-screen count has to follow the ledger rather than
@@ -402,6 +434,24 @@ export default function AutopilotProvider({
       if (kind === 'modify' && !wantsModify) continue;
       if (kind === 'book' && !wantsBook) continue;
 
+      // The window gates acting, not alerting: `matchWatchList` reports every
+      // available match and flags it, so an out-of-window time is still worth
+      // a notification. Modifying re-checks the window itself, against the
+      // real target rather than the one book-then-move strips.
+      if (kind !== 'modify' && !hit.inWindow) {
+        bumpSkip('outside-window');
+        continue;
+      }
+
+      // Not for a swap: which reservation would be released is decided inside
+      // `attemptAutoSwap`, so the pre-offer check cannot exclude it and would
+      // refuse every swap into the slot the victim occupies. The post-offer
+      // check knows the victim and does the work.
+      if (kind !== 'swap' && clashes(hit.returnTime, undefined, existing)) {
+        bumpSkip('overlaps-plans');
+        continue;
+      }
+
       let outcome: AutoBookOutcome | ModifyOutcome | SwapOutcome;
       try {
         const guests = await guestsFor(experience.id);
@@ -470,6 +520,7 @@ export default function AutopilotProvider({
             book: offer => ll.book(offer),
             guests,
             ledger: ledgerRef.current,
+            clashes,
           });
         } else if (existing) {
           outcome = await attemptAutoModify(
@@ -483,6 +534,7 @@ export default function AutopilotProvider({
               book: offer => ll.book(offer),
               guests,
               ledger: ledgerRef.current,
+              clashes,
             }
           );
         } else {
@@ -493,6 +545,7 @@ export default function AutopilotProvider({
             book: offer => ll.book(offer),
             guests,
             ledger: ledgerRef.current,
+            clashes,
           });
         }
       } catch (error) {
@@ -682,6 +735,29 @@ export default function AutopilotProvider({
     []
   );
 
+  /**
+   * Set or clear one end of a target's return-time window.
+   *
+   * Kept separate from `toggleFlag`: the bounds are values rather than flags,
+   * and an empty or unparseable input has to *remove* the bound rather than
+   * store a falsy one, since `inWindow` treats an absent bound as unbounded.
+   */
+  const setTargetWindow = useCallback(
+    (experienceId: string, bound: 'after' | 'before', value: string) => {
+      const time = parseBound(value);
+      setTargets(prev =>
+        prev.map(t => {
+          if (t.experienceId !== experienceId) return t;
+          const next = { ...t };
+          if (time) next[bound] = time;
+          else delete next[bound];
+          return next;
+        })
+      );
+    },
+    []
+  );
+
   const toggleAutoModify = useCallback((experienceId: string) => {
     setTargets(prev =>
       prev.map(t =>
@@ -707,6 +783,7 @@ export default function AutopilotProvider({
         toggleBookThenMove: id => toggleFlag(id, 'bookThenMove'),
         togglePaused: id => toggleFlag(id, 'paused'),
         toggleAutoSwap: id => toggleFlag(id, 'autoSwap'),
+        setTargetWindow,
         notifications,
         lastHit,
         bookingLog,
@@ -720,6 +797,9 @@ export default function AutopilotProvider({
           setSettings(prev => ({ ...prev, requireWholeParty: on })),
         dryRun: settings.dryRun,
         setDryRun: on => setSettings(prev => ({ ...prev, dryRun: on })),
+        avoidOverlaps: settings.avoidOverlaps,
+        setAvoidOverlaps: on =>
+          setSettings(prev => ({ ...prev, avoidOverlaps: on })),
         skipCounts,
         dropSummaries,
       }}

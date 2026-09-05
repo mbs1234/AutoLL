@@ -15,7 +15,11 @@ import {
   loadDropEvents,
 } from '@/autopilot/observe';
 import { BURST_INTERVAL_MS, IDLE_INTERVAL_MS } from '@/autopilot/schedule';
-import { loadBookingLog, saveSettings } from '@/autopilot/storage';
+import {
+  DEFAULT_SETTINGS,
+  loadBookingLog,
+  saveSettings,
+} from '@/autopilot/storage';
 import { saveWatchList } from '@/autopilot/watchlist';
 import AutopilotContext from '@/contexts/AutopilotContext';
 import BookingDateContext from '@/contexts/BookingDateContext';
@@ -165,8 +169,20 @@ function heldBZAt(hour: number, date = TODAY): Booking {
     name: 'Held',
     start: new DateTime(date, new ParkTime(hour)),
     end: new DateTime(date, new ParkTime(hour + 1)),
+    cancellable: true,
     modifiable: true,
-    guests: [],
+    guests: [{ id: 'g1', name: 'A' }],
+  } as unknown as Booking;
+}
+
+function diningAt(hour: number): Booking {
+  return {
+    type: 'RES',
+    subtype: 'DINING',
+    id: 'res-1',
+    facilityId: 'rest-1',
+    name: 'Dinner',
+    start: new DateTime(TODAY, new ParkTime(hour)),
   } as unknown as Booking;
 }
 
@@ -216,7 +232,13 @@ function setupBooking({
         // merely omits properties from Clients, it conflicts with them.
         value={
           {
-            ll: { nextBookTime, guests, offer, book },
+            ll: {
+              nextBookTime,
+              guests,
+              offer,
+              book,
+              experienced: () => false,
+            },
           } as unknown as Clients
         }
       >
@@ -306,14 +328,23 @@ describe('AutopilotProvider', () => {
     expect(fireAlert).toHaveBeenCalledTimes(1);
   });
 
-  it('respects a watch window', async () => {
-    saveWatchList([{ experienceId: BZ, after: new ParkTime(15) }]);
-    setup([available(BZ, new ParkTime(11, 5))]);
+  // The window governs what autopilot will take, not what it tells you about.
+  // Silencing the alert too would hide the one fact worth knowing -- that the
+  // ride came back at all -- and leave a screen that says nothing happened.
+  it('alerts outside the window but will not book there', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true, after: new ParkTime(15) },
+    ]);
+    const { offer, book } = setupBooking({
+      experiences: [available(BZ, new ParkTime(11, 5))],
+    });
     await enable();
     await act(async () => {
       await jest.advanceTimersByTimeAsync(60_000);
     });
-    expect(fireAlert).not.toHaveBeenCalled();
+    expect(fireAlert).toHaveBeenCalled();
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
   });
 
   // Plans cost a request and change rarely, so they refresh on a slower
@@ -340,7 +371,13 @@ describe('AutopilotProvider', () => {
       <BookingDateContext
         value={{ bookingDate: TODAY, setBookingDate: () => {} }}
       >
-        <ClientsContext value={{ ll: { nextBookTime: undefined } } as Clients}>
+        <ClientsContext
+          value={
+            {
+              ll: { nextBookTime: undefined, experienced: () => false },
+            } as unknown as Clients
+          }
+        >
           <ParkContext value={{ park: mk, setPark: () => {} }}>
             <ExperiencesContext
               value={{
@@ -417,6 +454,45 @@ describe('AutopilotProvider auto-booking', () => {
       await jest.advanceTimersByTimeAsync(5000);
     });
     expect(book).not.toHaveBeenCalled();
+  });
+
+  // December means dining packages, and the manual booking screen only warns
+  // about a clash. Autopilot has nobody to warn, so it declines -- and it does
+  // so before the offer, which keeps a doomed round trip out of a drop.
+  it('will not book on top of an existing reservation', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { offer, book } = setupBooking({ plans: [diningAt(11)] });
+    await enable();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(60_000);
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // The advertised time can clear the clash while the offer that comes back
+  // does not, so the real time is checked again before anything is committed.
+  it('declines an offer that comes back on top of a reservation', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { offer, book } = setupBooking({
+      experiences: [available(BZ, new ParkTime(9))],
+      offerHour: 11,
+      plans: [diningAt(11)],
+    });
+    await enable();
+    await waitFor(() => expect(offer).toHaveBeenCalled());
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(5000);
+    });
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  it('books over a reservation when clash avoidance is off', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    saveSettings({ ...DEFAULT_SETTINGS, avoidOverlaps: false });
+    const { book } = setupBooking({ plans: [diningAt(11)] });
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
   });
 
   it('books at most once per attraction', async () => {
@@ -856,8 +932,9 @@ describe('AutopilotProvider swap', () => {
       experience: { id, name: `Ride ${id}`, priority, tier },
       start: new DateTime(TODAY, new ParkTime(15)),
       end: new DateTime(TODAY, new ParkTime(16)),
+      cancellable: true,
       modifiable: true,
-      guests: [],
+      guests: [{ id: 'g1', name: 'A' }],
     } as unknown as Booking;
   }
   const fullOfWorse = () => [
@@ -952,7 +1029,11 @@ describe('AutopilotProvider whole-party guard', () => {
   // A Lightning Lane for part of the group splits the party and spends the
   // slot; when asked to, autopilot refuses rather than booking a subset.
   it('refuses to book when a party member is ineligible and the guard is on', async () => {
-    saveSettings({ requireWholeParty: true, dryRun: false });
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: true,
+      dryRun: false,
+    });
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     const { book, offer } = setupBooking({ guestsResult: partyMemberLeftOut });
     await enable();
@@ -965,7 +1046,11 @@ describe('AutopilotProvider whole-party guard', () => {
 
   // Guests outside the saved party are not "the party".
   it('still books when only outsiders are ineligible', async () => {
-    saveSettings({ requireWholeParty: true, dryRun: false });
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: true,
+      dryRun: false,
+    });
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     const { book } = setupBooking({ guestsResult: onlyOutsiders });
     await enable();
@@ -1195,7 +1280,11 @@ describe('AutopilotProvider learned timing', () => {
 
 describe('AutopilotProvider dry run', () => {
   it('runs the guards and logs, but never offers or books', async () => {
-    saveSettings({ requireWholeParty: false, dryRun: true });
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: false,
+      dryRun: true,
+    });
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     const { offer, book, guests } = setupBooking();
     await enable();
@@ -1217,7 +1306,11 @@ describe('AutopilotProvider dry run', () => {
 
   // Once per attraction per action, not once per tick.
   it('logs a rehearsed action only once', async () => {
-    saveSettings({ requireWholeParty: false, dryRun: true });
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: false,
+      dryRun: true,
+    });
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     setupBooking();
     await enable();
@@ -1238,7 +1331,11 @@ describe('AutopilotProvider dry run', () => {
   // A rehearsal that logged "would have moved" for a 15-minute gain, when the
   // live run refuses anything under 30, would teach the user the wrong thing.
   it('applies the improvement threshold while rehearsing a move', async () => {
-    saveSettings({ requireWholeParty: false, dryRun: true });
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: false,
+      dryRun: true,
+    });
     saveWatchList([{ experienceId: BZ, autoModify: true }]);
     setupBooking({
       // Holding 11:00, offered 10:45 -- only 15 minutes better.
@@ -1265,7 +1362,11 @@ describe('AutopilotProvider dry run', () => {
   });
 
   it('does rehearse a move that clears the threshold', async () => {
-    saveSettings({ requireWholeParty: false, dryRun: true });
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: false,
+      dryRun: true,
+    });
     saveWatchList([{ experienceId: BZ, autoModify: true }]);
     setupBooking({
       experiences: [available(BZ, new ParkTime(11))],
@@ -1294,7 +1395,11 @@ describe('AutopilotProvider dry run', () => {
 
   // The whole point: the guards still gate what gets logged.
   it('still honors the whole-party guard while rehearsing', async () => {
-    saveSettings({ requireWholeParty: true, dryRun: true });
+    saveSettings({
+      ...DEFAULT_SETTINGS,
+      requireWholeParty: true,
+      dryRun: true,
+    });
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     setupBooking({
       guestsResult: {

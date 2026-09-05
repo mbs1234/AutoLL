@@ -109,11 +109,19 @@ describe('matchWatchList()', () => {
     expect(matchWatchList([exp], [target(BZ)])).toEqual([]);
   });
 
-  it('respects the time window', () => {
+  it('flags the time window rather than filtering on it', () => {
+    // Reporting an out-of-window match, flagged, is what lets the window gate
+    // booking while alerts stay wide: a window that silenced alerts would hide
+    // the one thing worth knowing.
     const exps = [available(BZ, at(9, 30))];
-    expect(matchWatchList(exps, [target(BZ, { after: at(12) })])).toEqual([]);
-    expect(matchWatchList(exps, [target(BZ, { after: at(9) })])).toHaveLength(
-      1
+    expect(matchWatchList(exps, [target(BZ, { after: at(12) })])).toMatchObject(
+      [{ inWindow: false }]
+    );
+    expect(matchWatchList(exps, [target(BZ, { after: at(9) })])).toMatchObject([
+      { inWindow: true },
+    ]);
+    expect(matchWatchList(exps, [target(BZ, { before: at(9) })])).toMatchObject(
+      [{ inWindow: false }]
     );
   });
 

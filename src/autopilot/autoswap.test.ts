@@ -22,7 +22,14 @@ const party = (eligible: Guest[] = [guest('a')]) =>
 function held(
   id: string,
   priority: number | undefined,
-  rest: { tier?: number; modifiable?: boolean; time?: ParkTime } = {}
+  rest: {
+    tier?: number;
+    modifiable?: boolean;
+    time?: ParkTime;
+    cancellable?: boolean;
+    guests?: Guest[];
+    choices?: { id: string }[];
+  } = {}
 ): LLMP {
   const time = rest.time ?? at(15);
   return {
@@ -35,7 +42,11 @@ function held(
     start: new DateTime(DATE, time),
     end: new DateTime(DATE, time.add({ hours: 1 })),
     modifiable: rest.modifiable ?? true,
-    guests: [],
+    // A reservation only occupies a slot while it is cancellable and still has
+    // a guest with a redemption left, so the fixture has to carry both.
+    cancellable: rest.cancellable ?? true,
+    guests: rest.guests ?? [guest('a')],
+    ...(rest.choices ? { choices: rest.choices } : {}),
   } as unknown as LLMP;
 }
 
@@ -75,6 +86,17 @@ describe('heldMPToday()', () => {
   it('returns Multi Pass reservations on the given day', () => {
     const plans = [held('a', 1), held('b', 2)] as Booking[];
     expect(heldMPToday(plans, DATE)).toHaveLength(2);
+  });
+
+  // After the first tap-in of the day the itinerary keeps the booking but
+  // drops its guests, and counting that would make autopilot believe the party
+  // is full -- so it would swap a reservation away rather than book into the
+  // slot that just came free.
+  it('excludes reservations that no longer occupy a slot', () => {
+    const redeemed = held('a', 1, { guests: [] });
+    const gone = held('b', 2, { cancellable: false });
+    const mep = held('c', 3, { choices: [{ id: 'x' }] });
+    expect(heldMPToday([redeemed, gone, mep] as Booking[], DATE)).toEqual([]);
   });
 
   it('excludes other days and non-Multi-Pass bookings', () => {
@@ -304,5 +326,36 @@ describe('attemptAutoSwap()', () => {
       status: 'skipped',
       reason: 'no-eligible-guests',
     });
+  });
+});
+
+describe('attemptAutoSwap() clash guard', () => {
+  const clashes = jest.fn(() => true);
+
+  beforeEach(() => clashes.mockClear());
+
+  it('abandons an offer that lands on an existing plan', async () => {
+    const outcome = await attemptAutoSwap(
+      target(),
+      incoming('new', 1.0),
+      full(),
+      deps({ clashes })
+    );
+    expect(outcome).toEqual({ status: 'skipped', reason: 'overlaps-plans' });
+  });
+
+  // The reservation being traded away is released by this very request, so
+  // the slot it occupies cannot conflict with what replaces it. Counting it
+  // would refuse every swap into a time near the victim's own.
+  it('excludes the reservation being given up from the check', async () => {
+    const seen: unknown[] = [];
+    await attemptAutoSwap(target(), incoming('new', 1.0), full(), {
+      ...deps(),
+      clashes: (_time, _itinerary, release) => {
+        seen.push(release);
+        return false;
+      },
+    });
+    expect(seen).toEqual([expect.objectContaining({ facilityId: 'a' })]);
   });
 });

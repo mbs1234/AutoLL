@@ -186,6 +186,19 @@ export function isLLMP(booking: Booking): booking is LLMP {
   return booking.type === 'LL' && booking.subtype === 'MP';
 }
 
+/**
+ * A Multiple Experiences Pass: the anytime, pick-one-of-several pass Disney
+ * issues when an attraction you hold goes down.
+ *
+ * Recognised by `choices`, which only the multipleExperiences branch of the
+ * itinerary parser sets. Worth telling apart from an ordinary reservation: it
+ * carries no return window to improve, and giving one up for a timed pass is
+ * a downgrade however the two rank.
+ */
+export function isMultipleExperiences(booking: Booking): boolean {
+  return !!booking.choices?.length;
+}
+
 export function isDAS(booking: Booking): booking is DasBooking {
   return booking.type === 'DAS' && booking.subtype === 'IN_PARK';
 }
