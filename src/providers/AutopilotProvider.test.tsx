@@ -719,7 +719,7 @@ describe('AutopilotProvider auto-booking', () => {
           tier: 1,
           priority: 1.0,
           flex: { available: false },
-          dropTimes: [new ParkTime(23, 59)],
+          dropTimes: [new ParkTime(10)],
         } as FlexExperience,
       ],
     });
@@ -728,6 +728,32 @@ describe('AutopilotProvider auto-booking', () => {
       await jest.advanceTimersByTimeAsync(60_000);
     });
     expect(offer).not.toHaveBeenCalled();
+  });
+
+  // The horizon the hold is bounded by. Tiana's drop list runs to 21:47, so
+  // "any drop still ahead today" meant an armed Space Mountain was declined
+  // from park open until the first tap-in -- a whole morning holding the
+  // Tier 1 slot for a drop eight hours away.
+  it('does not hold the Tier 1 slot for a drop hours away', async () => {
+    saveWatchList([
+      { experienceId: BZ, autoBook: true },
+      { experienceId: DB, autoBook: true },
+    ]);
+    const { offer, offeredIds } = setupBooking({
+      experiences: [
+        available(BZ, new ParkTime(11), { tier: 1, priority: 2.3 }),
+        {
+          ...available(DB, new ParkTime(11)),
+          tier: 1,
+          priority: 1.0,
+          flex: { available: false },
+          dropTimes: [new ParkTime(21, 47)],
+        } as FlexExperience,
+      ],
+    });
+    await enable();
+    await waitFor(() => expect(offer).toHaveBeenCalled());
+    expect(offeredIds[0]).toBe(BZ);
   });
 
   // Wait Magic's FAQ: after the party's first redemption of the day the
@@ -745,7 +771,7 @@ describe('AutopilotProvider auto-booking', () => {
           tier: 1,
           priority: 1.0,
           flex: { available: false },
-          dropTimes: [new ParkTime(23, 59)],
+          dropTimes: [new ParkTime(10)],
         } as FlexExperience,
         // A redeemed attraction: LLTracker marks it experienced.
         // Spread from a real fixture (unknown ids throw InvalidId), then
@@ -982,7 +1008,7 @@ describe('AutopilotProvider pause', () => {
           tier: 1,
           priority: 1.0,
           flex: { available: false },
-          dropTimes: [new ParkTime(23, 59)],
+          dropTimes: [new ParkTime(10)],
         } as FlexExperience,
       ],
     });

@@ -7,7 +7,7 @@ themeparks.wiki's live facility data, and a line-by-line read of this codebase
 at `d8dd6c5`.
 
 Seventy candidate findings came out of five parallel research passes. Each was
-then handed to an independent agent told to *refute* it. **Nineteen were
+then handed to an independent agent told to _refute_ it. **Nineteen were
 refuted and are recorded in §9 so they are not rediscovered later.** What
 follows is what survived, plus what I verified directly against the tree and
 against Disney's live data.
@@ -37,7 +37,7 @@ P1.5–P1.8, with three of the four items corrected by the code:
   midnight sorted ahead of a late Magic Kingdom night.
 - **P1.6**'s diagnosis was wrong on both halves. Nothing was ever pinned --
   `staleAfter` layers on top of the 3-minute TTL rather than replacing it -- and
-  its *absence* means fewer refetches, not more. What is real is that the cache
+  its _absence_ means fewer refetches, not more. What is real is that the cache
   was cleared only for actions autopilot took itself, so a tap-in, an expiry, a
   hand cancellation, or a booking made in Disney's own app all moved eligibility
   and cleared nothing. It now clears whenever what the party holds changes,
@@ -55,6 +55,28 @@ P1.5–P1.8, with three of the four items corrected by the code:
 Two fixes fell out that no item asked for: the acting loop was reading the
 previous render's plans on the tick that polled them, and `heldMPToday` now also
 excludes an MEP (a boundary guard rather than a live fix).
+
+**Also landed since, beyond the plan:** P2.5's `hasUpcomingDrop` half — the
+Tier 1 hold is now bounded to a 90-minute horizon rather than "any drop still
+ahead today", which was holding Magic Kingdom's Tier 1 slot from park open
+until the first tap-in because Tiana's drop list runs to 21:47. The party-night
+date table (P2.5's other half) is deliberately **not** built: the horizon bounds
+that case to ninety minutes, and a wrong date would silently suppress real drops
+on a normal day, which is the worse failure.
+
+§3.2's Jingle Cruise renumbering was also restored. It had been reverted by the
+wholesale adoption of upstream's priority/avgWait values in `a474377`, which
+re-tied it with Big Thunder at priority 1 — handing Magic Kingdom's single Tier 1
+selection to a re-themed Jungle Cruise on the `avgWait` tiebreak, and disabling
+the hold between the only pair it matters for. `priority.test.ts` now asserts
+that ordering over the shipped data, which nothing did before.
+
+**Decided against:** a Tier 1 guard for the future-date booking path
+(§7 adjacent). `shouldHoldTierSlot` is gated `forToday`, so an overnight
+cancellation fill can spend a park day's Tier 1 selection on a lesser ride. The
+obvious guard deadlocks — the hold avoids deadlock only because the better
+attraction has a drop still ahead _today_, and a date a week out has no such
+clock. Left as is by decision, 2026-09-05.
 
 **Outstanding:** Phases 2–5 (§5–§8). Section numbers below are unchanged, so an
 item still described in the present tense there and not listed as landed above
@@ -77,11 +99,11 @@ alert, no auto-book, and nothing on screen saying why.
 Three attractions were re-themed or added in 2026 and Disney issued each a new
 facility ID. bg1 still carries only the retired one:
 
-| Attraction | bg1 has | Disney serves | Status |
-| --- | --- | --- | --- |
+| Attraction                                   | bg1 has    | Disney serves   | Status                           |
+| -------------------------------------------- | ---------- | --------------- | -------------------------------- |
 | Rock 'n' Roller Coaster Starring The Muppets | `80010182` | **`412573652`** | DHS **Tier 1**, #2 behind Slinky |
-| Soarin' Across America | `20194` | **`412577054`** | EPCOT's **#1 Tier 2** attraction |
-| Disney Jr. Mickey Mouse Clubhouse Live! | `19583373` | **`412521565`** | DHS Tier 2, ~8 shows daily |
+| Soarin' Across America                       | `20194`    | **`412577054`** | EPCOT's **#1 Tier 2** attraction |
+| Disney Jr. Mickey Mouse Clubhouse Live!      | `19583373` | **`412521565`** | DHS Tier 2, ~8 shows daily       |
 
 Verified 2026-09-05 against `api.themeparks.wiki/v1/entity/{park}/children`,
 which mirrors Disney's facility IDs (all of bg1's other DHS IDs match exactly).
@@ -91,7 +113,7 @@ This also explains why several verification agents refuted the "rename
 nothing at runtime. **The fix is to add the new IDs, not to edit the old ones.**
 
 The Clubhouse show matters more than its size suggests: an easy Tier 2 with
-eight daily showtimes and near-certain availability is the ideal *passkey* for
+eight daily showtimes and near-certain availability is the ideal _passkey_ for
 the tap-in-to-untier strategy in §5.
 
 **Action.** Add three entries to `src/api/data/wdw.ts` with the new IDs, correct
@@ -121,16 +143,16 @@ upper bound on the longest published window, not a bug.
 used a slot frees.
 
 **When the next slot opens — corrected.** My first draft of this plan said the
-slot frees when the arrival window *ends*. That is wrong, and the correction
-matters. Disney's own FAQ: *"After redeeming a Lightning Lane experience — or
+slot frees when the arrival window _ends_. That is wrong, and the correction
+matters. Disney's own FAQ: _"After redeeming a Lightning Lane experience — or
 after two hours have passed since making your selection — you can choose
-another."* So the gate is **120 minutes after you book, or on redemption,
+another."_ So the gate is **120 minutes after you book, or on redemption,
 whichever comes first** — it is not a function of the return time you hold.
 
 The practical consequence is the opposite of what the "cascade" idea in my
 draft assumed: booking at 9:05 with an 8pm return unlocks your next pick at
 11:05, exactly as a 10am return would. Stacking late returns while the
-120-minute clock runs is a *recommended* strategy, and it is precisely what
+120-minute clock runs is a _recommended_ strategy, and it is precisely what
 bg1's `bookThenMove` already implements.
 
 **bg1 does not need to model any of this.** `LLClient.nextBookTime` reads
@@ -193,19 +215,19 @@ and the badge.
 
 ### 3.2 Priority corrections that survived verification
 
-| Attraction | Now | To | Why |
-| --- | --- | --- | --- |
+| Attraction                                | Now               | To                                 | Why                                                                                                                                                                                                                                                                                               |
+| ----------------------------------------- | ----------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Big Thunder Mountain Railroad** (MK T1) | 2.3, no `avgWait` | **1.0** + `avgWait` from real data | Hardest MK Tier 1 since reopening: gone 8:47am (May) and 9:07am (Jul) vs Tiana's ~11am. At 2.3 it ranks below Haunted Mansion and Pirates, `chooseSwapVictim` refuses to swap it in, and — worse — `shouldHoldTierSlot` actively **skips an available Big Thunder to hold the slot for Tiana's**. |
-| Peter Pan's Flight | 1.1 | 1.2 | Renumber so Big Thunder at 1.0 does not tie Jingle Cruise (1.0), which it would *lose* on the `avgWait` tiebreak. |
-| **Buzz Lightyear** (MK T2) | 3.0, `avgWait` 22 | **1.2**, `avgWait` ~32 | #1 MK Tier 2 since its April 2026 reopening (DTB, mousehacking). Last touched 2025-11-12 while closed. Band 3 makes the badge unreachable, and `chooseSwapVictim` currently surrenders a held Buzz to book Haunted Mansion. |
-| Winnie the Pooh | 1.2 | 1.3 or leave | Published order is Buzz > Pooh > Haunted Mansion > Pirates. 1.3 ties Jungle Cruise — harmless (avgWait breaks it) but 1.4 is cleaner. |
-| **Kilimanjaro Safaris** (AK) | 3.1 | **3.0** | Three 2026 sources rank Safaris above Everest. They **collide at the 12:47 drop**, which is exactly the same-tick case `orderByPriority` decides — today bg1 attempts the worse ride first. |
-| **Expedition Everest** (AK) | 3.0 | **3.1** | Swap in place. **Do not promote to 2.x** — that changes the truncated band, newly badges both and doubles their tolerated LL wait. |
-| Little Mermaid (DHS) | 2.3, no `avgWait` | 4.0 | Large-capacity show ranked above Alien Swirling Saucers (3.0, 28 min). Both sources rank Alien higher. Upstream already demoted it once; not far enough. |
-| Zootopia (AK) | none | ~3.2 | Real Multi Pass option sorting last. Rank below Everest, above Kali for a cold-weather trip. |
-| **New RnRC Muppets** | — | 1.1, `avgWait` ~59 | Thrill Data: sells out 3:18pm / 59 min vs Runaway Railway 6:10pm / 47 min. |
-| **New Soarin' Across America** | — | 1.3 | #1 Tier 2 in all of WDW. Must outrank Mission: SPACE (2.0 → 2.1). |
-| **New Disney Jr. Clubhouse** | — | unranked | Sorts last; its value is as a passkey, not a rank. |
+| Peter Pan's Flight                        | 1.1               | 1.2                                | Renumber so Big Thunder at 1.0 does not tie Jingle Cruise (1.0), which it would _lose_ on the `avgWait` tiebreak.                                                                                                                                                                                 |
+| **Buzz Lightyear** (MK T2)                | 3.0, `avgWait` 22 | **1.2**, `avgWait` ~32             | #1 MK Tier 2 since its April 2026 reopening (DTB, mousehacking). Last touched 2025-11-12 while closed. Band 3 makes the badge unreachable, and `chooseSwapVictim` currently surrenders a held Buzz to book Haunted Mansion.                                                                       |
+| Winnie the Pooh                           | 1.2               | 1.3 or leave                       | Published order is Buzz > Pooh > Haunted Mansion > Pirates. 1.3 ties Jungle Cruise — harmless (avgWait breaks it) but 1.4 is cleaner.                                                                                                                                                             |
+| **Kilimanjaro Safaris** (AK)              | 3.1               | **3.0**                            | Three 2026 sources rank Safaris above Everest. They **collide at the 12:47 drop**, which is exactly the same-tick case `orderByPriority` decides — today bg1 attempts the worse ride first.                                                                                                       |
+| **Expedition Everest** (AK)               | 3.0               | **3.1**                            | Swap in place. **Do not promote to 2.x** — that changes the truncated band, newly badges both and doubles their tolerated LL wait.                                                                                                                                                                |
+| Little Mermaid (DHS)                      | 2.3, no `avgWait` | 4.0                                | Large-capacity show ranked above Alien Swirling Saucers (3.0, 28 min). Both sources rank Alien higher. Upstream already demoted it once; not far enough.                                                                                                                                          |
+| Zootopia (AK)                             | none              | ~3.2                               | Real Multi Pass option sorting last. Rank below Everest, above Kali for a cold-weather trip.                                                                                                                                                                                                      |
+| **New RnRC Muppets**                      | —                 | 1.1, `avgWait` ~59                 | Thrill Data: sells out 3:18pm / 59 min vs Runaway Railway 6:10pm / 47 min.                                                                                                                                                                                                                        |
+| **New Soarin' Across America**            | —                 | 1.3                                | #1 Tier 2 in all of WDW. Must outrank Mission: SPACE (2.0 → 2.1).                                                                                                                                                                                                                                 |
+| **New Disney Jr. Clubhouse**              | —                 | unranked                           | Sorts last; its value is as a passkey, not a rank.                                                                                                                                                                                                                                                |
 
 ### 3.3 Land corrections — a real bug
 
@@ -256,13 +278,13 @@ do something the UI cannot do.
 
 Add `setTargetWindow` to the context, implement beside `toggleFlag`, render two
 `<input type="time">` per watched row. `parseBound` is module-private and needs
-exporting. Apply the window to *actions* but keep alerts wider, or an
+exporting. Apply the window to _actions_ but keep alerts wider, or an
 out-of-window offer goes silently unmentioned.
 
-*Correction to an earlier claim:* `bookThenMove` is **not** a no-op without
+_Correction to an earlier claim:_ `bookThenMove` is **not** a no-op without
 this. It implies both booking and moving, so with empty windows it equals
 autoBook + autoModify. What is inert is its distinguishing relax-then-retighten
-mechanism. *Effort: small. Unblocks P4.1, P5.2.*
+mechanism. _Effort: small. Unblocks P4.1, P5.2._
 
 **P1.2 · Slot accounting.** `heldMPToday` filters only `isLLMP && same park
 day`. `itinerary.ts` drops guests with `redemptionsRemaining === 0` but keeps
@@ -274,7 +296,7 @@ already uses `cancellable` as its slot signal, so the two paths disagree about
 what "held" means.
 
 Count only bookings that occupy a slot: `isLLMP` + same day + `cancellable` +
-`guests.length > 0` + not an MEP. *Verified by direct code read. Effort: small.*
+`guests.length > 0` + not an MEP. _Verified by direct code read. Effort: small._
 
 **P1.3 · Overlap check on the autopilot path.** Every offer carries `itinerary`
 with an `Overlap`; `OverlappingPlans.tsx` uses it to warn before a manual
@@ -289,33 +311,33 @@ other; (c) a hard skip is stricter than the warning it models, so
 `allowOverlap` is required, not optional. The strongest case is `bookThenMove`,
 which strips the window entirely, and the fact that `after`/`before` is one
 contiguous interval — two dining reservations in a day cannot be excluded by
-hand at all. *Effort: small.*
+hand at all. _Effort: small._
 
 **P1.4 · Expiry counts as ridden.** `resolveBook` releases a booking lock after
 two consecutive absences from plans, treating absence as "cancelled, therefore
 rebookable." An **expired** pass also leaves plans, and Disney will refuse to
 rebook it. Gate the release on `LLTracker`'s `experienced` flag being false too.
-*Effort: small.*
+_Effort: small._
 
 **P1.5 · Use every `flexEligibilityWindows` entry.** `ll.ts` sorts and keeps
 `[0]`. The field is plural because a party can have several slots freeing at
 different times; each discarded entry is a moment Disney has told you inventory
 opens. Change to `nextBookTimes: ParkTime[]` (keep a `nextBookTime` getter) and
 pass the array into `cadence()` — the target loop already handles a list. The
-array length is also a live count of imminent free slots. *Effort: small.*
+array length is also a live count of imminent free slots. _Effort: small._
 
 **P1.6 · Two kinds of ineligibility in the prewarm cache.** `staleAfter:
 earliestEligibleAfter(guests)` is right only for `TOO_EARLY`-style reasons. A
 guest blocked by `REDEMPTION_NEEDED` / `TIER_LIMIT_REACHED` /
 `TOO_EARLY_FOR_NEXT_PARK` has no expiry and today gets `staleAfter: undefined`,
 which either pins a stale entry or forces refetches. Invalidate those on an
-observed tap-in. *Effort: small.*
+observed tap-in. _Effort: small._
 
 **P1.7 · Multiple Experiences Pass handling.** bg1 parses the shape but treats
 an MEP as an ordinary held pass. Exclude from `heldMPToday` and from
 `chooseSwapVictim` (giving up an anytime pass for a timed one is a downgrade);
 when one appears, clear the prewarm cache and force a burst poll — the
-ineligibility timer just vanished. *Effort: small.*
+ineligibility timer just vanished. _Effort: small._
 
 **P1.8 · A budget that survives a day.** The three-action cap is shared across
 all three action kinds and hard-coded (`new AutoBookLedger()` with no argument;
@@ -324,14 +346,14 @@ no settings field). It does **not** cap the day at three — re-arming refills i
 also clears the guest cache and the drop-detection baseline, so the first poll
 after every re-arm provably cannot detect a drop.
 
-Worse, discoverability is nil: the `break` on `remaining <= 0` sits *ahead* of
+Worse, discoverability is nil: the `break` on `remaining <= 0` sits _ahead_ of
 every call site that returns the `session-cap` skip reason, so that label is
 dead code and "Why nothing was booked" never mentions the budget. And
 `bookingsRemaining` renders only under `anyAutoBook`, so a user running only
 book-then-move or swap sees no count at all.
 
 Make it a per-day allowance in settings, add a ledger-only refill action, and
-add a `budget-exhausted` state to `StatusRow`. *Effort: small.*
+add a `budget-exhausted` state to `StatusRow`. _Effort: small._
 
 ---
 
@@ -342,7 +364,7 @@ against a drop landing anywhere from :45 to :49 — bg1 is in 6-second approach
 mode for the first half of the band. Raise to ~120 for drop targets; keep
 `nextBookTime` targets tight since those are exact. `CLUSTER_TOLERANCE_MIN = 2`
 in `observe.ts` already encodes the right band, so the constants are
-inconsistent today. *Effort: small.*
+inconsistent today. _Effort: small._
 
 **P2.2 · Refill windows as a target kind.** `cadence()` models only
 instantaneous targets, so bg1 idles at 45s from park open until its first
@@ -352,19 +374,19 @@ park-open+90min for Test Track, Slinky, Tower, Toy Story Mania and Na'vi, and
 midday windows for Peter Pan's, Jungle/Jingle Cruise and Runaway Railway — four
 of bg1's highest-ranked targets, all currently treated as never dropping. Do
 not paste these as `dropTimes`; a 3.5-hour window is not a burst target.
-*Effort: medium. Highest-value structural gap found.*
+_Effort: medium. Highest-value structural gap found._
 
 **P2.3 · Demote drops that stop firing.** `mergeDropTimes` only ever appends;
 there is no negative evidence. Thrill Data publishes only times that fired on
-25%+ of the last 30 days, and currently shows *zero* reliable pop-ups for five
+25%+ of the last 30 days, and currently shows _zero_ reliable pop-ups for five
 of bg1's nine attractions. Add demotion using the `ScheduledDropCheck` plumbing
 that already exists in `observe.ts`. This is what makes the crowd-level and
-party-night problems self-correcting without a crowd feed. *Effort: medium.*
+party-night problems self-correcting without a crowd feed. _Effort: medium._
 
 **P2.4 · Day-before cadence.** README says drops are "a day-of phenomenon" so
 future dates poll at idle. Thrill Data shows Slinky with 34 distinct
 earlier-return release times at 1 day out, Soarin' with 57. Use approach cadence
-during daytime when the watched date is tomorrow. *Effort: small.*
+during daytime when the watched date is tomorrow. _Effort: small._
 
 **P2.5 · Party nights.** Mickey's Very Merry Christmas Party: Dec 1, 3, 4, 6, 8,
 10, 11, 13, 15, 17, 18, 20, 22 (MK closes to day guests at 6pm). Jollywood
@@ -375,32 +397,32 @@ advertise 5:47/7:47/9:47pm drops that cannot occur.
 The real defect here is in `hasUpcomingDrop`, a bare `+time >= +now` over the
 static list: at 4pm on a party day Tiana's still "has an upcoming drop" at
 17:47/19:47/21:47, and since Tiana's is the only MK Tier 1 with drop times, the
-hold it triggers **never releases for the rest of the day**. *Note: the related
+hold it triggers **never releases for the rest of the day**. _Note: the related
 proposal to reject post-close offers was refuted — Disney does not sell LL
 return times past close, so that guard is a no-op. The `hasUpcomingDrop` half
-stands and is unverified; confirm in park.* *Effort: small.*
+stands and is unverified; confirm in park._ _Effort: small._
 
 **P2.6 · Crowd-gated drops.** All five AK drop times carry a CL 4+/7+
 qualifier. For December this is good news — AK will be CL 7–10 and they all
 fire. Carry the qualifier in the data and gate on a "busy day" toggle so an
-off-season user is not burst-polling five dead times. *Effort: small.*
+off-season user is not burst-polling five dead times. _Effort: small._
 
 **P2.7 · Pop-up vs earlier-time.** Thrill Data separates "a sold-out LL coming
 back" from "one that jumps ≥1 hour earlier"; they have different schedules per
-attraction, and Flight of Passage and Kali show *only* earlier-time events.
+attraction, and Flight of Passage and Kali show _only_ earlier-time events.
 bg1's `dropTimes` is an undifferentiated union. Tag each entry so `automodify`
 can burst on earlier-time targets for attractions it already holds.
-*Effort: medium.*
+_Effort: medium._
 
 **P2.8 · Ride-down detection.** A ride going down and reopening produces a burst
 of near-term returns — a drop-class event no schedule predicts. The tipboard
 carries standby status beside `flex.nextAvailableTime` and `observe.ts` already
-snapshots per poll. Feed the **alert** path only. *Effort: small.*
+snapshots per poll. Feed the **alert** path only. _Effort: small._
 
 **P2.9 · Faster learning within a trip.** `LEARNED_MIN_DAYS = 2` needs two
 distinct park days; a 4–6 day trip barely gets there. Allow the second
 observation from the same day at a different hour when the minute-of-hour
-matches — that is the actual recurrence pattern. *Effort: small.*
+matches — that is the actual recurrence pattern. _Effort: small._
 
 ---
 
@@ -414,15 +436,15 @@ Add a `passkey` role that, before any redemption, books the earliest-returning
 eligible non-Tier-1 regardless of rank. Add a detector that, the moment the
 party's tap is observed, drops the Tier 1 hold, widens the watchlist to Tier 1
 and other parks, clears the prewarm cache and forces one burst poll. Banner:
-*"Tap in to Haunted Mansion before 10:15 to lift the Tier 1 limit."*
+_"Tap in to Haunted Mansion before 10:15 to lift the Tier 1 limit."_
 
 **Do not derive this from `plans[].guests[].redemptions`** — the itinerary
-filters out guests with `redemptionsRemaining === 0` *before* assigning that
+filters out guests with `redemptionsRemaining === 0` _before_ assigning that
 field, so it is structurally incapable of ever being 0. The authoritative
 signal is `TIER_LIMIT_REACHED` disappearing from the eligibility response bg1
 already fetches via `GuestCache`. Because the gate is per-guest, release only
 when every party member has tapped — reuse the whole-party guard's
-least-advanced-member logic. *Effort: medium.*
+least-advanced-member logic. _Effort: medium._
 
 **P3.2 · Surface the timing (not a cascade model).** My draft proposed a
 `cascade.ts` scoring offers by how much they delay the next booking. **That was
@@ -433,38 +455,38 @@ nextAvailableTime` on every offer and calls `changeOfferTime()` when the result
 comes back >10 minutes later, so "nothing prefers an earlier return time" is
 false; and `ll.times()` is switched off at WDW (`rules.timeSelect = false`).
 
-What survives is display: show `nextBookTime` as *"you can book your next
-Lightning Lane at 11:52 AM"* on Home and Autopilot. It is authoritative, bg1
+What survives is display: show `nextBookTime` as _"you can book your next
+Lightning Lane at 11:52 AM"_ on Home and Autopilot. It is authoritative, bg1
 already has it, and it turns the whole start-vs-end debate into a non-question.
-*Effort: small.*
+_Effort: small._
 
 **P3.3 · Expiry rescue.** Letting a pass expire unredeemed counts as riding it.
 When a held LL's window plus grace is about to lapse unredeemed, modify it to a
 low-demand always-available filler so the good attraction stays rebookable.
 Reuses `automodify.ts` wholesale — only the trigger and target differ. Nobody
-else offers this. *Effort: medium.*
+else offers this. _Effort: medium._
 
 **P3.4 · Park-hop codes handled distinctly.** `TOO_EARLY_FOR_PARK_HOPPING`
 carries `eligibleAfter` → schedule a poll target. `TOO_EARLY_FOR_NEXT_PARK` has
 no timer → suppress cross-park targets until the tap-in detector fires, and
-label it *"tap in at Magic Kingdom first."* Lets bg1 pre-stage a second-park
-watchlist and arm it the instant the tap is seen. *Effort: small–medium.*
+label it _"tap in at Magic Kingdom first."_ Lets bg1 pre-stage a second-park
+watchlist and arm it the instant the tap is seen. _Effort: small–medium._
 
 **P3.5 · Live tier membership.** `LLClientWDW.experiences()` has `return exps;`
 on its second line, making the block below unreachable — a block that already
 calls `/ea-vas/planning/api/v1/experiences/availability/bundles/experiences` and
 destructures a `tiers[]` response. Disney publishes current tier grouping per
-park per date. The static flags are correct *today*, but tiers moved twice in
+park per date. The static flags are correct _today_, but tiers moved twice in
 the last twelve months (Big Thunder returned May 2026; Rock 'n' Roller Coaster
 left Tier 1 in March and returned in May under a new ID). December is three
 months out. Delete the dead return, read tier membership live, keep the static
-flag as a fallback that warns on divergence. *Effort: medium.*
+flag as a fallback that warns on divergence. _Effort: medium._
 
 **P3.6 · Reclaimability for swap victims.** `chooseSwapVictim` assumes Tier 2 is
 always cheap to give up. Thrill Data shows Kali selectable for 10h 28m of the
 day and Everest 10h 43m — genuinely reclaimable — while some Tier 2s sell out by
 9am. A per-attraction "typically gone by HH:MM" lets autoswap surrender the
-genuinely cheapest slot. *Effort: small.*
+genuinely cheapest slot. _Effort: small._
 
 ---
 
@@ -488,38 +510,38 @@ Introduce `DayPlan { date, parkId, entries: { experienceId, rank, after?,
 before?, role }[] }` stored per date. Build the Plan screen from `wdw.ts`
 directly rather than a live tipboard call, since watch entries can currently
 only be added from a loaded tipboard — that is the real blocker to planning
-offline, not the date picker. *Effort: large.*
+offline, not the date picker. _Effort: large._
 
 **P4.2 · Auto-book on future dates.** Neither paid competitor makes new bookings
-before the park day. bg1 already supports future dates for auto-*move*, and the
+before the park day. bg1 already supports future dates for auto-_move_, and the
 offer/book path is date-agnostic. The scenario it wins: you buy Multi Pass at
 the 7-day window with one selection because your headliners were gone, and bg1
 fills slots 2 and 3 overnight from cancellations. **This is the feature that
-would beat both paid tools outright.** *Effort: small–medium.*
+would beat both paid tools outright.** _Effort: small–medium._
 
 **P4.3 · Booking-window guidance.** Thrill Data's 7 AM Drop data shows booking
 earlier in your window buys dramatically earlier return times (Na'vi: 8:48am at
 8 days out, 10:29am at 7, 1:58pm at 1 day). Surface a compact table on
 `BookingDateSelect` answering the 7:00am question: which three to grab first,
 which are safe to leave. **Use bg1's own observations or attributed public
-data — do not scrape Thrill Data's paid tables into the repo.** *Effort: medium.*
+data — do not scrape Thrill Data's paid tables into the repo.** _Effort: medium._
 
 **P4.4 · Plain-English reasons.** bg1 already computes every reason it acted or
-skipped. Extend log entries to *"booked Slinky Dog Dash for 11:05 AM — top-ranked
-armed attraction, whole party eligible, inside your 10:00–13:00 window,"* and add
-the counterfactual on holds. UX over data that already exists. *Effort: small.*
+skipped. Extend log entries to _"booked Slinky Dog Dash for 11:05 AM — top-ranked
+armed attraction, whole party eligible, inside your 10:00–13:00 window,"_ and add
+the counterfactual on holds. UX over data that already exists. _Effort: small._
 
 **P4.5 · Make the timing legible.** A "next drop in 4:12" countdown in the
 header and an audible pre-drop chime at T−60s (the AudioContext is already
 unlocked). bg1's advantage is being the one looking in the first two seconds;
-this converts its foregrounding constraint into a ritual. *Effort: small.*
+this converts its foregrounding constraint into a ritual. _Effort: small._
 
-**P4.6 · Show the grace expiry.** A muted *"usable until 7:49 PM"* beside the
-one-hour window. *Effort: small.*
+**P4.6 · Show the grace expiry.** A muted _"usable until 7:49 PM"_ beside the
+one-hour window. _Effort: small._
 
 **P4.7 · Holiday overlays.** Jingle Cruise (`412010035`) and Jungle Cruise
 (`80010153`) are two IDs for one ride; same for Glimmering Greenhouses and
-Living with the Land. Both overlay IDs *are* in `wdw.ts` — confirmed — and both
+Living with the Land. Both overlay IDs _are_ in `wdw.ts` — confirmed — and both
 were absent from Disney's live September data, exactly as expected for a
 seasonal overlay. A watch list built now matches nothing once the swap happens,
 and the failure is unexplained rather than silent: the header reads "Watching
@@ -530,13 +552,13 @@ targets absent from today's tipboard as a distinct **"not on today's list"**
 group. That catches any ID drift, including drift nobody thought to alias.
 An alias table is a best-effort convenience — and note commit `f1f022a`
 reassigned three holiday IDs last November, so the current overlay IDs need
-re-verifying against a live December tipboard. *Effort: small.*
+re-verifying against a live December tipboard. _Effort: small._
 
 **P4.8 · Per-target guest subset.** Both competitors treat "which guests" as a
-per-search field; bg1 has one global whole-party flag. *Effort: medium.*
+per-search field; bg1 has one global whole-party flag. _Effort: medium._
 
 **P4.9 · A picture of the day.** Held reservations, windows, grace expiries and
-the next booking window on one screen. *Effort: medium.*
+the next booking window on one screen. _Effort: medium._
 
 ---
 
@@ -548,7 +570,7 @@ between a 40-minute average and a 110-minute actual is the whole decision. Note
 `livedata.ts` currently calls `bg1.joelface.com`, not themeparks.wiki directly,
 so this is a new dependency rather than a second call to an existing one. None
 of the free feeds carry Multi Pass availability — Disney's tipboard stays the
-only source for what bg1 books. *Effort: medium.*
+only source for what bg1 books. _Effort: medium._
 
 ---
 
@@ -569,7 +591,7 @@ Nineteen findings were adversarially refuted. The most consequential:
    filtered out of the list, the watch picker, `matchWatchList` and autoswap.
    The field is inert on every path.
 5. **Giving Space Mountain and Millennium Falcon priorities.** Upstream
-   *deliberately removed* Space Mountain's in commit `1dac5d7`. Worse, Millennium
+   _deliberately removed_ Space Mountain's in commit `1dac5d7`. Worse, Millennium
    Falcon at 2.1 would make `shouldHoldTierSlot` decline an offered Rock 'n'
    Roller Coaster to hold the slot for a weaker attraction.
 6. **Swapping Frozen Ever After and Remy.** Three of four post-refurbishment
@@ -581,7 +603,7 @@ Nineteen findings were adversarially refuted. The most consequential:
 8. **Re-ranking Glimmering Greenhouses to 3.0.** It would tie Soarin' and win
    the `avgWait` tiebreak, putting an always-available greenhouse boat ride
    ahead of the scarcest Tier 2.
-9. **Demoting Jingle Cruise to 2.2.** Self-contradictory (2.2 is *worse* than
+9. **Demoting Jingle Cruise to 2.2.** Self-contradictory (2.2 is _worse_ than
    base Jungle Cruise at 1.3), and it would subordinate Jingle Cruise to a
    Tiana's hold all day in the month Tiana's demand is weakest.
 10. **Feeding learned drop times into the Tier 1 hold.** `detectDropEvents`
@@ -629,14 +651,14 @@ Instrument these; do not model them from folklore.
 
 ## 12. Suggested schedule
 
-| When | What | Gate |
-| --- | --- | --- |
-| Week of Sept 8 | §1 missing IDs, §3 data, section-consistency test | `test:ci` green; the three attractions appear on their tipboards |
-| Sept 15 – 26 | Phase 1 (P1.1 window UI first) | Dry run shows `offer-outside-window` and overlap skips firing |
-| Sept 29 – Oct 17 | Phase 2 cadence | Learned-drop screen shows demotions; burst covers :45–:49 |
-| Oct 20 – Nov 14 | Phase 3 (P3.1 passkey, P3.5 live tiers) | A simulated day books a passkey first and explains why |
-| Nov 17 – Dec 5 | Phase 4 planner; P4.2 future-date booking | A December plan built in November drives a dry run end to end |
-| Dec 6 – trip | Freeze. Full-day dry runs. Instrument §10. | No code changes in the final two weeks |
+| When             | What                                              | Gate                                                             |
+| ---------------- | ------------------------------------------------- | ---------------------------------------------------------------- |
+| Week of Sept 8   | §1 missing IDs, §3 data, section-consistency test | `test:ci` green; the three attractions appear on their tipboards |
+| Sept 15 – 26     | Phase 1 (P1.1 window UI first)                    | Dry run shows `offer-outside-window` and overlap skips firing    |
+| Sept 29 – Oct 17 | Phase 2 cadence                                   | Learned-drop screen shows demotions; burst covers :45–:49        |
+| Oct 20 – Nov 14  | Phase 3 (P3.1 passkey, P3.5 live tiers)           | A simulated day books a passkey first and explains why           |
+| Nov 17 – Dec 5   | Phase 4 planner; P4.2 future-date booking         | A December plan built in November drives a dry run end to end    |
+| Dec 6 – trip     | Freeze. Full-day dry runs. Instrument §10.        | No code changes in the final two weeks                           |
 
 Each phase ships independently. If the schedule slips, Phase 4 is what to cut.
 **§1 must not slip** — three attractions, two of them headliners, are

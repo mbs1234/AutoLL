@@ -1,3 +1,4 @@
+import { wdw } from '@/__fixtures__/resort';
 import { Experience } from '@/api/ll';
 import { ParkTime } from '@/datetime';
 
@@ -110,14 +111,49 @@ describe('shouldHoldTierSlot()', () => {
 
   // Booking a Tier 1 can consume the party's only Tier 1 selection, so taking
   // the lesser one first can make the better one unbookable all day.
-  it('holds the slot when a better Tier 1 still has a drop ahead', () => {
-    expect(shouldHoldTierSlot(hit(worse), [armed(better)], at(9))).toBe(true);
+  it('holds the slot when a better Tier 1 drops within the horizon', () => {
+    // 13:17 is 47 minutes out.
+    expect(shouldHoldTierSlot(hit(worse), [armed(better)], at(12, 30))).toBe(
+      true
+    );
+  });
+
+  // The bug this horizon exists for. Tiana's drop list runs to 21:47, so
+  // "any drop still ahead today" meant that at Magic Kingdom an armed Space
+  // Mountain was declined from park open until the party's first tap-in --
+  // a whole morning holding the Tier 1 slot for a drop eight hours away.
+  it('does not hold all day for a drop list that runs to the evening', () => {
+    const allDay = exp('allday', {
+      tier: 1,
+      priority: 1.1,
+      dropTimes: [at(13, 47), at(17, 47), at(19, 47), at(21, 47)],
+    });
+    expect(shouldHoldTierSlot(hit(worse), [armed(allDay)], at(8))).toBe(false);
+    // Still holds once one of them is genuinely close.
+    expect(shouldHoldTierSlot(hit(worse), [armed(allDay)], at(13))).toBe(true);
+  });
+
+  it('does not hold for a drop just beyond the horizon', () => {
+    const soon = exp('soon', {
+      tier: 1,
+      priority: 1.1,
+      dropTimes: [at(10, 31)],
+    });
+    expect(shouldHoldTierSlot(hit(worse), [armed(soon)], at(9))).toBe(false);
+    expect(shouldHoldTierSlot(hit(worse), [armed(soon)], at(9, 1))).toBe(true);
   });
 
   // Self-releasing: once the better attraction's drops have passed there is
   // no longer a reason to expect it, so the hold must not deadlock.
   it('releases once the better attraction has no drops left', () => {
     expect(shouldHoldTierSlot(hit(worse), [armed(better)], at(16))).toBe(false);
+  });
+
+  // A drop already past is not "upcoming" however close it is.
+  it('does not hold for a drop that has just gone', () => {
+    expect(shouldHoldTierSlot(hit(worse), [armed(better)], at(13, 18))).toBe(
+      false
+    );
   });
 
   it('does not hold for an attraction with no drop times at all', () => {
@@ -172,15 +208,80 @@ describe('shouldHoldTierSlot()', () => {
   });
 
   it('still holds before any redemption', () => {
-    expect(shouldHoldTierSlot(hit(worse), [armed(better)], at(9), false)).toBe(
-      true
-    );
+    expect(
+      shouldHoldTierSlot(hit(worse), [armed(better)], at(12, 30), false)
+    ).toBe(true);
   });
 
   it('holds if any one of several armed targets qualifies', () => {
     const irrelevant = exp('irr', { priority: 4.1 });
     expect(
-      shouldHoldTierSlot(hit(worse), [armed(irrelevant), armed(better)], at(9))
+      shouldHoldTierSlot(
+        hit(worse),
+        [armed(irrelevant), armed(better)],
+        at(12, 30)
+      )
     ).toBe(true);
+  });
+});
+
+// Over the real attraction table, not synthetic ranks.
+//
+// The ranking data has been reverted once already by a wholesale adoption of
+// upstream's values (a474377), and nothing failed: every test above builds its
+// own experiences, so the numbers that actually decide Magic Kingdom's single
+// Tier 1 selection were unguarded. These assert the *behaviour* PLAN.md 3.2
+// asks for rather than the digits, so a future merge is free to renumber as
+// long as the outcome holds.
+describe('Magic Kingdom Tier 1 ranking, as shipped', () => {
+  const BIG_THUNDER = '80010110';
+  const JINGLE_CRUISE = '412010035';
+  // The resort fixture strips every drop time and seeds two of its own, so
+  // schedules have to be supplied here. Ranks, tiers and average waits are the
+  // real shipped values, which is what these tests are about.
+  const of = (id: string, dropTimes?: ParkTime[]) => ({
+    ...(wdw.experience(id) as Experience),
+    ...(dropTimes ? { dropTimes } : {}),
+  });
+
+  it('attempts Big Thunder before Jingle Cruise in the same tick', () => {
+    const ordered = orderByPriority([
+      hit(of(JINGLE_CRUISE)),
+      hit(of(BIG_THUNDER)),
+    ]);
+    expect(ordered.map(h => h.experience.id)).toEqual([
+      BIG_THUNDER,
+      JINGLE_CRUISE,
+    ]);
+  });
+
+  // A tie is not merely a cosmetic problem: `shouldHoldTierSlot` needs a
+  // strictly better rank, so while these two shared a priority the hold was
+  // disabled for the only pair at Magic Kingdom it matters for.
+  it('can hold the Tier 1 slot for Big Thunder over Jingle Cruise', () => {
+    expect(
+      shouldHoldTierSlot(
+        hit(of(JINGLE_CRUISE)),
+        [armed(of(BIG_THUNDER, [at(8, 47)]))],
+        at(8)
+      )
+    ).toBe(true);
+  });
+
+  it('never holds the slot the other way round', () => {
+    expect(
+      shouldHoldTierSlot(
+        hit(of(BIG_THUNDER)),
+        [armed(of(JINGLE_CRUISE, [at(8, 47)]))],
+        at(8)
+      )
+    ).toBe(false);
+  });
+
+  // Both are Tier 1 at Magic Kingdom, which is what makes the ordering
+  // consequential -- only one of them can be held before the first tap-in.
+  it('has both as Tier 1', () => {
+    expect(isTier1(of(BIG_THUNDER))).toBe(true);
+    expect(isTier1(of(JINGLE_CRUISE))).toBe(true);
   });
 });

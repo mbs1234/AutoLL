@@ -93,16 +93,45 @@ export function shouldHoldTierSlot(
 }
 
 /**
- * Whether any of these drop times is still ahead.
+ * How far ahead a drop still counts as worth waiting for.
+ *
+ * The hold declines a Lightning Lane you could take now, so it is only ever
+ * right when the better attraction is coming back *soon*. "Still ahead today"
+ * was not that test: Tiana's drop list runs to 21:47, so at Magic Kingdom an
+ * armed Space Mountain was declined from park open until the party's first
+ * tap-in lifted the one-Tier-1 rule -- a whole morning spent holding a slot
+ * for a drop eight hours away, which is the opposite of what the hold is for.
+ *
+ * Ninety minutes sits inside Magic Kingdom's roughly two-hour drop spacing, so
+ * at any moment the next drop is either genuinely imminent or far enough off
+ * that taking what is offered is plainly better.
+ *
+ * It bounds the party-night problem rather than solving it. On a 6pm close the
+ * 17:47 drop cannot fire, and between 16:17 and 17:47 the hold will still wait
+ * for it -- but for ninety minutes at worst, where before it was every hour
+ * from 16:17 to close and then some. A date table would remove the rest; it is
+ * deliberately not here, because a wrong date silently suppresses real drops on
+ * a normal day, which is the worse failure of the two.
+ */
+export const TIER_HOLD_HORIZON_S = 90 * 60;
+
+/**
+ * Whether one of these drop times falls inside the hold horizon.
  *
  * Not `upcomingTimes()`: that reads `DateTime.now()` internally, which is the
  * raw device clock and is not injectable. Autopilot works from the
  * drift-corrected clock throughout, and this needs to be testable without
  * one.
+ *
+ * `ParkTime` compares as seconds from the 4am park-day start, so both bounds
+ * are in the same frame and a late-night time does not wrap.
  */
 function hasUpcomingDrop(
   dropTimes: ParkTime[] | undefined,
   now: ParkTime
 ): boolean {
-  return (dropTimes ?? []).some(time => +time >= +now);
+  return (dropTimes ?? []).some(time => {
+    const secondsAway = +time - +now;
+    return secondsAway >= 0 && secondsAway <= TIER_HOLD_HORIZON_S;
+  });
 }

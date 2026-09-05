@@ -213,9 +213,13 @@ export const experiences: ResortData['experiences'] = {
     priority: 4,
   },
   // Hardest Magic Kingdom Tier 1 since it reopened: sold out by 8:47am and
-  // 9:07am on the two 2026 days sampled, well ahead of Tiana's. No avgWait
-  // on purpose -- no trustworthy post-reopening average exists yet, and an
-  // invented one would decide swaps and same-tick ordering.
+  // 9:07am on the two 2026 days sampled, well ahead of Tiana's.
+  //
+  // The 33 below is upstream's own measurement, adopted with the rest of its
+  // data rather than invented here -- PLAN.md 3.5 and 9.11 both refuse a
+  // fabricated average for this entry, and that still stands. It is low
+  // against Jingle Cruise's 53, which is why the rank has to do the
+  // separating rather than the tiebreak.
   80010110: {
     name: 'Big Thunder Mountain Railroad',
     land: frontierland,
@@ -287,7 +291,13 @@ export const experiences: ResortData['experiences'] = {
     type: 'A',
     geo: [28.4180339, -81.5834548],
     tier: 1,
-    priority: 1,
+    // Not 1: a tie with Big Thunder is resolved by `avgWait`, which Jingle
+    // Cruise wins at 53 against 33 -- so the tie handed Magic Kingdom's single
+    // Tier 1 selection to a re-themed Jungle Cruise, and `shouldHoldTierSlot`
+    // (which needs a strictly better rank) held the slot for neither. This is
+    // the renumbering PLAN.md 3.2 asks for; it was reverted by the wholesale
+    // adoption of upstream's values in a474377.
+    priority: 1.1,
     avgWait: 53,
     highlight: true,
   },
