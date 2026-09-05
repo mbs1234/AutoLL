@@ -4,8 +4,6 @@ import { RateLimit } from '@/ratelimit';
 import { authStore } from './auth';
 import { Resort } from './resort';
 
-jest.mock('@/api/sensor-data');
-
 export class InvalidOrigin extends Error {
   name = 'InvalidOrigin';
 }
