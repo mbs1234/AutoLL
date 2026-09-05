@@ -117,6 +117,9 @@ describe('AutoBookLedger doubt-holds', () => {
     for (let i = 0; i < times; ++i) ledger.resolveBook(BZ, false);
   }
 
+  /** Plans reporting the reservation, which is what arms a later release. */
+  const seeHeld = (ledger: AutoBookLedger) => ledger.resolveBook(BZ, true);
+
   it('charges the allowance for an attempt that never confirmed', () => {
     const ledger = new AutoBookLedger(1);
     ledger.markAttempted(BZ);
@@ -160,28 +163,41 @@ describe('AutoBookLedger doubt-holds', () => {
 
   // The reason any of this exists: cancel a late return time by hand and the
   // better one that drops later must still be bookable.
-  it('releases the lock after a booking is cancelled', () => {
+  it('releases the lock after an observed booking is cancelled', () => {
     const ledger = new AutoBookLedger();
     ledger.markAttempted(BZ);
     ledger.markBooked(BZ);
+    seeHeld(ledger);
     seeAbsent(ledger);
     expect(ledger.hasAttempted(BZ)).toBe(false);
   });
 
-  it('refunds the allowance when an attempt turns out not to have landed', () => {
-    const ledger = new AutoBookLedger(1);
+  // The guard that makes the poll-count release safe. Plans polls are ~24
+  // seconds apart in a drop burst, and a booking made moments before a fetch
+  // can be missing from it -- so absence alone, for a reservation never seen,
+  // cannot be told apart from an itinerary that has not caught up. Releasing
+  // on that would rebook a Lightning Lane already held.
+  it('never releases a booking it has not seen held', () => {
+    const ledger = new AutoBookLedger();
     ledger.markAttempted(BZ);
-    expect(ledger.remaining).toBe(0);
-    seeAbsent(ledger);
-    expect(ledger.remaining).toBe(1);
-    expect(ledger.bookedCount).toBe(0);
+    ledger.markBooked(BZ);
+    seeAbsent(ledger, CONFIRM_ABSENT_POLLS * 10);
+    expect(ledger.hasAttempted(BZ)).toBe(true);
   });
 
-  // Disney can omit a just-made booking from the next plans response. Acting
-  // on a single gap would rebook something already held.
+  it('keeps an unconfirmed attempt charged against the allowance', () => {
+    const ledger = new AutoBookLedger(1);
+    ledger.markAttempted(BZ);
+    seeAbsent(ledger, CONFIRM_ABSENT_POLLS * 10);
+    expect(ledger.remaining).toBe(0);
+  });
+
+  // Disney can omit a just-made booking from a single plans response. Acting
+  // on one gap would rebook something still held.
   it('requires consecutive absences before releasing', () => {
     const ledger = new AutoBookLedger();
     ledger.markAttempted(BZ);
+    seeHeld(ledger);
     seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
     expect(ledger.hasAttempted(BZ)).toBe(true);
   });
@@ -189,9 +205,29 @@ describe('AutoBookLedger doubt-holds', () => {
   it('restarts the count when the reservation reappears', () => {
     const ledger = new AutoBookLedger();
     ledger.markAttempted(BZ);
+    seeHeld(ledger);
     seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
-    ledger.resolveBook(BZ, true);
+    seeHeld(ledger);
     seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
+    expect(ledger.hasAttempted(BZ)).toBe(true);
+  });
+
+  // A rehearsal issues no request, so it must neither hold the allowance nor
+  // take part in settling -- otherwise the dry-run entry re-logs every time
+  // the lock releases, and the README's "none of it counts" becomes false.
+  it('keeps dry-run marks out of the allowance', () => {
+    const ledger = new AutoBookLedger(1);
+    ledger.markAttempted(BZ, 'book', true);
+    expect(ledger.remaining).toBe(1);
+    expect(ledger.hasAttempted(BZ)).toBe(true);
+  });
+
+  it('keeps dry-run marks out of settling', () => {
+    const ledger = new AutoBookLedger();
+    ledger.markAttempted(BZ, 'book', true);
+    expect(ledger.attemptedBookIds).toEqual([]);
+    seeHeld(ledger);
+    seeAbsent(ledger, CONFIRM_ABSENT_POLLS * 5);
     expect(ledger.hasAttempted(BZ)).toBe(true);
   });
 
@@ -216,9 +252,11 @@ describe('AutoBookLedger doubt-holds', () => {
   it('clears absence counts on reset', () => {
     const ledger = new AutoBookLedger();
     ledger.markAttempted(BZ);
+    seeHeld(ledger);
     seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
     ledger.reset();
     ledger.markAttempted(BZ);
+    seeHeld(ledger);
     seeAbsent(ledger, CONFIRM_ABSENT_POLLS - 1);
     expect(ledger.hasAttempted(BZ)).toBe(true);
   });

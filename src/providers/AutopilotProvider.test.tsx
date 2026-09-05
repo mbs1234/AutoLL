@@ -14,7 +14,7 @@ import {
   loadCoverage,
   loadDropEvents,
 } from '@/autopilot/observe';
-import { IDLE_INTERVAL_MS } from '@/autopilot/schedule';
+import { BURST_INTERVAL_MS, IDLE_INTERVAL_MS } from '@/autopilot/schedule';
 import { loadBookingLog, saveSettings } from '@/autopilot/storage';
 import { saveWatchList } from '@/autopilot/watchlist';
 import AutopilotContext from '@/contexts/AutopilotContext';
@@ -134,11 +134,29 @@ function offerAt(hour: number) {
   };
 }
 
+/** A Multi Pass for BZ, as the itinerary would report it. */
+function heldBZAt(hour: number, date = TODAY): Booking {
+  return {
+    type: 'LL',
+    subtype: 'MP',
+    id: 'ent-1',
+    facilityId: BZ,
+    name: 'Held',
+    start: new DateTime(date, new ParkTime(hour)),
+    end: new DateTime(date, new ParkTime(hour + 1)),
+    modifiable: true,
+    guests: [],
+  } as unknown as Booking;
+}
+
 function setupBooking({
   offerHour = 11,
   experiences = [available(BZ, new ParkTime(11))],
   plans = [] as Booking[],
   guestsResult = party as unknown,
+  // Set this within BURST_LEAD_S of the pinned 09:00 clock to drive the poller
+  // into burst cadence, where plans polls are ~24s apart instead of ~15min.
+  nextBookTime = undefined as ParkTime | undefined,
 } = {}) {
   const guests = jest.fn(async () => guestsResult);
   // Records which attraction was offered, in order -- clearer than indexing
@@ -160,7 +178,14 @@ function setupBooking({
     }
   );
   const book = jest.fn(async () => ({ id: 'ent-1' }));
-  const pollPlans = jest.fn(async () => []);
+  // Mutable so a test can make a booking appear in the itinerary and later
+  // vanish, which is what a real booking followed by a manual cancellation
+  // looks like from here. Defaults to the same list the context renders.
+  let polled = plans;
+  const setPolledPlans = (next: Booking[]) => {
+    polled = next;
+  };
+  const pollPlans = jest.fn(async () => polled);
   render(
     <BookingDateContext
       value={{ bookingDate: TODAY, setBookingDate: () => {} }}
@@ -170,7 +195,7 @@ function setupBooking({
         // merely omits properties from Clients, it conflicts with them.
         value={
           {
-            ll: { nextBookTime: undefined, guests, offer, book },
+            ll: { nextBookTime, guests, offer, book },
           } as unknown as Clients
         }
       >
@@ -200,7 +225,15 @@ function setupBooking({
       </ClientsContext>
     </BookingDateContext>
   );
-  return { guests, offer, book, pollPlans, offeredIds, offerOptions };
+  return {
+    guests,
+    offer,
+    book,
+    pollPlans,
+    offeredIds,
+    offerOptions,
+    setPolledPlans,
+  };
 }
 
 describe('AutopilotProvider', () => {
@@ -394,31 +427,78 @@ describe('AutopilotProvider auto-booking', () => {
     expect(book).toHaveBeenCalledTimes(1);
   });
 
-  // Disney allows booking, cancelling and rebooking the same attraction. This
-  // harness never reports the reservation in plans, which is what a manual
-  // cancellation looks like from here, so the lock should eventually release
-  // and the still-available attraction be taken again.
-  it('rebooks once plans confirm the reservation is gone', async () => {
+  /**
+   * Advance one interval at a time: each tick awaits a chain of polls, an
+   * offer and a booking, and a single large jump outruns it.
+   */
+  async function runTicks(count: number, intervalMs = IDLE_INTERVAL_MS) {
+    await act(async () => {
+      for (let i = 0; i < count; ++i) {
+        await jest.advanceTimersByTimeAsync(intervalMs);
+      }
+    });
+  }
+
+  const RELEASE_TICKS = PLANS_EVERY_N_TICKS * (CONFIRM_ABSENT_POLLS + 2);
+
+  // Disney allows booking, cancelling and rebooking the same attraction, so a
+  // reservation that appears and then disappears should free the attraction.
+  it('rebooks once an observed reservation disappears', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book, setPolledPlans } = setupBooking();
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    // The booking lands in the itinerary...
+    setPolledPlans([heldBZAt(11)]);
+    await runTicks(PLANS_EVERY_N_TICKS + 2);
+    // ...and is then cancelled by hand.
+    setPolledPlans([]);
+    await runTicks(RELEASE_TICKS);
+    expect(book.mock.calls.length).toBeGreaterThan(1);
+    expect(book.mock.calls.length).toBeLessThanOrEqual(DEFAULT_MAX_PER_SESSION);
+  });
+
+  // The regression this guards: plans polls are ~24s apart in a drop burst,
+  // not the ~15 minutes the idle cadence gives. Releasing on absence alone
+  // would rebook a Lightning Lane the itinerary simply had not caught up on
+  // yet -- and burn the session cap on one attraction while doing it.
+  it('never rebooks a reservation it has not seen in plans', async () => {
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     const { book } = setupBooking();
     await enable();
     await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
-    // One interval at a time rather than a single jump: each tick awaits a
-    // chain of polls, an offer and a booking, and a large advance can outrun
-    // it.
-    await act(async () => {
-      const ticks = PLANS_EVERY_N_TICKS * (CONFIRM_ABSENT_POLLS + 2);
-      for (let i = 0; i < ticks; ++i) {
-        await jest.advanceTimersByTimeAsync(IDLE_INTERVAL_MS);
-      }
+    await runTicks(RELEASE_TICKS * 2);
+    expect(book).toHaveBeenCalledTimes(1);
+  });
+
+  // The cadence that actually mattered. At BURST_INTERVAL_MS the two plans
+  // polls needed to release a lock are ~24 seconds apart, not the ~15 minutes
+  // idle gives -- and a drop is exactly when a duplicate booking would cost
+  // the most. The clock is pinned to 09:00, so a 09:00:20 target sits inside
+  // BURST_LEAD_S and the whole run stays within the 150s burst window.
+  it('never rebooks an unseen reservation at burst cadence', async () => {
+    // The fake clock is pinned once at module scope, and earlier tests in this
+    // file advance it by an hour. Re-pin before rendering so the target below
+    // is genuinely 20 seconds out rather than long past.
+    setTime('09:00');
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    const { book, pollPlans } = setupBooking({
+      nextBookTime: new ParkTime(9, 0, 20),
     });
-    // Bounds rather than an exact count: the idle interval carries +/-20%
-    // jitter, so how many release windows fit in the run is not fixed. What
-    // matters is that the lock released at all, and that the session cap --
-    // not the lock -- is what stops a harness where the reservation never
-    // appears from booking indefinitely.
-    expect(book.mock.calls.length).toBeGreaterThan(1);
-    expect(book.mock.calls.length).toBeLessThanOrEqual(DEFAULT_MAX_PER_SESSION);
+    await enable();
+    await waitFor(() => expect(book).toHaveBeenCalledTimes(1));
+    const pollsAfterBooking = pollPlans.mock.calls.length;
+    await runTicks(
+      PLANS_EVERY_N_TICKS * CONFIRM_ABSENT_POLLS * 2,
+      BURST_INTERVAL_MS
+    );
+    // Guards the guard. The bug needed CONFIRM_ABSENT_POLLS plans polls to
+    // elapse after the booking; asserting they did is what proves this run
+    // actually reached the dangerous state rather than merely idling past it.
+    expect(
+      pollPlans.mock.calls.length - pollsAfterBooking
+    ).toBeGreaterThanOrEqual(CONFIRM_ABSENT_POLLS);
+    expect(book).toHaveBeenCalledTimes(1);
   });
 
   it('refreshes plans after booking so the new reservation shows', async () => {

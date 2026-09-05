@@ -1,6 +1,7 @@
 import { use } from 'react';
 
 import { Experience } from '@/api/ll';
+import { DEFAULT_MAX_PER_SESSION } from '@/autopilot/autobook';
 import { LEARNED_MIN_DAYS } from '@/autopilot/learned';
 import { PollerStatus } from '@/autopilot/usePoller';
 import Button from '@/components/Button';
@@ -23,7 +24,7 @@ const SKIP_TEXT: Record<string, string> = {
   'no-eligible-guests': 'nobody was eligible',
   'not-full': 'a slot was free, so it booked instead of swapping',
   'no-worse-reservation': 'nothing held was worth giving up',
-  'already-attempted': 'already tried once this session',
+  'already-attempted': 'a booking for it was already held or in flight',
   'session-cap': 'the session limit was reached',
   'not-modifiable': 'Disney marked the reservation unmodifiable',
 };
@@ -94,7 +95,6 @@ export default function Autopilot() {
     notifications,
     lastHit,
     bookingLog,
-    bookedCount,
     bookingsRemaining,
     requireWholeParty,
     setRequireWholeParty,
@@ -335,9 +335,10 @@ export default function Autopilot() {
           <span className="font-semibold">Automatic booking is on.</span>{' '}
           Autopilot will book the attractions marked above without asking, but
           only when the offered return time falls inside that attraction&rsquo;s
-          window. It will book at most {bookedCount + bookingsRemaining} per
-          session ({bookingsRemaining} left), never retries an attraction it has
-          already tried, and forgets everything when the page reloads.
+          window. It will book at most {DEFAULT_MAX_PER_SESSION} per session (
+          {bookingsRemaining} left), will not book an attraction it is already
+          holding or still waiting on an answer for, and forgets everything when
+          the page reloads.
         </p>
       )}
 

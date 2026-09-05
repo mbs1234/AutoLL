@@ -141,6 +141,11 @@ export default function AutopilotProvider({
     return summarizeDrops(loadDropEvents(), coverageRef.current, new Map());
   });
   const [bookedCount, setBookedCount] = useState(0);
+  // Mirrors the ledger rather than being derived from `bookedCount`: an
+  // attempt still awaiting confirmation holds a slot too.
+  const [bookingsRemaining, setBookingsRemaining] = useState(
+    () => ledgerRef.current.remaining
+  );
 
   // Block body on purpose: an expression body would return saveWatchList's
   // value, which React would treat as a cleanup function.
@@ -297,6 +302,11 @@ export default function AutopilotProvider({
       for (const id of ledgerRef.current.attemptedBookIds) {
         ledgerRef.current.resolveBook(id, !!findExistingLL(settled, id, date));
       }
+      // Settling can charge the allowance for a booking whose request never
+      // returned, so the on-screen count has to follow the ledger rather than
+      // only successful actions.
+      setBookedCount(ledgerRef.current.bookedCount);
+      setBookingsRemaining(ledgerRef.current.remaining);
     }
 
     // Book-then-move: while nothing is held, the window is stripped so any
@@ -439,7 +449,9 @@ export default function AutopilotProvider({
             bumpSkip(pre.reason);
             continue;
           }
-          ledgerRef.current.markAttempted(experience.id, kind);
+          // Rehearsal: marks only so this logs once, and stays out of the
+          // allowance and the settle loop -- nothing was requested.
+          ledgerRef.current.markAttempted(experience.id, kind, true);
           logOutcome(experience.name, {
             status: 'dry-run',
             kind,
@@ -507,6 +519,7 @@ export default function AutopilotProvider({
         // party, tier and overlap limits, so the whole cache is invalid.
         cacheRef.current.clear();
         setBookedCount(ledgerRef.current.bookedCount);
+        setBookingsRemaining(ledgerRef.current.remaining);
         fireAlert(
           outcome.status === 'booked'
             ? {
@@ -587,6 +600,13 @@ export default function AutopilotProvider({
     nextBookTime: watchingToday ? ll.nextBookTime : undefined,
   });
 
+  // The poller gives up after repeated failures without touching `enabled`, so
+  // the release in `setEnabled` never runs. Holding the screen awake for a loop
+  // that has stopped drains the battery for nothing.
+  useEffect(() => {
+    if (status.mode === 'stopped') void releaseScreenAwake();
+  }, [status.mode]);
+
   const setEnabled = useCallback((on: boolean) => {
     if (!on) {
       void releaseScreenAwake();
@@ -610,6 +630,7 @@ export default function AutopilotProvider({
       ledgerRef.current.reset();
       cacheRef.current.clear();
       setBookedCount(0);
+      setBookingsRemaining(ledgerRef.current.remaining);
       setSkipCounts({});
       // Fresh baseline: the first poll of a run sees everything as "new", and
       // that must read as a baseline rather than a drop.
@@ -685,7 +706,10 @@ export default function AutopilotProvider({
         lastHit,
         bookingLog,
         bookedCount,
-        bookingsRemaining: ledgerRef.current.maxPerSession - bookedCount,
+        // From the ledger, not `maxPerSession - bookedCount`: an unsettled
+        // attempt also holds a slot, and recomputing would overstate what is
+        // left.
+        bookingsRemaining,
         requireWholeParty: settings.requireWholeParty,
         setRequireWholeParty: on =>
           setSettings(prev => ({ ...prev, requireWholeParty: on })),

@@ -65,6 +65,23 @@ export class AutoBookLedger {
   protected unresolved = new Set<string>();
   /** Consecutive polls each attraction has been observed unheld. */
   protected absences = new Map<string, number>();
+  /**
+   * Bookings seen held in plans at least once.
+   *
+   * The gate on releasing a lock. Absence only means "cancelled" for a
+   * reservation we watched exist; for one we never saw, it is indistinguishable
+   * from an itinerary that has not caught up yet -- and releasing on that would
+   * rebook something already held.
+   */
+  protected confirmed = new Set<string>();
+  /**
+   * Dry-run marks: log-once bookkeeping for a request that never went out.
+   *
+   * Held apart from real attempts so a rehearsal neither consumes the session
+   * allowance nor takes part in settling, which would re-log it every time the
+   * lock released.
+   */
+  protected rehearsed = new Set<string>();
 
   constructor(readonly maxPerSession = DEFAULT_MAX_PER_SESSION) {}
 
@@ -81,17 +98,18 @@ export class AutoBookLedger {
   }
 
   /**
-   * Experiences carrying a `book` attempt, settled or not.
+   * Experiences carrying a real `book` attempt, settled or not.
    *
-   * The whole set, not just the unconfirmed ones: a booking that plainly
-   * succeeded still needs its lock released if the reservation is later
-   * cancelled by hand, which is the ordinary case for rebooking.
+   * Includes bookings that plainly succeeded, since those still need their
+   * lock released once the reservation is cancelled by hand -- the ordinary
+   * case for rebooking. Excludes dry-run marks, which stand for no request.
    */
   get attemptedBookIds(): string[] {
     const prefix = 'book:';
     return [...this.attempted]
       .filter(key => key.startsWith(prefix))
-      .map(key => key.slice(prefix.length));
+      .map(key => key.slice(prefix.length))
+      .filter(id => !this.rehearsed.has(id));
   }
 
   /**
@@ -101,9 +119,17 @@ export class AutoBookLedger {
    * out, it may still have succeeded server-side, so retrying is the dangerous
    * option -- better to skip and let the user see it in their plans.
    */
-  markAttempted(experienceId: string, kind: ActionKind = 'book'): void {
+  markAttempted(
+    experienceId: string,
+    kind: ActionKind = 'book',
+    rehearsal = false
+  ): void {
     this.attempted.add(`${kind}:${experienceId}`);
-    if (kind === 'book') this.unresolved.add(experienceId);
+    if (kind !== 'book') return;
+    // A dry run issues no request, so there is nothing to doubt and nothing to
+    // settle -- it marks only so the rehearsal logs once.
+    if (rehearsal) this.rehearsed.add(experienceId);
+    else this.unresolved.add(experienceId);
   }
 
   /**
@@ -136,28 +162,46 @@ export class AutoBookLedger {
    * - `!stillHeld` -- nothing is held, so the attempt either failed or has been
    *   cancelled since. Both make rebooking legal.
    *
-   * Absence must be seen `CONFIRM_ABSENT_POLLS` times running before it counts.
-   * A booking that succeeds moments before a plans fetch can be missing from
-   * that response while Disney catches up, and treating one such gap as proof
-   * would rebook something already held. Requiring two consecutive polls costs
-   * a minute of latency on a real cancellation and removes that race.
+   * Two conditions gate a release, and both are needed:
+   *
+   * 1. The reservation must have been **seen held at least once**. For a
+   *    booking never observed, absence cannot distinguish "it failed" from "the
+   *    itinerary has not caught up", and acting on the latter rebooks something
+   *    already held. An attempt that never confirms therefore keeps its lock for
+   *    the session -- the conservative pre-existing behaviour, and no real loss:
+   *    either it is held, making `modify` the useful action anyway, or it truly
+   *    failed and next session retries it.
+   * 2. Absence must then be seen `CONFIRM_ABSENT_POLLS` times running, so a
+   *    single flaky itinerary response cannot release a live reservation.
+   *
+   * Poll count rather than elapsed time is deliberate but worth knowing: polls
+   * are ~15 minutes apart at the idle cadence and ~24 seconds apart in a drop
+   * burst, so a cancellation is noticed far faster during a drop -- which is
+   * when it matters. Condition 1 is what makes that compression safe.
    *
    * Redemption is deliberately *not* handled here: a redeemed attraction leaves
    * the party ineligible, and `attemptAutoBook` skips on eligibility long
    * before it reaches the ledger.
    */
   resolveBook(experienceId: string, stillHeld: boolean): void {
+    // A rehearsal stands for no request, so there is nothing to settle.
+    // `attemptedBookIds` already excludes these; guarding here too keeps the
+    // invariant true for any caller.
+    if (this.rehearsed.has(experienceId)) return;
     if (stillHeld) {
       this.absences.delete(experienceId);
+      this.confirmed.add(experienceId);
       if (this.unresolved.delete(experienceId)) ++this.booked;
       return;
     }
+    if (!this.confirmed.has(experienceId)) return;
     const seen = (this.absences.get(experienceId) ?? 0) + 1;
     if (seen < CONFIRM_ABSENT_POLLS) {
       this.absences.set(experienceId, seen);
       return;
     }
     this.absences.delete(experienceId);
+    this.confirmed.delete(experienceId);
     this.unresolved.delete(experienceId);
     this.attempted.delete(`book:${experienceId}`);
   }
@@ -166,6 +210,8 @@ export class AutoBookLedger {
     this.attempted.clear();
     this.unresolved.clear();
     this.absences.clear();
+    this.confirmed.clear();
+    this.rehearsed.clear();
     this.booked = 0;
   }
 }

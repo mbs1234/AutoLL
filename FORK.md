@@ -84,7 +84,7 @@ test's mocked response no longer provides.
 
 | Command | Scope | Status |
 | --- | --- | --- |
-| `npm run test:ci` | excludes upstream's broken suites | **green** (68 suites / 560 tests) |
+| `npm run test:ci` | excludes upstream's broken suites | **green** (69 suites / 593 tests) |
 | `npm test` | everything | 8 suites / 38 tests fail (pre-existing) |
 | `npm run lint` | | green |
 | `npm run typecheck` | | green |
@@ -113,6 +113,7 @@ this is the map.
 | --- | --- |
 | `schedule.ts` | Pure cadence policy (idle / approach / burst) from drop times and `nextBookTime`, on the drift-corrected clock; backoff. |
 | `usePoller.ts` | The single sequential polling loop. |
+| `wakelock.ts` | Screen Wake Lock held while autopilot runs, re-acquired when the page becomes visible. Best-effort: unsupported or refused leaves prior behaviour. |
 | `watchlist.ts` | Targets and their flags; matching; edge-triggered alert selection; persistence. |
 | `alert.ts` | Chime, vibration, notification, each degrading independently. |
 | `prewarm.ts` | Guest-eligibility cache, invalidated on `eligibleAfter` and on any booking. |
@@ -125,7 +126,7 @@ this is the map.
 Design rules that hold throughout, and that a future change should keep:
 
 - **Pure core, thin shell.** Every decision is a pure function with its own
-  tests; the provider only sequences them. Almost all of the ~560 tests in
+  tests; the provider only sequences them. Almost all of the ~590 tests in
   `test:ci` are on these.
 - **Never commit an offer without re-checking its real time.** The tipboard
   time you matched on and the offer Disney returns can differ; booking, moving
