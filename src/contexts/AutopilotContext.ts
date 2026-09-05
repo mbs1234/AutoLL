@@ -37,6 +37,12 @@ export interface AutopilotState {
   setEnabled: (on: boolean) => void;
   status: PollerStatus;
   targets: WatchTarget[];
+  /**
+   * The subset of `targets` the loaded tipboard covers -- what Autopilot can
+   * actually act on right now. Falls back to the whole list while no
+   * experiences have loaded, when the question cannot yet be answered.
+   */
+  targetsHere: WatchTarget[];
   isWatched: (experienceId: string) => boolean;
   addTarget: (target: WatchTarget) => void;
   removeTarget: (experienceId: string) => void;
@@ -128,6 +134,7 @@ export default createContext<AutopilotState>({
   setEnabled: () => undefined,
   status: { mode: 'off', consecutiveFailures: 0, polls: 0 },
   targets: [],
+  targetsHere: [],
   isWatched: () => false,
   addTarget: () => undefined,
   removeTarget: () => undefined,

@@ -78,6 +78,12 @@ function setup({
             setEnabled,
             status,
             targets: watched.map(experienceId => ({ experienceId })),
+            // Mirrors the provider: a target for another park is stored but
+            // inert, so the screen must not count it as being watched.
+            targetsHere: (experiences.length === 0
+              ? watched
+              : watched.filter(id => experiences.some(e => e.id === id))
+            ).map(experienceId => ({ experienceId })),
             isWatched: (id: string) => watched.includes(id),
             addTarget,
             removeTarget,
@@ -128,6 +134,22 @@ function setup({
     refillBudget,
     setMaxActionsPerDay,
   };
+}
+
+/**
+ * Unfold one of the collapsed sections, as a tap does.
+ *
+ * `Learned drop times` and `Booking activity` are reference material on a
+ * long screen, so they start closed; their contents are in the DOM but not
+ * visible until opened, and `toBeVisible` is what tells the difference.
+ */
+function open(title: string) {
+  const summary = screen.getByText(title).closest('summary');
+  fireEvent.click(summary!);
+  // jsdom does not always apply the default toggle behaviour, and the
+  // assertion under test is about the contents rather than the toggle.
+  const details = summary!.closest('details');
+  if (details && !details.open) details.open = true;
 }
 
 describe('Autopilot screen', () => {
@@ -303,6 +325,7 @@ describe('Autopilot screen', () => {
         },
       ],
     });
+    open('Booking activity');
     expect(screen.getByText('Booking activity')).toBeVisible();
     expect(screen.getByText(/Big Thunder/)).toBeVisible();
   });
@@ -318,6 +341,7 @@ describe('Autopilot screen', () => {
         },
       ],
     });
+    open('Booking activity');
     expect(screen.getByText('failed')).toBeVisible();
     expect(screen.getByText(/Request failed/)).toBeVisible();
   });
@@ -393,6 +417,7 @@ describe('Autopilot screen auto-move', () => {
         },
       ],
     });
+    open('Booking activity');
     expect(screen.getByText(/moved/)).toBeVisible();
     expect(screen.getByText(/Slinky Dog Dash/)).toBeVisible();
   });
@@ -492,6 +517,7 @@ describe('Autopilot screen swap', () => {
         },
       ],
     });
+    open('Booking activity');
     expect(screen.getByText(/swapped in/)).toBeVisible();
     expect(screen.getByText('Toy Story Mania')).toBeVisible();
   });
@@ -560,6 +586,7 @@ describe('Autopilot screen learned drops', () => {
         },
       ],
     });
+    open('Learned drop times');
     expect(screen.getByText('Learned drop times')).toBeVisible();
     // Scope to the learned entry: the same attraction is also listed further
     // down as watchable, so the bare name appears twice on the screen.
@@ -584,6 +611,7 @@ describe('Autopilot screen learned drops', () => {
         },
       ],
     });
+    open('Learned drop times');
     expect(screen.getByText(/seen 2 of 2 watched/)).toBeVisible();
     const missing = screen.getByText(/seen 0 of 3 watched/);
     expect(missing).toBeVisible();
@@ -616,6 +644,7 @@ describe('Autopilot screen learned drops', () => {
         },
       ],
     });
+    open('Learned drop times');
     expect(screen.getByText('elsewhere')).toBeVisible();
   });
 });
@@ -634,6 +663,7 @@ describe('Autopilot screen learned timing', () => {
         },
       ],
     });
+    open('Learned drop times');
     const entry = screen.getByText(/Seen:/).closest('li')!;
     expect(within(entry).getByText(/2 days, used for timing/)).toBeVisible();
     expect(within(entry).getByText(/\(1 day\)/)).toBeVisible();
@@ -823,5 +853,45 @@ describe('refusal warning', () => {
     expect(
       screen.queryByText(/Disney is refusing these requests/)
     ).not.toBeInTheDocument();
+  });
+});
+
+// The heading and the list under it are the same fact stated twice, and they
+// used to disagree: the heading counted every stored target while the list
+// showed only the ones the loaded tipboard covers. A watch list built at
+// Magic Kingdom and carried to Epcot said "Watching (4)" over a single row.
+describe('Autopilot watch count', () => {
+  const inPark = '80010114';
+  const elsewhere = ['gone_1', 'gone_2', 'gone_3'];
+
+  it('counts what the list actually shows', () => {
+    setup({ watched: [inPark, ...elsewhere] });
+    expect(screen.getByRole('heading', { name: /Watching/ })).toHaveTextContent(
+      'Watching (1)'
+    );
+  });
+
+  it('says where the rest of the list went, rather than hiding it', () => {
+    setup({ watched: [inPark, ...elsewhere] });
+    expect(screen.getByText(/3 more saved for another park/)).toBeVisible();
+  });
+
+  it('says nothing about other parks when the whole list is here', () => {
+    setup({ watched: [inPark] });
+    expect(screen.getByRole('heading', { name: /Watching/ })).toHaveTextContent(
+      'Watching (1)'
+    );
+    expect(
+      screen.queryByText(/saved for another park/)
+    ).not.toBeInTheDocument();
+  });
+
+  // Nothing has loaded, so which targets are here is unanswerable. Saying
+  // "none" would be a worse guess than saying "all of them".
+  it('counts the whole list while the tipboard has not loaded', () => {
+    setup({ experiences: [], watched: [inPark, ...elsewhere] });
+    expect(screen.getByRole('heading', { name: /Watching/ })).toHaveTextContent(
+      'Watching (4)'
+    );
   });
 });

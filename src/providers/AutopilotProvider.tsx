@@ -1005,6 +1005,26 @@ export default function AutopilotProvider({
     [wakeLockOwner]
   );
 
+  /**
+   * The watched attractions the loaded tipboard actually covers.
+   *
+   * A watch list outlives the park it was built for: switch to Epcot and the
+   * four Magic Kingdom targets are still stored, still listed by
+   * `loadWatchList`, and completely inert -- matching runs against the
+   * experiences on screen. Counting all of them told the user Autopilot was
+   * watching four things while the list underneath showed one, which is the
+   * count being wrong in the only sense that matters.
+   *
+   * While the tipboard has not loaded there is nothing to filter against, and
+   * answering "none" would be a worse guess than answering "all of them" --
+   * so an empty experience list means the question cannot be answered yet.
+   */
+  const targetsHere = useMemo(() => {
+    if (experiences.length === 0) return targets;
+    const here = new Set(experiences.map(exp => exp.id));
+    return targets.filter(t => here.has(t.experienceId));
+  }, [targets, experiences]);
+
   // Reads `targets` rather than the ref: a stable identity over a ref would
   // never re-render a watch toggle when the list changed.
   const isWatched = useCallback(
@@ -1088,6 +1108,7 @@ export default function AutopilotProvider({
         status,
         targets,
         isWatched,
+        targetsHere,
         addTarget,
         removeTarget,
         replaceTargets,

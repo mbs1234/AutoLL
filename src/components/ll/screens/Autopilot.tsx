@@ -12,6 +12,7 @@ import {
 import { syncedParkTime } from '@/autopilot/schedule';
 import { PollerStatus } from '@/autopilot/usePoller';
 import Button from '@/components/Button';
+import Disclosure from '@/components/Disclosure';
 import Screen from '@/components/Screen';
 import { Time } from '@/components/Time';
 import AutopilotContext from '@/contexts/AutopilotContext';
@@ -170,6 +171,7 @@ export default function Autopilot() {
     setEnabled,
     status,
     targets,
+    targetsHere,
     isWatched,
     addTarget,
     removeTarget,
@@ -355,7 +357,13 @@ export default function Autopilot() {
         </p>
       )}
 
-      <h3>Watching ({targets.length})</h3>
+      <h3>Watching ({targetsHere.length})</h3>
+      {targets.length > targetsHere.length && (
+        <p className="text-xs text-gray-600">
+          {targets.length - targetsHere.length} more saved for another park.
+          Autopilot only acts on the park loaded here.
+        </p>
+      )}
       {watched.length > 0 && (
         <p className="text-xs text-gray-600">
           A return-time window limits what Autopilot will <em>take</em>, not
@@ -569,9 +577,30 @@ export default function Autopilot() {
         </p>
       )}
 
+      <h3>Lightning Lane attractions</h3>
+      {watchable.length === 0 ? (
+        <p className="text-sm text-gray-600">
+          No attractions loaded yet. Close this and refresh the LL list first.
+        </p>
+      ) : (
+        <ul>
+          {unwatched.map(exp => (
+            <li key={exp.id} className="flex items-center gap-2 py-1">
+              <Button
+                title={`Watch ${exp.name}`}
+                color="bg-gray-200 text-black"
+                onClick={() => addTarget({ experienceId: exp.id })}
+              >
+                <StarIcon />
+              </Button>
+              <span>{exp.name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {learned.length > 0 && (
-        <>
-          <h3>Learned drop times</h3>
+        <Disclosure title="Learned drop times" count={learned.length}>
           <p className="text-xs text-gray-600">
             Autopilot records when availability actually appears while it runs,
             and compares that with the built-in drop schedule. A drop seen on{' '}
@@ -627,7 +656,7 @@ export default function Autopilot() {
               </li>
             ))}
           </ul>
-        </>
+        </Disclosure>
       )}
 
       {Object.keys(skipCounts).length > 0 && (
@@ -647,8 +676,7 @@ export default function Autopilot() {
       )}
 
       {bookingLog.length > 0 && (
-        <>
-          <h3>Booking activity</h3>
+        <Disclosure title="Booking activity" count={bookingLog.length}>
           <ul className="text-sm">
             {bookingLog.map((entry, i) => (
               <li key={`${entry.name}-${i}`} className="py-0.5">
@@ -716,29 +744,7 @@ export default function Autopilot() {
               </li>
             ))}
           </ul>
-        </>
-      )}
-
-      <h3>Lightning Lane attractions</h3>
-      {watchable.length === 0 ? (
-        <p className="text-sm text-gray-600">
-          No attractions loaded yet. Close this and refresh the LL list first.
-        </p>
-      ) : (
-        <ul>
-          {unwatched.map(exp => (
-            <li key={exp.id} className="flex items-center gap-2 py-1">
-              <Button
-                title={`Watch ${exp.name}`}
-                color="bg-gray-200 text-black"
-                onClick={() => addTarget({ experienceId: exp.id })}
-              >
-                <StarIcon />
-              </Button>
-              <span>{exp.name}</span>
-            </li>
-          ))}
-        </ul>
+        </Disclosure>
       )}
     </Screen>
   );

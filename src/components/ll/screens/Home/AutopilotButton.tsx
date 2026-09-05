@@ -16,7 +16,7 @@ import Autopilot, { AUTOPILOT } from '../Autopilot';
  */
 export default function AutopilotButton() {
   const { goTo } = use(NavContext);
-  const { enabled, status, targets, dryRun } = use(AutopilotContext);
+  const { enabled, status, targetsHere, dryRun } = use(AutopilotContext);
   const running = enabled && status.mode !== 'stopped';
   const attention = enabled && status.mode === 'stopped';
 
@@ -24,7 +24,7 @@ export default function AutopilotButton() {
     <Button
       title={
         running
-          ? `${AUTOPILOT} on${dryRun ? ' (dry run)' : ''}, watching ${targets.length}`
+          ? `${AUTOPILOT} on${dryRun ? ' (dry run)' : ''}, watching ${targetsHere.length}`
           : attention
             ? `${AUTOPILOT} stopped after errors`
             : `${AUTOPILOT} off`
@@ -43,8 +43,10 @@ export default function AutopilotButton() {
       }
     >
       <ClockIcon />
-      {running && targets.length > 0 && (
-        <span className="ml-1 text-xs font-semibold">{targets.length}</span>
+      {/* The same count the Autopilot screen shows, so the badge and the
+          heading can never disagree. */}
+      {running && targetsHere.length > 0 && (
+        <span className="ml-1 text-xs font-semibold">{targetsHere.length}</span>
       )}
     </Button>
   );
