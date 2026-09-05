@@ -9,7 +9,7 @@ import {
   RefusalState,
   refusedCalls,
 } from '@/autopilot/refusal';
-import { syncedParkTime } from '@/autopilot/schedule';
+import { MAX_CONSECUTIVE_FAILURES, syncedParkTime } from '@/autopilot/schedule';
 import { PollerStatus } from '@/autopilot/usePoller';
 import Button from '@/components/Button';
 import Disclosure from '@/components/Disclosure';
@@ -95,6 +95,25 @@ function StatusRow({
             Book by hand in Disney&rsquo;s app meanwhile.
           </p>
         </div>
+      )}
+      {/* Backing off, but not yet stopped.
+          `mode` keeps reporting the cadence the policy asked for while the
+          poller is actually waiting out an exponential backoff, so a run of
+          failures looked exactly like an ordinary idle watch -- just slower.
+          There was no way to tell 45s of idle from 60s of capped backoff from
+          the screen, which is precisely the question asked when Autopilot
+          "seems slow". */}
+      {status.mode !== 'stopped' && status.consecutiveFailures > 0 && (
+        <p className="mt-2 text-amber-800">
+          <span className="font-semibold">
+            {status.consecutiveFailures} failed{' '}
+            {status.consecutiveFailures === 1 ? 'check' : 'checks'} in a row
+          </span>{' '}
+          &mdash; slowing down between tries
+          {status.lastError ? `: ${status.lastError}` : ''}. It speeds back up
+          as soon as one succeeds, and gives up after {MAX_CONSECUTIVE_FAILURES}
+          .
+        </p>
       )}
       {status.mode === 'stopped' && (
         <p className="mt-2 font-semibold text-red-700">

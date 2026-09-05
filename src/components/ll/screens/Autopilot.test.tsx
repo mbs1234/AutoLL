@@ -895,3 +895,51 @@ describe('Autopilot watch count', () => {
     );
   });
 });
+
+// `mode` reports the cadence the policy asked for, not the exponential
+// backoff the poller is actually waiting out, so a failing Autopilot looked
+// exactly like an idle one -- just slower. That is the state you are in when
+// you ask why it "seems slow", and it was the one state the screen would not
+// tell you about.
+describe('Autopilot backoff', () => {
+  const failing = (consecutiveFailures: number) => ({
+    status: {
+      mode: 'idle' as const,
+      consecutiveFailures,
+      polls: 12,
+      lastError: 'Request failed',
+    },
+    enabled: true,
+  });
+
+  it('says it is backing off before it has given up', () => {
+    setup(failing(3));
+    expect(screen.getByText(/3 failed checks in a row/)).toBeVisible();
+    expect(screen.getByText(/Request failed/)).toBeVisible();
+  });
+
+  it('says nothing while checks are succeeding', () => {
+    setup({ ...failing(0), status: { ...failing(0).status } });
+    expect(screen.queryByText(/failed check/)).not.toBeInTheDocument();
+  });
+
+  it('counts one failure in the singular', () => {
+    setup(failing(1));
+    expect(screen.getByText(/1 failed check in a row/)).toBeVisible();
+  });
+
+  // Once it has stopped, the red notice says so and this would be noise.
+  it('defers to the stopped notice', () => {
+    setup({
+      enabled: true,
+      status: {
+        mode: 'stopped',
+        consecutiveFailures: 8,
+        polls: 20,
+        lastError: 'Request failed',
+      },
+    });
+    expect(screen.getByText(/Stopped after 8 failed checks/)).toBeVisible();
+    expect(screen.queryByText(/in a row/)).not.toBeInTheDocument();
+  });
+});
