@@ -36,6 +36,29 @@ export const APPROACH_LEAD_S = 300;
 export const MIN_INTERVAL_MS = 1000;
 
 export const BURST_INTERVAL_MS = 1200;
+
+/**
+ * Interval and floor for a hand-started search.
+ *
+ * Faster than a drop burst, because the trade is different. A drop burst runs
+ * unattended alongside the user's own tapping, so it leaves the shared
+ * `RateLimit(5)` most of its headroom. A search in `rapid` mode is the only
+ * thing running, the user is watching it rather than using the app, and it
+ * lasts minutes.
+ *
+ * A tick costs about one request -- the tipboard -- with plans every tenth and
+ * an occasional eligibility prewarm, so 600ms is roughly 1.7 requests/second
+ * against a limit of 5. That leaves room for the prewarm and for the user
+ * tapping something, which matters: exceeding the limit is not throttled, it
+ * throws, and then costs a five-second cooldown at the moment being waited for.
+ *
+ * Not lowered further, and the limiter is not bypassed. Beyond this the ceiling
+ * stops being ours: Disney's tipboard is served through a CDN and there is no
+ * evidence it recomputes per request, so the extra calls would likely return
+ * the same bytes while making the client conspicuous.
+ */
+export const RAPID_INTERVAL_MS = 600;
+export const RAPID_MIN_INTERVAL_MS = 500;
 export const APPROACH_INTERVAL_MS = 6000;
 export const IDLE_INTERVAL_MS = 45_000;
 
@@ -108,7 +131,7 @@ export function cadence({
   nextBookTimes = [],
   rapid = false,
 }: CadenceInput): Cadence {
-  if (rapid) return { mode: 'burst', intervalMs: BURST_INTERVAL_MS };
+  if (rapid) return { mode: 'burst', intervalMs: RAPID_INTERVAL_MS };
   // Defaulting to an empty array rather than testing for undefined keeps the
   // two kinds of target symmetrical, which is what lets the loop below score
   // every one of them without knowing where it came from.
@@ -173,8 +196,12 @@ export function backoffMs(consecutiveFailures: number): number {
  *
  * `rand` is injectable purely so tests can be deterministic.
  */
-export function withJitter(intervalMs: number, rand = Math.random): number {
+export function withJitter(
+  intervalMs: number,
+  rand = Math.random,
+  minIntervalMs = MIN_INTERVAL_MS
+): number {
   const spread = intervalMs * 0.2;
   const jittered = intervalMs - spread + rand() * spread * 2;
-  return Math.max(MIN_INTERVAL_MS, Math.round(jittered));
+  return Math.max(minIntervalMs, Math.round(jittered));
 }

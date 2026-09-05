@@ -6,6 +6,7 @@ import { syncTime } from '@/timesync';
 import {
   MAX_CONSECUTIVE_FAILURES,
   PollMode,
+  RAPID_MIN_INTERVAL_MS,
   backoffMs,
   cadence,
   syncedParkTime,
@@ -139,7 +140,13 @@ export default function usePoller({
 
       timer = setTimeout(
         run,
-        failed ? backoffMs(failures) : withJitter(next.intervalMs)
+        failed
+          ? backoffMs(failures)
+          : withJitter(
+              next.intervalMs,
+              undefined,
+              rapidRef.current ? RAPID_MIN_INTERVAL_MS : undefined
+            )
       );
     };
 

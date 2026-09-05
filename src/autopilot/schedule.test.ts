@@ -7,6 +7,8 @@ import {
   BURST_INTERVAL_MS,
   IDLE_INTERVAL_MS,
   MIN_INTERVAL_MS,
+  RAPID_INTERVAL_MS,
+  RAPID_MIN_INTERVAL_MS,
   backoffMs,
   cadence,
   secondsUntil,
@@ -194,7 +196,8 @@ describe('cadence() in rapid mode', () => {
   it('bursts regardless of what is or is not coming up', () => {
     const c = cadence({ now: at(14, 3), rapid: true });
     expect(c.mode).toBe('burst');
-    expect(c.intervalMs).toBe(BURST_INTERVAL_MS);
+    expect(c.intervalMs).toBe(RAPID_INTERVAL_MS);
+    expect(RAPID_INTERVAL_MS).toBeLessThan(BURST_INTERVAL_MS);
   });
 
   it('ignores drop times entirely rather than being pulled toward them', () => {
@@ -208,11 +211,30 @@ describe('cadence() in rapid mode', () => {
     expect(c.target).toBeUndefined();
   });
 
-  // The floor exists because ApiClient shares a RateLimit(5) with the user's
-  // own taps; rapid mode may not go under it.
-  it('does not poll faster than the shared rate limit allows', () => {
-    expect(
-      cadence({ now: at(14), rapid: true }).intervalMs
-    ).toBeGreaterThanOrEqual(MIN_INTERVAL_MS);
+  // ApiClient shares a RateLimit(5) with the user's own taps, and exceeding it
+  // throws rather than throttling -- a five-second cooldown at the worst
+  // possible moment. Rapid mode spends part of that headroom but must leave
+  // enough for the prewarm and for the user tapping something.
+  it('stays well inside the shared rate limit', () => {
+    const { intervalMs } = cadence({ now: at(14), rapid: true });
+    expect(intervalMs).toBeGreaterThanOrEqual(RAPID_MIN_INTERVAL_MS);
+    expect(1000 / intervalMs).toBeLessThan(3);
+  });
+
+  it('jitters down to the rapid floor, not the ordinary one', () => {
+    expect(RAPID_MIN_INTERVAL_MS).toBeLessThan(MIN_INTERVAL_MS);
+    expect(withJitter(RAPID_INTERVAL_MS, () => 0, RAPID_MIN_INTERVAL_MS)).toBe(
+      RAPID_MIN_INTERVAL_MS
+    );
+    expect(withJitter(RAPID_INTERVAL_MS, () => 1, RAPID_MIN_INTERVAL_MS)).toBe(
+      Math.round(RAPID_INTERVAL_MS * 1.2)
+    );
+  });
+
+  // The floor is opt-in: nothing but a hand-started search may use it.
+  it('leaves the ordinary floor alone by default', () => {
+    expect(withJitter(BURST_INTERVAL_MS, () => 0)).toBeGreaterThanOrEqual(
+      MIN_INTERVAL_MS
+    );
   });
 });

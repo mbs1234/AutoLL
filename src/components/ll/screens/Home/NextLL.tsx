@@ -4,6 +4,7 @@ import { Experience } from '@/api/ll';
 import { findExistingLL } from '@/autopilot/automodify';
 import { parseBound } from '@/autopilot/watchlist';
 import Button from '@/components/Button';
+import Tab from '@/components/Tab';
 import { Time } from '@/components/Time';
 import AutopilotContext from '@/contexts/AutopilotContext';
 import BookingDateContext from '@/contexts/BookingDateContext';
@@ -14,6 +15,8 @@ import useSavedParty from '@/hooks/useSavedParty';
 import AutopilotProvider from '@/providers/AutopilotProvider';
 
 import { HomeTabProps } from '../Home';
+import RefreshButton from '../RefreshButton';
+import ParkSelect from './ParkSelect';
 
 export const NEXTLL = 'NextLL';
 
@@ -30,16 +33,14 @@ export const NEXTLL_WATCHLIST_KEY = 'bg1.nextll.watchlist';
 
 export default function NextLLTab({ ref }: HomeTabProps) {
   return (
-    <div ref={ref}>
-      <AutopilotProvider
-        watchListKey={NEXTLL_WATCHLIST_KEY}
-        rapid
-        budgeted={false}
-        repeatMoves
-      >
-        <NextLL />
-      </AutopilotProvider>
-    </div>
+    <AutopilotProvider
+      watchListKey={NEXTLL_WATCHLIST_KEY}
+      rapid
+      budgeted={false}
+      repeatMoves
+    >
+      <NextLL ref={ref} />
+    </AutopilotProvider>
   );
 }
 
@@ -59,14 +60,14 @@ export default function NextLLTab({ ref }: HomeTabProps) {
  * nothing -- and once something is held the window becomes the goal the move
  * step works toward.
  */
-export function NextLL() {
+export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
   // Applies the party saved in the LL tab. Only `useSavedParty` calls
   // `ll.setPartyIds`, and it is mounted by `MultiPassList` -- which is not
   // mounted while this tab is showing. Without this, an empty party id set
   // means nobody is marked NOT_IN_PARTY and a search books for everyone
   // eligible on the account, silently overriding the choice made next door.
   const [partyIds] = useSavedParty();
-  const { experiences } = use(ExperiencesContext);
+  const { experiences, refreshExperiences } = use(ExperiencesContext);
   const { plans } = use(PlansContext);
   const { bookingDate } = use(BookingDateContext);
   const {
@@ -113,7 +114,16 @@ export function NextLL() {
   }
 
   return (
-    <div className="px-3 pb-4">
+    <Tab
+      title={NEXTLL}
+      buttons={
+        <>
+          <ParkSelect />
+          <RefreshButton name="Experiences" onClick={refreshExperiences} />
+        </>
+      }
+      ref={ref}
+    >
       {!enabled ? (
         <>
           <p>
@@ -244,6 +254,6 @@ export function NextLL() {
           )}
         </>
       )}
-    </div>
+    </Tab>
   );
 }
