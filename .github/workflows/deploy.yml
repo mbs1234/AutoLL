@@ -48,6 +48,17 @@ jobs:
           ref: goofy
           path: goofy-static
 
+      # The base's own published output. `sensor-data.js` is loaded at runtime
+      # by a dynamic import rather than bundled, so it has to be shipped
+      # alongside the build, and it has to be *this* copy -- `goofy` carries a
+      # different vintage of the same filename, and pairing that with this
+      # bundle fails in a way that is hard to read.
+      - name: Check out base static output (gh-pages)
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: base-static
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -72,11 +83,6 @@ jobs:
           # Also deliberately skipped:
           #   diu.js         - obfuscated private module; our stub's chunk
           #                    is emitted by the build instead
-          #   sensor-data.js - upstream's deployed bg1.js DOES reference this;
-          #                    an earlier version of this comment said it was
-          #                    referenced by no page, which was wrong. This
-          #                    build has no reference to it either way. See
-          #                    FORK.md, "Booking".
           #   google*.html   - upstream's Google site-verification token
           for f in index.html index.css icon.png start.html news.html \
                    contact.html autoloader.user.js; do
@@ -87,6 +93,23 @@ jobs:
               echo "::warning::goofy-static/$f not found, skipped"
             fi
           done
+
+      - name: Overlay runtime modules from the base
+        run: |
+          set -euo pipefail
+          # Not a build output and not bundled: `src/api/sensor-data.ts` loads
+          # this by dynamic import at runtime, resolved next to bg1.js. Absent,
+          # the import rejects with an error carrying no HTTP status, so
+          # `useDataLoader` falls through to "Unknown error occurred" and every
+          # booking fails for a reason the message does not name. Taken from
+          # gh-pages rather than goofy on purpose -- see the checkout step.
+          if [ -f "base-static/sensor-data.js" ]; then
+            cp "base-static/sensor-data.js" "dist/sensor-data.js"
+            echo "overlaid sensor-data.js"
+          else
+            echo "::error::base-static/sensor-data.js not found; booking will fail"
+            exit 1
+          fi
 
       - name: Repoint upstream URLs at this fork
         run: |
