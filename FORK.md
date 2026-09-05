@@ -111,18 +111,18 @@ this is the map.
 
 | Module | Role |
 | --- | --- |
-| `schedule.ts` | Pure cadence policy (idle / approach / burst) from drop times and `nextBookTime`, on the drift-corrected clock; backoff. |
+| `schedule.ts` | Pure cadence policy (idle / approach / burst) from drop times and every booking window, on the drift-corrected clock; backoff. |
 | `usePoller.ts` | The single sequential polling loop. |
 | `wakelock.ts` | Screen Wake Lock held while autopilot runs, re-acquired when the page becomes visible. Best-effort: unsupported or refused leaves prior behaviour. |
 | `watchlist.ts` | Targets and their flags; matching; edge-triggered alert selection; persistence. |
 | `alert.ts` | Chime, vibration, notification, each degrading independently. |
-| `prewarm.ts` | Guest-eligibility cache, invalidated on `eligibleAfter` and on any booking. |
+| `prewarm.ts` | Guest-eligibility cache, invalidated on `eligibleAfter`, on any booking, and whenever what the party holds changes — a tap-in, an expiry, or a booking or cancellation made by hand. |
 | `priority.ts` | Priority ordering (same comparator as the LL list) and the Tier 1 hold. |
 | `autobook.ts` / `automodify.ts` / `autoswap.ts` | The three actions, each guarded on the offer's *real* time; shared per-action ledger. |
 | `party.ts` | Whole-party guard. |
 | `overlap.ts` | Whether a return time clashes with an existing plan, using Disney's own window from `api/ll/wdw.ts`. |
 | `observe.ts` / `learned.ts` | Drop-time learning: detection, coverage, clustering, and merging learned times into the cadence. |
-| `storage.ts` | Persisted settings and the day-scoped activity log. |
+| `storage.ts` | Persisted settings, the day-scoped activity log, and the day-scoped action budget. |
 
 Design rules that hold throughout, and that a future change should keep:
 

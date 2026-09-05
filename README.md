@@ -29,10 +29,10 @@ Upstream refreshes only when you tap refresh. Autopilot watches for you, alerts 
 | Mode | When | Interval |
 | --- | --- | --- |
 | Watching | nothing imminent | ~45s |
-| Drop approaching | within 5 min of a drop or your booking window | ~6s |
+| Drop approaching | within 5 min of a drop or one of your booking windows | ~6s |
 | Checking rapidly | 30s before to 120s after a drop | ~1.2s |
 
-Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and from Disney's own `nextBookTime`. The lead exists because inventory sometimes releases early; the trail because it trickles in and good times are gone within a minute. Every interval carries ±20% jitter. Timing runs on the drift-corrected clock in `src/timesync.ts`, which upstream computes but only ever uses to render the on-screen clock.
+Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and from every booking window Disney reports for your party — their slots free at different times, and each one is a moment inventory opens. The lead exists because inventory sometimes releases early; the trail because it trickles in and good times are gone within a minute. Every interval carries ±20% jitter. Timing runs on the drift-corrected clock in `src/timesync.ts`, which upstream computes but only ever uses to render the on-screen clock.
 
 **Per-attraction toggles.** Each is off by default and independent, because the risks differ.
 
@@ -48,7 +48,7 @@ Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and fro
 
 **Ordering.** When two armed attractions appear in the same tick, the better one is booked first, ranked by the same order the LL list's **Priority** sort uses. When a higher-ranked Tier 1 is armed and still has a drop ahead of it, Autopilot passes on a lesser Tier 1 rather than spend the party's Tier 1 slot — releasing that hold once the better attraction's drops have passed, **or as soon as your party redeems its first Lightning Lane**, since the one-Tier-1 limit only applies until then.
 
-**Dry run.** Everything except acting: it watches, alerts, checks eligibility and applies every guard, then logs *"would have booked Slinky Dog Dash for 11:05 AM"*. Nothing is committed and none of it counts against the session limit. The recommended way to spend a first park day with it. Deliberately loud — yellow banner, yellow header button — because a forgotten dry run looks exactly like a broken booker.
+**Dry run.** Everything except acting: it watches, alerts, checks eligibility and applies every guard, then logs *"would have booked Slinky Dog Dash for 11:05 AM"*. Nothing is committed and none of it spends the day's budget — though it does stop once that budget is gone, since a live run with nothing left would do nothing either. The recommended way to spend a first park day with it. Deliberately loud — yellow banner, yellow header button — because a forgotten dry run looks exactly like a broken booker.
 
 **Whole party only.** Off by default, matching how booking by hand works: Autopilot books for whoever is eligible. Turn it on and it acts only when everyone in your saved party is eligible.
 
@@ -58,11 +58,11 @@ Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and fro
 
 ### Safety limits
 
-- **Three actions per session.** Bookings, moves and swaps share one budget, so a matching bug cannot burn a day of Lightning Lanes. Resets on reload.
+- **Ten actions per park day,** settable from 1 to 30. Bookings, moves and swaps share one budget, so a matching bug cannot burn a day of Lightning Lanes. It is persisted, so it survives a reload and turning Autopilot off and on — both of which used to refill it silently, which meant it bounded nothing. When it runs out Autopilot keeps watching and alerting, and offers a top-up rather than stopping quietly. A new park day starts clean.
 - **One attempt per attraction per action,** recorded *before* the request goes out — a timed-out request may have succeeded, so retrying is the dangerous option. **Booking is the exception:** Disney lets you book, cancel and rebook the same attraction, and only *redeeming* it is once per day. A booking lock therefore lifts once the itinerary has shown the reservation and then shown it gone. A booking never seen keeps its lock, since absence cannot be told from an itinerary that has not caught up; so does one whose entitlement was redeemed or expired unredeemed, which Disney counts as ridden.
 - **An unsettled booking holds a slot.** A request that never returned may still have landed, so it counts against the allowance until plans settle it. The cap bounds Lightning Lanes *possibly* spent, and the on-screen "N left" follows it.
-- **Fresh allowance and empty cache** each time you turn Autopilot on, so a stale eligibility result cannot drive a booking.
-- **Arming persists, running does not.** Auto-book choices are saved; Autopilot is always off after a reload.
+- **An empty cache** each time you turn Autopilot on, so a stale eligibility result cannot drive a booking. The day's spend is deliberately *not* reset with it.
+- **Arming persists, running does not.** Auto-book choices and the day's budget are saved; Autopilot itself is always off after a reload.
 - **The offer's real time is re-checked** before booking. Matching runs on the tipboard's advertised time, but the offer that comes back can be later — inventory moves, and Disney sometimes places a third Lightning Lane between two you hold. An offer outside your window is abandoned, and the next check is a second away.
 
 ### Scope
@@ -100,6 +100,10 @@ Booking costs three sequential requests: eligibility, offer, book. Eligibility i
 
 - **Slot accounting counted spent reservations.** A fully-redeemed Lightning Lane survives in the itinerary with no guests, and counting it meant that after the first tap-in of the day Autopilot believed the party was full and swapped a reservation away instead of booking into the slot that had just come free. Now only cancellable reservations with a guest left count, and Multiple Experiences Passes are excluded.
 - **Booking locks are released by evidence, not at session end,** so cancelling a late return time by hand no longer forfeits the earlier one that drops an hour later. During a drop plans are polled roughly every 12 seconds, so the two consecutive absences a release needs are about 24 seconds apart.
+- **Only the earliest booking window was read.** Disney reports one moment per freeing slot, and Autopilot kept the first and idled at 45 seconds through the rest. It now paces itself to all of them. The old code also ordered them as text, so a window just after midnight sorted to the front of a late Magic Kingdom night and was reported as the next one.
+- **Cached eligibility outlived the party.** The cache was cleared only for actions Autopilot took itself, so a tap-in, an expiry, a reservation cancelled by hand, or one booked in Disney's own app all moved eligibility and cleared nothing — leaving a party that tapped in mid-drop sitting out the rest of it on a stale “you cannot book”. It now clears whenever what the party holds changes.
+- **A Multiple Experiences Pass blocked bookings.** The pass Disney issues when a ride goes down is good any time, but it parses with a start time, so clash avoidance treated it as a 100-minute reservation and refused every return time in that band until it was used.
+- **The acting loop read stale plans.** On the tick that polled plans it was still reading the copy from the previous render, so a slot that had just come free looked taken — and Autopilot gave up a reservation to swap into a slot it could simply have booked.
 - **The return-time window had no UI.** It was declared, persisted, revived and gating four code paths, but the only way to set one was to hand-edit `localStorage`.
 - **`RateLimit` no longer latches permanently.** Upstream set an "exceeded" flag on the first violation and never cleared it, so one burst rejected *every* later API call until a reload. This was the prerequisite for any automated polling.
 - **The tree actually builds.** Upstream's `src/api/diu` module is gitignored and never published, and its build script deletes the public shim, so a clean clone cannot resolve the import. A stub restores it; only Disneyland calls it.

@@ -17,17 +17,43 @@ and deliberately absent here. This document is about making the booker smarter.
 
 ## Status
 
-**Landed:** all of Phase 0 (§3) and P1.1–P1.4 (§4). That is the three missing
-facility ids plus an on-screen warning for the next one, the priority, land and
-drop-time corrections, the return-time window UI, slot accounting, the overlap
-guard, and treating an expired pass as ridden. Two extras fell out of the work:
-`heldMPToday` now also excludes a Multiple Experiences Pass (part of P1.7), and
-a section-consistency test found two Disneyland entries filed under the wrong
-park.
+**Landed:** all of Phase 0 (§3) and all of Phase 1 (§4).
 
-**Outstanding:** P1.5–P1.8 (§4), and Phases 2–5 (§5–§8). Section numbers below
-are unchanged, so an item still described in the present tense there and not
-listed as landed above has not been built.
+Phase 0 and P1.1–P1.4: the three missing facility ids plus an on-screen warning
+for the next one, the priority, land and drop-time corrections, the return-time
+window UI, slot accounting, the overlap guard, and treating an expired pass as
+ridden. A section-consistency test also found two Disneyland entries filed under
+the wrong park.
+
+P1.5–P1.8, with three of the four items corrected by the code:
+
+- **P1.5** landed as written, and the same pass found a second bug the item did
+  not name: the windows were ordered as `HH:MM:SS` text, so one just after
+  midnight sorted ahead of a late Magic Kingdom night.
+- **P1.6**'s diagnosis was wrong on both halves. Nothing was ever pinned --
+  `staleAfter` layers on top of the 3-minute TTL rather than replacing it -- and
+  its *absence* means fewer refetches, not more. What is real is that the cache
+  was cleared only for actions autopilot took itself, so a tap-in, an expiry, a
+  hand cancellation, or a booking made in Disney's own app all moved eligibility
+  and cleared nothing. It now clears whenever what the party holds changes,
+  which is both simpler and covers the direction the item missed.
+- **P1.7** is mostly refuted; see §9. An MEP parses as `subtype: 'OTHER'`, so
+  `isLLMP` already excluded it from every path the item wanted guarded, and a
+  burst cannot be forced from inside the tick that detects one. What survived is
+  a bug P1.3 introduced: an MEP carries a start time, so the overlap guard was
+  giving it a 100-minute clash band for the rest of the day.
+- **P1.8** landed with the ceiling enforced on the effective budget rather than
+  only on the setting, since the refill total is persisted and therefore
+  editable; and dry run stops at an exhausted budget rather than being exempt
+  from it.
+
+Two fixes fell out that no item asked for: the acting loop was reading the
+previous render's plans on the tick that polled them, and `heldMPToday` now also
+excludes an MEP (a boundary guard rather than a live fix).
+
+**Outstanding:** Phases 2–5 (§5–§8). Section numbers below are unchanged, so an
+item still described in the present tense there and not listed as landed above
+has not been built.
 
 ---
 
