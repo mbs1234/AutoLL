@@ -14,6 +14,8 @@ import {
   AutoBookLedger,
   AutoBookOutcome,
   ClashCheck,
+  MAX_ACTIONS_PER_DAY,
+  REFILL_ACTIONS,
   attemptAutoBook,
   shouldAttempt,
 } from '@/autopilot/autobook';
@@ -46,13 +48,21 @@ import {
 } from '@/autopilot/observe';
 import { overlappingPlans } from '@/autopilot/overlap';
 import { wholePartyEligible } from '@/autopilot/party';
-import { GuestCache, prewarmGuests } from '@/autopilot/prewarm';
+import {
+  GuestCache,
+  entitlementsChanged,
+  heldEntitlements,
+  prewarmGuests,
+} from '@/autopilot/prewarm';
 import { orderByPriority, shouldHoldTierSlot } from '@/autopilot/priority';
 import { syncedParkTime } from '@/autopilot/schedule';
 import {
   loadBookingLog,
+  loadBudget,
   loadSettings,
+  sanitizeBudget,
   saveBookingLog,
+  saveBudget,
   saveSettings,
 } from '@/autopilot/storage';
 import usePoller from '@/autopilot/usePoller';
@@ -132,8 +142,50 @@ export default function AutopilotProvider({
   const plansRef = useRef(plans);
   plansRef.current = plans;
 
+  // Today's record, read once on mount. `kvdb's daily helpers give a fresh one
+  // on a new park day -- but only to a fresh mount, and this provider does not
+  // remount: a phone tab that backgrounds overnight is still holding yesterday
+  // at 7am. `setDaily` stamps the date at *write* time, so a write from that
+  // tab would republish yesterday's spend under today, and a reload would then
+  // start the new day already exhausted.
+  const budgetTodayRef = useRef(loadBudget());
+  const budgetDateRef = useRef(parkDate());
+  const grantedRef = useRef(budgetTodayRef.current.granted);
+  // Whether the exhausted skip has already been counted for this exhaustion.
+  const budgetSkipRef = useRef(false);
+
+  /**
+   * Write the day's charge, unless the park day has turned under us.
+   *
+   * Both writers funnel through here. Refusing the write leaves the stale tab
+   * showing yesterday's count until it reloads, which is no worse than the
+   * `bookingDate` beside it -- that is captured once too. What matters is that
+   * the staleness is not written down where tomorrow will read it as fact.
+   */
+  const persistBudget = (spent: number) => {
+    if (parkDate() !== budgetDateRef.current) return;
+    saveBudget({ spent, granted: grantedRef.current });
+  };
+
   const cacheRef = useRef(new GuestCache());
-  const ledgerRef = useRef(new AutoBookLedger());
+  // What the party held as of the last plans poll. Undefined until the first
+  // poll of a run establishes the baseline rather than firing on it.
+  const entitlementsRef = useRef<ReadonlySet<string> | undefined>(undefined);
+  const ledgerRef = useRef(
+    new AutoBookLedger(
+      // Clamped on the sum, not just on the setting: `granted` is persisted,
+      // so an edited value must not be able to lift the ceiling. Read from
+      // `settings` rather than `loadSettings()`: `useRef` keeps only the first
+      // value but evaluates its argument on every render, so a load here would
+      // parse localStorage on each one.
+      Math.min(
+        MAX_ACTIONS_PER_DAY,
+        settings.maxActionsPerDay + budgetTodayRef.current.granted
+      ),
+      budgetTodayRef.current.spent,
+      spent => persistBudget(spent)
+    )
+  );
 
   // Drop learning: the previous tipboard state, plus what the poller has seen
   // and when it was looking. Events and coverage accumulate across visits.
@@ -149,6 +201,27 @@ export default function AutopilotProvider({
   const [bookingsRemaining, setBookingsRemaining] = useState(
     () => ledgerRef.current.remaining
   );
+  const [actionBudget, setActionBudget] = useState(
+    () => ledgerRef.current.budgetToday
+  );
+
+  /**
+   * Push the current ceiling into the ledger and onto the screen.
+   *
+   * The ceiling is the setting plus whatever refills have been granted today,
+   * clamped to `MAX_ACTIONS_PER_DAY` on the sum. Changing it never changes what
+   * has been spent -- lowering the allowance below today's spend simply leaves
+   * nothing remaining.
+   */
+  const applyBudget = useCallback(() => {
+    const budget = Math.min(
+      MAX_ACTIONS_PER_DAY,
+      settingsRef.current.maxActionsPerDay + grantedRef.current
+    );
+    ledgerRef.current.setBudget(budget);
+    setActionBudget(budget);
+    setBookingsRemaining(ledgerRef.current.remaining);
+  }, []);
 
   // Block body on purpose: an expression body would return saveWatchList's
   // value, which React would treat as a cleanup function.
@@ -161,11 +234,27 @@ export default function AutopilotProvider({
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+  // The allowance lives in settings but is enforced by the ledger, so a change
+  // has to reach it -- otherwise raising the number would show a larger budget
+  // while autopilot kept refusing to act.
+  useEffect(() => {
+    applyBudget();
+  }, [settings.maxActionsPerDay, applyBudget]);
 
   // Unmount is the one path that bypasses `setEnabled(false)`, and a wake lock
   // outliving the screen that requested it would keep the phone awake with
   // nothing running.
   useEffect(() => () => void releaseScreenAwake(), []);
+
+  const refillBudget = useCallback(() => {
+    grantedRef.current = Math.min(
+      MAX_ACTIONS_PER_DAY,
+      grantedRef.current + REFILL_ACTIONS
+    );
+    persistBudget(ledgerRef.current.spent);
+    budgetSkipRef.current = false;
+    applyBudget();
+  }, [applyBudget]);
 
   const bumpSkip = useCallback((reason: string) => {
     setSkipCounts(prev => ({ ...prev, [reason]: (prev[reason] ?? 0) + 1 }));
@@ -291,9 +380,16 @@ export default function AutopilotProvider({
     }
 
     const date = bookingDateRef.current;
+    // One view of plans for the whole tick. `plansRef` is assigned during
+    // render, so on a tick that polled plans it still holds the pre-poll
+    // snapshot -- React cannot have re-rendered between the await above and
+    // here. Reading it while the settle loop below reads `freshPlans` would
+    // let autopilot believe two things about the same party in the same tick:
+    // that a slot has just come free, and that all three are still taken.
+    const currentPlans = freshPlans ?? plansRef.current;
     const heldToday = (experienceId: string) =>
-      findExistingLL(plansRef.current, experienceId, date);
-    const allHeldToday = heldMPToday(plansRef.current, date);
+      findExistingLL(currentPlans, experienceId, date);
+    const allHeldToday = heldMPToday(currentPlans, date);
     const partyIsFull = allHeldToday.length >= MAX_HELD_MP;
 
     /**
@@ -308,7 +404,7 @@ export default function AutopilotProvider({
      */
     const clashes: ClashCheck = (time, itinerary, release) => {
       if (!settingsRef.current.avoidOverlaps) return false;
-      const inPlans = overlappingPlans(time, plansRef.current, {
+      const inPlans = overlappingPlans(time, currentPlans, {
         date,
         ...(release ? { ignoreIds: [release.id] } : {}),
       });
@@ -339,6 +435,25 @@ export default function AutopilotProvider({
       // only successful actions.
       setBookedCount(ledgerRef.current.bookedCount);
       setBookingsRemaining(ledgerRef.current.remaining);
+
+      // Eligibility moves for reasons no clock predicts. A tap-in, an expiry,
+      // a reservation cancelled by hand, or one booked in Disney's own app all
+      // change what the party may book, and the cache was cleared only for
+      // actions autopilot took itself -- so a party that tapped in mid-drop sat
+      // out the rest of it, skipping on `no-eligible-guests` for up to the full
+      // three-minute TTL while the slot it had just freed went unbooked.
+      //
+      // Cleared wholesale rather than by ineligibility reason. At the moment of
+      // a first redemption nothing in the party is fully eligible, so a
+      // reason-based predicate would drop every entry anyway; and in the other
+      // direction a booking made by hand is exactly what makes the *eligible*
+      // entries the wrong ones. The cost is one sequential re-prewarm at the end
+      // of this tick, which is the honest price of eligibility having changed.
+      const held = heldEntitlements(settled, date);
+      if (entitlementsChanged(entitlementsRef.current, held)) {
+        cacheRef.current.clear();
+      }
+      entitlementsRef.current = held;
     }
 
     // Book-then-move: while nothing is held, the window is stripped so any
@@ -419,7 +534,27 @@ export default function AutopilotProvider({
       const wantsModify = !!(target.autoModify || target.bookThenMove);
       const wantsSwap = !!target.autoSwap;
       if (!wantsBook && !wantsModify && !wantsSwap) continue;
-      if (ledgerRef.current.remaining <= 0) break;
+      if (ledgerRef.current.remaining <= 0) {
+        // Dry run stops here too. It spends nothing, so exempting it looks
+        // free -- but a rehearsal exists to show what the live run would have
+        // done, and a live run with no budget left does nothing. Exempting it
+        // also achieved the opposite of its intent: the three pure guards
+        // check `remaining` themselves, so the rehearsal skipped anyway and
+        // logged `budget-exhausted` once per armed hit per tick, which is the
+        // flood the counter below is written to avoid.
+        //
+        // Counted once per exhaustion rather than once per tick. This break
+        // sits ahead of every other skip the loop can report, so a tally here
+        // would climb 50/min in a burst, pin itself to the top of "Why nothing
+        // was booked", and freeze every diagnostic reason beneath it at its
+        // morning value.
+        if (!budgetSkipRef.current) {
+          budgetSkipRef.current = true;
+          bumpSkip('budget-exhausted');
+        }
+        break;
+      }
+      budgetSkipRef.current = false;
 
       // Holding a reservation already makes booking a second one pointless --
       // Disney would reject it -- so the only useful action is re-timing. With
@@ -655,7 +790,7 @@ export default function AutopilotProvider({
     dropTimes: watchingToday ? effectiveDropTimes : undefined,
     // Set as a side effect of ll.experiences(), so it is current as of the
     // last poll. Read fresh each tick by usePoller.
-    nextBookTime: watchingToday ? ll.nextBookTime : undefined,
+    nextBookTimes: watchingToday ? ll.nextBookTimes : undefined,
   });
 
   // The poller gives up after repeated failures without touching `enabled`, so
@@ -683,12 +818,20 @@ export default function AutopilotProvider({
       // available, rather than staying silent about it.
       alertedRef.current = new Set();
       tickCountRef.current = 0;
-      // Fresh allowance and a clear cache per run, so a stale eligibility
-      // result from an earlier session cannot drive a booking.
+      // Fresh locks and a clear cache per run, so a stale eligibility result
+      // from an earlier session cannot drive a booking. The day's spend is
+      // deliberately *not* fresh: turning autopilot off and on used to be the
+      // only way to get more actions, and it came bundled with a wipe of the
+      // drop-detection baseline, so buying actions cost the first poll's
+      // ability to see a drop. Use the refill button instead.
       ledgerRef.current.reset();
       cacheRef.current.clear();
+      // Re-baseline: a run comparing against the previous run's plans would
+      // clear the cache on its own first poll.
+      entitlementsRef.current = undefined;
       setBookedCount(0);
       setBookingsRemaining(ledgerRef.current.remaining);
+      budgetSkipRef.current = false;
       setSkipCounts({});
       // Fresh baseline: the first poll of a run sees everything as "new", and
       // that must read as a baseline rather than a drop.
@@ -792,6 +935,14 @@ export default function AutopilotProvider({
         // attempt also holds a slot, and recomputing would overstate what is
         // left.
         bookingsRemaining,
+        actionBudget,
+        refillBudget,
+        maxActionsPerDay: settings.maxActionsPerDay,
+        setMaxActionsPerDay: actions =>
+          setSettings(prev => ({
+            ...prev,
+            maxActionsPerDay: sanitizeBudget(actions),
+          })),
         requireWholeParty: settings.requireWholeParty,
         setRequireWholeParty: on =>
           setSettings(prev => ({ ...prev, requireWholeParty: on })),
