@@ -4,6 +4,16 @@ import kvdb from '@/kvdb';
 
 export const WATCHLIST_KEY = 'bg1.autopilot.watchlist';
 
+/**
+ * Where a build keeps its watch list.
+ *
+ * Parameterised because more than one bookmarklet runs on Disney's origin and
+ * they therefore share one `localStorage`. NextLL sets a single target for a
+ * single goal; without its own key it would silently overwrite the list
+ * Autopilot had been carrying all day.
+ */
+export type WatchListKey = string;
+
 export interface WatchTarget {
   experienceId: string;
   /** Earliest acceptable return time, inclusive. */
@@ -192,8 +202,10 @@ export function parseBound(value?: string): ParkTime | undefined {
  * silently discard a watch the user deliberately set, and a missed alert is
  * harder to notice than an early one.
  */
-export function loadWatchList(): WatchTarget[] {
-  const stored = kvdb.get<StoredTarget[]>(WATCHLIST_KEY);
+export function loadWatchList(
+  key: WatchListKey = WATCHLIST_KEY
+): WatchTarget[] {
+  const stored = kvdb.get<StoredTarget[]>(key);
   if (!Array.isArray(stored)) return [];
   return stored.flatMap(t => {
     if (typeof t?.experienceId !== 'string') return [];
@@ -217,9 +229,12 @@ export function loadWatchList(): WatchTarget[] {
   });
 }
 
-export function saveWatchList(targets: WatchTarget[]): void {
+export function saveWatchList(
+  targets: WatchTarget[],
+  key: WatchListKey = WATCHLIST_KEY
+): void {
   kvdb.set<StoredTarget[]>(
-    WATCHLIST_KEY,
+    key,
     targets.map(t => ({
       experienceId: t.experienceId,
       ...(t.after ? { after: String(t.after) } : {}),

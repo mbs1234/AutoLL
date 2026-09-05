@@ -69,6 +69,7 @@ import {
 import usePoller from '@/autopilot/usePoller';
 import { holdScreenAwake, releaseScreenAwake } from '@/autopilot/wakelock';
 import {
+  WATCHLIST_KEY,
   WatchTarget,
   loadWatchList,
   matchWatchList,
@@ -106,8 +107,15 @@ export const PLANS_EVERY_N_TICKS = 10;
  */
 export default function AutopilotProvider({
   children,
+  watchListKey = WATCHLIST_KEY,
 }: {
   children: React.ReactNode;
+  /**
+   * Where this build's watch list lives. Both bookmarklets run on Disney's
+   * origin and share one `localStorage`, so a build with a different purpose
+   * needs a different key or it overwrites the other's list.
+   */
+  watchListKey?: string;
 }) {
   const { park } = use(ParkContext);
   const { ll } = use(ClientsContext);
@@ -120,7 +128,9 @@ export default function AutopilotProvider({
   // requests -- let alone bookings -- on load is a surprising default. This is
   // also what makes persisting per-target autoBook safe.
   const [enabled, setEnabledState] = useState(false);
-  const [targets, setTargets] = useState<WatchTarget[]>(loadWatchList);
+  const [targets, setTargets] = useState<WatchTarget[]>(() =>
+    loadWatchList(watchListKey)
+  );
   const [notifications, setNotifications] =
     useState<AlertPermission>(alertPermission);
   const [lastHit, setLastHit] = useState<AutopilotHit>();
@@ -233,8 +243,8 @@ export default function AutopilotProvider({
   // Block body on purpose: an expression body would return saveWatchList's
   // value, which React would treat as a cleanup function.
   useEffect(() => {
-    saveWatchList(targets);
-  }, [targets]);
+    saveWatchList(targets, watchListKey);
+  }, [targets, watchListKey]);
   useEffect(() => {
     saveBookingLog(bookingLog);
   }, [bookingLog]);

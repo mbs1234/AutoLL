@@ -23,7 +23,9 @@ function disableDoubleTapZoom() {
   document.body.addEventListener('click', () => null);
 }
 
-export default function App() {
+export default function App({
+  llApp = Merlock,
+}: { llApp?: () => React.ReactNode } = {}) {
   const [resort, setResort] = useState<Resort>();
   const [content, setContent] = useState(<div />);
   const disclaimer = useDisclaimer();
@@ -43,7 +45,7 @@ export default function App() {
     authStore.onUnauthorized = () => requireLogin(true);
     (async () => {
       for (const [Client, Component] of [
-        [LLClient, Merlock],
+        [LLClient, llApp],
         [VQClient, BGClient],
       ] as const) {
         try {
@@ -69,7 +71,7 @@ export default function App() {
       }
       navigate('https://mbs1234.github.io/AutoLL/start.html');
     })();
-  }, []);
+  }, [llApp]);
 
   useEffect(() => {
     function checkAuth() {

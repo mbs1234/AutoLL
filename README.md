@@ -21,6 +21,14 @@ AutoLL is an unofficial client for Lightning Lane Multi Pass reservations and vi
 
 ---
 
+## Two bookmarklets
+
+**AutoLL** (`index.html`) is the full tool: a watch list, per-attraction toggles, windows, a day budget, drop learning and diagnostics. It is for setting up a park day in advance.
+
+**NextLL** (`nextll.html`) is one attraction, one goal, one button. Pick a ride, optionally say "return by", tap **Find it**: it takes the first Lightning Lane it can get and then keeps trying to move it earlier. Same engine underneath — it is `book then move` with a single target — but none of the levers, because at 7am with one hand and a coffee the levers are the problem.
+
+They share a login, the action budget and the attraction data, and keep separate watch lists, so starting one does not disturb the other.
+
 ## Getting started
 
 1. Open <https://mbs1234.github.io/AutoLL/> on your phone and install the bookmarklet (or userscript).
