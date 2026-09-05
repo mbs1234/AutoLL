@@ -44,8 +44,14 @@ export const MIN_ACTIONS_PER_DAY = 1;
  * it. Clamping only the setting would leave the refill total -- a number
  * persisted in localStorage and therefore editable -- able to remove the limit
  * entirely, which is the exact failure the ceiling exists to prevent.
+ *
+ * It is a headroom limit, not a recommendation: the default of ten is what
+ * anyone gets without asking, and this only bounds how far someone who has
+ * decided otherwise can raise it. Fifty is well above a plausible park day,
+ * which is the point -- it should never be the thing standing between a real
+ * day's booking and a top-up, only between a bug and the whole day.
  */
-export const MAX_ACTIONS_PER_DAY = 30;
+export const MAX_ACTIONS_PER_DAY = 50;
 
 /** How many actions one refill grants, up to `MAX_ACTIONS_PER_DAY`. */
 export const REFILL_ACTIONS = 3;

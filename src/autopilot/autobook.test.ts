@@ -8,6 +8,8 @@ import {
   AutoBookLedger,
   CONFIRM_ABSENT_POLLS,
   DEFAULT_ACTIONS_PER_DAY,
+  MAX_ACTIONS_PER_DAY,
+  MIN_ACTIONS_PER_DAY,
   actionWasRejected,
   attemptAutoBook,
   offerIsAcceptable,
@@ -653,5 +655,33 @@ describe('actionWasRejected()', () => {
   // and which hammering makes worse; a 429 is being throttled.
   it.each([403, 429])('is false for a %i', status => {
     expect(actionWasRejected(withStatus(status))).toBe(false);
+  });
+});
+
+// The two numbers are independent and easy to conflate: the ceiling bounds
+// what someone who has decided otherwise may raise the allowance to, while
+// the default is what everyone gets without asking. Raising one must not
+// drag the other with it.
+describe("the day's allowance", () => {
+  it('defaults to ten', () => {
+    expect(DEFAULT_ACTIONS_PER_DAY).toBe(10);
+  });
+
+  it('lets it be raised to fifty, and no further', () => {
+    expect(MAX_ACTIONS_PER_DAY).toBe(50);
+  });
+
+  it('keeps the default well below the ceiling', () => {
+    expect(DEFAULT_ACTIONS_PER_DAY).toBeLessThan(MAX_ACTIONS_PER_DAY);
+    expect(MIN_ACTIONS_PER_DAY).toBeLessThanOrEqual(DEFAULT_ACTIONS_PER_DAY);
+  });
+
+  // A budget is only a bound if the ledger enforces it.
+  it('refuses to act past the ceiling however it was reached', () => {
+    const ledger = new AutoBookLedger(MAX_ACTIONS_PER_DAY + 20);
+    expect(ledger.remaining).toBeLessThanOrEqual(MAX_ACTIONS_PER_DAY + 20);
+    const capped = new AutoBookLedger(MAX_ACTIONS_PER_DAY);
+    for (let i = 0; i < MAX_ACTIONS_PER_DAY; ++i) capped.markBooked();
+    expect(capped.remaining).toBe(0);
   });
 });

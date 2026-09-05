@@ -79,7 +79,7 @@ Targets come from the per-attraction drop times in `src/api/data/wdw.ts` and fro
 
 ### Safety limits
 
-- **Ten actions per park day,** settable from 1 to 30. Bookings, moves and swaps share one budget, so a matching bug cannot burn a day of Lightning Lanes. Persisted, so it survives a reload and turning Autopilot off and on. When it runs out Autopilot keeps watching and alerting, and offers a top-up rather than stopping quietly. A new park day starts clean.
+- **Ten actions per park day,** settable from 1 to 50. Bookings, moves and swaps share one budget, so a matching bug cannot burn a day of Lightning Lanes. Persisted, so it survives a reload and turning Autopilot off and on. When it runs out Autopilot keeps watching and alerting, and offers a top-up rather than stopping quietly. A new park day starts clean.
 - **One attempt per attraction per action,** recorded _before_ the request goes out — a timed-out request may have succeeded, so retrying is the dangerous option. A rejection Disney actually returned is different: nothing happened, so the lock comes back after a 20-second wait. **Booking is a further exception:** Disney lets you book, cancel and rebook, and only _redeeming_ is once per day, so a booking lock lifts once the itinerary has shown the reservation and then shown it gone.
 - **An unsettled booking holds a slot.** A request that never returned may still have landed, so it counts against the allowance until plans settle it. The cap bounds Lightning Lanes _possibly_ spent.
 - **An empty cache** each time you turn Autopilot on, so a stale eligibility result cannot drive a booking. The day's spend is deliberately _not_ reset with it.
