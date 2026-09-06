@@ -448,7 +448,8 @@ export default function AutopilotProvider({
           snapshotRef.current,
           next,
           observedAt,
-          obsDate
+          obsDate,
+          new Set(targetsRef.current.map(target => target.experienceId))
         );
         snapshotRef.current = next;
         const cov = recordCoverage(coverageRef.current, obsDate, observedAt);
