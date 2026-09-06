@@ -127,9 +127,14 @@ export interface AutoModifyDeps {
    * booking to go through on a plan that no longer existed. This is the last
    * gate before an entitlement is spent, so it is asked last.
    *
+   * Receives the offer's *real* return time, which is the only one worth
+   * validating: the tipboard advertises a time, the offer can come back with
+   * a later one, and a window narrowed while the offer was in flight has to
+   * be judged against what would actually be booked.
+   *
    * Optional: callers that have nothing to re-check may omit it.
    */
-  stillWanted?: () => boolean;
+  stillWanted?: (returnTime: ParkTime) => boolean;
   book: (offer: Offer<LLMP>) => Promise<LLMP>;
   guests: Guests;
   ledger: AutoBookLedger;
@@ -208,7 +213,7 @@ export async function attemptAutoModify(
 
     // Marked before committing: a timed-out modify may still have applied, and
     // re-running it could move a reservation twice.
-    if (stillWanted && !stillWanted()) {
+    if (stillWanted && !stillWanted(to)) {
       return { status: 'skipped', reason: 'no-longer-wanted' };
     }
     ledger.markAttempted(target.experienceId, 'modify');

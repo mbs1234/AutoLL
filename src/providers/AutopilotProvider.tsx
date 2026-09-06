@@ -655,9 +655,17 @@ export default function AutopilotProvider({
           const now = realTarget(experienceId);
           if (!now || now.paused) return false;
           if (actionKind === 'modify') {
-            return !!(now.autoModify || now.bookThenMove);
+            // Moving respects the window against the *real* target: that is
+            // exactly what the window is for once something is held, and
+            // book-then-move strips it only for the initial booking.
+            return (
+              !!(now.autoModify || now.bookThenMove) &&
+              inWindow(returnTime, now)
+            );
           }
-          if (actionKind === 'swap') return !!now.autoSwap;
+          if (actionKind === 'swap') {
+            return !!now.autoSwap && inWindow(returnTime, now);
+          }
           if (!(now.autoBook || now.bookThenMove || now.autoSwap)) return false;
           // Book-then-move takes any time while nothing is held, which is what
           // strips the window in the first place; every other book respects it.
@@ -829,9 +837,8 @@ export default function AutopilotProvider({
               // Last gate before the entitlement is spent: generating the
               // offer is another round trip, and every guard above it ran
               // before that.
-              stillWanted: () =>
-                !stale() &&
-                stillWantsAction(experience.id, 'swap', hit.returnTime),
+              stillWanted: offerTime =>
+                !stale() && stillWantsAction(experience.id, 'swap', offerTime),
             });
           } else if (existing) {
             outcome = await attemptAutoModify(
@@ -849,9 +856,9 @@ export default function AutopilotProvider({
                 // Last gate before the entitlement is spent: generating the
                 // offer is another round trip, and every guard above it ran
                 // before that.
-                stillWanted: () =>
+                stillWanted: offerTime =>
                   !stale() &&
-                  stillWantsAction(experience.id, 'modify', hit.returnTime),
+                  stillWantsAction(experience.id, 'modify', offerTime),
               }
             );
           } else {
@@ -865,9 +872,8 @@ export default function AutopilotProvider({
               // Last gate before the entitlement is spent: generating the
               // offer is another round trip, and every guard above it ran
               // before that.
-              stillWanted: () =>
-                !stale() &&
-                stillWantsAction(experience.id, 'book', hit.returnTime),
+              stillWanted: offerTime =>
+                !stale() && stillWantsAction(experience.id, 'book', offerTime),
             });
           }
         } catch (error) {

@@ -459,9 +459,14 @@ export interface AutoBookDeps {
    * booking to go through on a plan that no longer existed. This is the last
    * gate before an entitlement is spent, so it is asked last.
    *
+   * Receives the offer's *real* return time, which is the only one worth
+   * validating: the tipboard advertises a time, the offer can come back with
+   * a later one, and a window narrowed while the offer was in flight has to
+   * be judged against what would actually be booked.
+   *
    * Optional: callers that have nothing to re-check may omit it.
    */
-  stillWanted?: () => boolean;
+  stillWanted?: (returnTime: ParkTime) => boolean;
   book: (offer: Offer<undefined>) => Promise<LLMP>;
   /** Cached or freshly fetched eligibility for this experience. */
   guests: Guests;
@@ -506,7 +511,7 @@ export async function attemptAutoBook(
 
     // Mark before booking: a timed-out request may still have succeeded, and
     // a duplicate booking is worse than a missed retry.
-    if (stillWanted && !stillWanted()) {
+    if (stillWanted && !stillWanted(offer.start.time)) {
       return { status: 'skipped', reason: 'no-longer-wanted' };
     }
     ledger.markAttempted(target.experienceId);

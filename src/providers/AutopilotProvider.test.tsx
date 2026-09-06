@@ -92,6 +92,7 @@ function Probe() {
     refusals,
     togglePaused,
     toggleAutoBook,
+    setTargetWindow,
   } = use(AutopilotContext);
   return (
     <div>
@@ -99,6 +100,9 @@ function Probe() {
       <button onClick={refillBudget}>refill</button>
       <button onClick={() => togglePaused(BZ)}>pause BZ</button>
       <button onClick={() => toggleAutoBook(BZ)}>unarm BZ</button>
+      <button onClick={() => setTargetWindow(BZ, 'before', '11:30')}>
+        narrow BZ
+      </button>
       <button onClick={() => setMaxActionsPerDay(20)}>raise budget</button>
       <span data-testid="mode">{status.mode}</span>
       <span data-testid="targets">{targets.length}</span>
@@ -2117,6 +2121,30 @@ describe('AutopilotProvider acting on a plan that changed mid-tick', () => {
     await enable();
     await act(async () => {
       screen.getByText('unarm BZ').click();
+      release();
+      await Promise.resolve();
+    });
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // The tipboard advertises one time and the offer can come back with a
+  // later one, so the window has to be judged against what would actually be
+  // booked. Validating the advertised time let a narrowed window approve an
+  // offer that no longer fits it.
+  it('judges a narrowed window against the offer, not the advertised time', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    let release!: () => void;
+    const held = new Promise<void>(resolve => (release = resolve));
+    const { book } = setupBooking({
+      // Advertised 11:00 (inside the 11:30 window set below); offered 12:00,
+      // which is not.
+      experiences: [available(BZ, new ParkTime(11))],
+      offerHour: 12,
+      offerDelay: held,
+    });
+    await enable();
+    await act(async () => {
+      screen.getByText('narrow BZ').click();
       release();
       await Promise.resolve();
     });
