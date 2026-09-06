@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { applyAppIdentity } from './appIdentity';
 import App from './components/App';
 
 main();
@@ -13,7 +14,7 @@ function main() {
 
   document.close();
   addViewportMeta();
-  addBlankFavicon();
+  applyAppIdentity();
   createAppRoot().render(
     <StrictMode>
       <App />
@@ -26,13 +27,6 @@ function addViewportMeta() {
   meta.name = 'viewport';
   meta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
   document.head.appendChild(meta);
-}
-
-function addBlankFavicon() {
-  const link = document.createElement('link');
-  link.rel = 'icon';
-  link.href = 'data:,';
-  document.head.appendChild(link);
 }
 
 function createAppRoot() {
