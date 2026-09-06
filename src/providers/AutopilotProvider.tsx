@@ -200,6 +200,10 @@ export default function AutopilotProvider({
   targetsRef.current = targets;
   const bookingDateRef = useRef(bookingDate);
   bookingDateRef.current = bookingDate;
+  // Read at tick time for the same reason as the date: `onTick` closes over
+  // `park`, so a tick already running still holds the park it started in.
+  const parkIdRef = useRef(park.id);
+  parkIdRef.current = park.id;
   // Read at tick time: setState from a plans poll has not re-rendered yet
   // when the booking loop runs immediately afterwards.
   const plansRef = useRef(plans);
@@ -412,6 +416,22 @@ export default function AutopilotProvider({
       // spent booking another. Same reasoning as `currentPlans` below.
       const date = bookingDateRef.current;
       const forToday = date === parkDate();
+
+      /**
+       * Whether this tick is still acting on the plan it started from.
+       *
+       * `cancelled` is the poller's own signal and covers only turning
+       * autopilot off and unmounting -- the polling effect depends on
+       * `enabled` alone, deliberately, so that a park or date change does not
+       * tear the loop down and fire an extra immediate poll. The cost of that
+       * choice is that a tick already in flight keeps the park and date it
+       * captured, and would happily spend an entitlement against a day the
+       * user has since moved off. So the tick asks about all three.
+       */
+      const stale = () =>
+        cancelled() ||
+        bookingDateRef.current !== date ||
+        parkIdRef.current !== park.id;
 
       // Let this reject: the poller needs the failure to drive backoff.
       const experiences = await pollExperiences();
@@ -689,16 +709,30 @@ export default function AutopilotProvider({
           continue;
         }
 
-        // Checked here, immediately before the three-request booking path and
-        // after every other guard has passed. Turning autopilot off, or changing
-        // the park or date, stops the *loop*; without this the tick already
-        // running would carry on and book anyway, which is the one thing a stop
-        // button has to mean.
-        if (cancelled()) break;
+        // Immediately before the three-request booking path, after every
+        // other guard has passed. Without this the tick already running would
+        // carry on and book after the user had stopped it, which is the one
+        // thing a stop button cannot do.
+        if (stale()) break;
 
         let outcome: AutoBookOutcome | ModifyOutcome | SwapOutcome;
         try {
           const guests = await guestsFor(experience.id, date);
+
+          // Asked again, because eligibility is a round trip and the check
+          // above is only as fresh as the moment it ran. Stopping autopilot,
+          // or changing the day, while that request is outstanding used to
+          // land in the offer and booking calls regardless.
+          if (stale()) break;
+          // Same for the target itself: pausing or unstarring an attraction
+          // mid-request should not be followed by booking it.
+          if (
+            !targetsRef.current.some(
+              t => t.experienceId === experience.id && !t.paused
+            )
+          ) {
+            continue;
+          }
           // A Lightning Lane for part of the group is often worse than none: it
           // splits the party and spends the slot. Opt-in, since booking by hand
           // in bg1 or Disney's app books for whoever is eligible.
@@ -934,6 +968,7 @@ export default function AutopilotProvider({
       logOutcome,
       bumpSkip,
       repeatMoves,
+      park.id,
     ]
   );
 
