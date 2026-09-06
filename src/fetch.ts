@@ -75,7 +75,28 @@ function checkCache(
   init: RequestInit,
   requester: () => Promise<JsonResponse>
 ) {
-  const key = init.method + url;
+  // Keyed on everything that can change the answer, not just where it is sent.
+  //
+  // The old key was `method + url`, which is wrong for this API: `guests`,
+  // `offerset/generate` and `entitlements/book` are all POSTs to one fixed
+  // path with the attraction, the party or the offer carried in the *body*.
+  // Two of them issued inside the 10ms window therefore collapsed to one
+  // request, and the second caller silently received the first's response --
+  // eligibility for the wrong attraction, which is how a booking ends up made
+  // for the wrong party. Reachable because the autopilot tick runs on a timer
+  // and can interleave with a screen the user just opened.
+  //
+  // Bodies that cannot be compared exactly are not cached at all rather than
+  // guessed at. Headers are included because a response can depend on them,
+  // which also means a request carrying sensor data never dedupes -- correct,
+  // since two deliberate booking attempts must not collapse into one.
+  if (init.body !== undefined && typeof init.body !== 'string') {
+    return requester();
+  }
+  const headers = [...new Headers(init.headers).entries()].sort(([a], [b]) =>
+    a.localeCompare(b)
+  );
+  const key = JSON.stringify([init.method, url, init.body ?? null, headers]);
   const entry = cache[key];
   if (entry) return entry;
   const response = requester();

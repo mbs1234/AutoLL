@@ -57,6 +57,31 @@ describe('fetchJson()', () => {
     });
   });
 
+  // `guests`, `offerset/generate` and `entitlements/book` are all POSTs to one
+  // fixed path, distinguished only by their body. Sharing a cached response
+  // between two of them hands the second caller the first's answer.
+  it('does not share cached POST responses with a different body', async () => {
+    jest.mocked(fetch).mockClear();
+    mockFetch({ ok: true }, { 'content-type': 'application/json' });
+    await Promise.all([
+      fetchJson(url, { data: { name: 'Mickey' } }),
+      fetchJson(url, { data: { name: 'Minnie' } }),
+    ]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  // The reason the cache exists: StrictMode double-invokes an effect, and the
+  // identical request should still collapse to one.
+  it('still collapses two identical requests', async () => {
+    jest.mocked(fetch).mockClear();
+    mockFetch({ ok: true }, { 'content-type': 'application/json' });
+    await Promise.all([
+      fetchJson(url, { data: { name: 'Mickey' } }),
+      fetchJson(url, { data: { name: 'Mickey' } }),
+    ]);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('adds params to URL', async () => {
     await fetchJson(url, { params: { start: 5, end: 15 } });
     expect(fetch).toHaveBeenLastCalledWith(url + '?start=5&end=15', {
