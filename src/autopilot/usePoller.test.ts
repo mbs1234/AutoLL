@@ -130,3 +130,49 @@ describe('usePoller', () => {
     expect(result.current.target).toEqual(soon);
   });
 });
+
+// Stopping the loop is not stopping the tick. Turning autopilot off only
+// prevents the *next* tick being scheduled; a tick already past its awaits
+// carries on, and the last thing it does is spend an entitlement.
+describe('usePoller cancellation', () => {
+  it('tells a running tick that it has been cancelled', async () => {
+    let release!: () => void;
+    const started = new Promise<void>(resolve => (release = resolve));
+    let gate!: () => void;
+    const held = new Promise<void>(resolve => (gate = resolve));
+    let seenAfter: boolean | undefined;
+
+    const onTick = jest.fn(async (cancelled: () => boolean) => {
+      release();
+      await held;
+      // What an action site sees when it asks, mid-tick.
+      seenAfter = cancelled();
+    });
+
+    const { unmount } = renderHook(() => usePoller({ enabled: true, onTick }));
+    await act(async () => {
+      await started;
+    });
+
+    // The stop lands while the tick is still in flight.
+    unmount();
+    await act(async () => {
+      gate();
+      await Promise.resolve();
+    });
+
+    expect(seenAfter).toBe(true);
+  });
+
+  it('reports not cancelled while the run is live', async () => {
+    let seen: boolean | undefined;
+    const onTick = jest.fn(async (cancelled: () => boolean) => {
+      seen = cancelled();
+    });
+    renderHook(() => usePoller({ enabled: true, onTick }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(seen).toBe(false);
+  });
+});
