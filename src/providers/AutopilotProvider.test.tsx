@@ -93,6 +93,8 @@ function Probe() {
     togglePaused,
     toggleAutoBook,
     setTargetWindow,
+    setDryRun,
+    setRequireWholeParty,
   } = use(AutopilotContext);
   return (
     <div>
@@ -104,6 +106,8 @@ function Probe() {
         narrow BZ
       </button>
       <button onClick={() => setMaxActionsPerDay(20)}>raise budget</button>
+      <button onClick={() => setDryRun(true)}>dry run on</button>
+      <button onClick={() => setRequireWholeParty(true)}>whole party on</button>
       <span data-testid="mode">{status.mode}</span>
       <span data-testid="targets">{targets.length}</span>
       <span data-testid="remaining">{bookingsRemaining}</span>
@@ -2070,6 +2074,12 @@ describe('AutopilotProvider with a second provider mounted inside it', () => {
 describe('AutopilotProvider acting on a plan that changed mid-tick', () => {
   beforeEach(() => setTime('09:00'));
 
+  /** One guest held back, so whole-party-only has something to refuse. */
+  const partyMemberLeftOut = {
+    eligible: [{ id: 'g1', name: 'A' }],
+    ineligible: [{ id: 'g2', name: 'B', ineligibleReason: 'TOO_EARLY' }],
+  };
+
   it('does not book after the booking date moves under it', async () => {
     saveWatchList([{ experienceId: BZ, autoBook: true }]);
     let release!: () => void;
@@ -2145,6 +2155,29 @@ describe('AutopilotProvider acting on a plan that changed mid-tick', () => {
     await enable();
     await act(async () => {
       screen.getByText('narrow BZ').click();
+      release();
+      await Promise.resolve();
+    });
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // The three global controls are read once, before the offer is requested,
+  // and each exists to *prevent* an action. Turning one on while a request is
+  // in flight and having the booking go through anyway is the wrong way round.
+  it.each([
+    ['dry run', 'dry run on'],
+    ['whole-party only', 'whole party on'],
+  ])('does not commit once %s is switched on mid-request', async (_, label) => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    let release!: () => void;
+    const held = new Promise<void>(resolve => (release = resolve));
+    const { book } = setupBooking({
+      guestsResult: partyMemberLeftOut,
+      offerDelay: held,
+    });
+    await enable();
+    await act(async () => {
+      screen.getByText(label).click();
       release();
       await Promise.resolve();
     });

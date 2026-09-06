@@ -773,6 +773,24 @@ export default function AutopilotProvider({
             continue;
           }
 
+          /**
+           * Whether the day's own settings still permit committing.
+           *
+           * The three global controls are all read once, before the offer is
+           * requested -- and each of them exists to *prevent* an action, so
+           * turning one on while a request is in flight and having the
+           * booking go through anyway is the wrong way round. Re-read at the
+           * gate, from the same refs the guards above use.
+           */
+          const stillPermitted = () =>
+            // A rehearsal that commits is not a rehearsal.
+            !settingsRef.current.dryRun &&
+            !(
+              settingsRef.current.requireWholeParty &&
+              !wholePartyEligible(guests)
+            ) &&
+            ledgerRef.current.remaining > 0;
+
           // Only new bookings can spend the party's Tier 1 slot; re-timing or
           // swapping one already held does not. Checked here, ahead of the
           // branches, so a dry run rehearses it as well.
@@ -838,7 +856,9 @@ export default function AutopilotProvider({
               // offer is another round trip, and every guard above it ran
               // before that.
               stillWanted: offerTime =>
-                !stale() && stillWantsAction(experience.id, 'swap', offerTime),
+                !stale() &&
+                stillPermitted() &&
+                stillWantsAction(experience.id, 'swap', offerTime),
             });
           } else if (existing) {
             outcome = await attemptAutoModify(
@@ -858,6 +878,7 @@ export default function AutopilotProvider({
                 // before that.
                 stillWanted: offerTime =>
                   !stale() &&
+                  stillPermitted() &&
                   stillWantsAction(experience.id, 'modify', offerTime),
               }
             );
@@ -873,7 +894,9 @@ export default function AutopilotProvider({
               // offer is another round trip, and every guard above it ran
               // before that.
               stillWanted: offerTime =>
-                !stale() && stillWantsAction(experience.id, 'book', offerTime),
+                !stale() &&
+                stillPermitted() &&
+                stillWantsAction(experience.id, 'book', offerTime),
             });
           }
         } catch (error) {
