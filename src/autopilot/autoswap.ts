@@ -16,6 +16,7 @@ export const MAX_HELD_MP = 3;
 
 export type SwapSkipReason =
   | 'not-enabled'
+  | 'no-longer-wanted'
   | 'already-held'
   | 'not-full'
   | 'no-worse-reservation'
@@ -135,6 +136,18 @@ export interface AutoSwapDeps {
     guests: Guest[],
     victim: LLMP
   ) => Promise<Offer<LLMP>>;
+  /**
+   * Whether the action is still wanted, asked immediately before committing.
+   *
+   * Generating an offer is a round trip, and the caller's guards were all
+   * evaluated before it. Turning autopilot off, changing the day, pausing the
+   * attraction or switching this action off during that window left the
+   * booking to go through on a plan that no longer existed. This is the last
+   * gate before an entitlement is spent, so it is asked last.
+   *
+   * Optional: callers that have nothing to re-check may omit it.
+   */
+  stillWanted?: () => boolean;
   book: (offer: Offer<LLMP>) => Promise<LLMP>;
   guests: Guests;
   ledger: AutoBookLedger;
@@ -155,7 +168,7 @@ export async function attemptAutoSwap(
   target: WatchTarget,
   incoming: OfferExperience,
   held: LLMP[],
-  { createSwapOffer, book, guests, ledger, clashes }: AutoSwapDeps
+  { createSwapOffer, book, guests, ledger, clashes, stillWanted }: AutoSwapDeps
 ): Promise<SwapOutcome> {
   const allowed = shouldSwap(target, incoming, held, ledger);
   if (!allowed.ok) return { status: 'skipped', reason: allowed.reason };
@@ -179,6 +192,9 @@ export async function attemptAutoSwap(
     }
 
     // Marked before committing: a timed-out swap may still have applied.
+    if (stillWanted && !stillWanted()) {
+      return { status: 'skipped', reason: 'no-longer-wanted' };
+    }
     ledger.markAttempted(target.experienceId, 'swap');
     const booking = await book(offer);
     ledger.markBooked();

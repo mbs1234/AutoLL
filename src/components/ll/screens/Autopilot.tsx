@@ -37,6 +37,7 @@ const SKIP_TEXT: Record<string, string> = {
   'outside-window': 'the advertised time was outside the window',
   'overlaps-plans': 'it clashed with something already booked',
   'not-modifiable': 'Disney marked the reservation unmodifiable',
+  'no-longer-wanted': 'you changed the plan while the request was in flight',
 };
 
 const MODE_TEXT: Record<PollerStatus['mode'], string> = {

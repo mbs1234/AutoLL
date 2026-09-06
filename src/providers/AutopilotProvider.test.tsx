@@ -91,12 +91,14 @@ function Probe() {
     setMaxActionsPerDay,
     refusals,
     togglePaused,
+    toggleAutoBook,
   } = use(AutopilotContext);
   return (
     <div>
       <button onClick={() => setEnabled(!enabled)}>toggle</button>
       <button onClick={refillBudget}>refill</button>
       <button onClick={() => togglePaused(BZ)}>pause BZ</button>
+      <button onClick={() => toggleAutoBook(BZ)}>unarm BZ</button>
       <button onClick={() => setMaxActionsPerDay(20)}>raise budget</button>
       <span data-testid="mode">{status.mode}</span>
       <span data-testid="targets">{targets.length}</span>
@@ -238,6 +240,8 @@ function setupBooking({
   repeatMoves = false,
   // Lets a test make `book` fail, and say how. `undefined` succeeds.
   bookErrors = [] as (number | 'no-response' | undefined)[],
+  // Holds the offer request open, for the gate between offer and book.
+  offerDelay = undefined as Promise<void> | undefined,
 } = {}) {
   const guests = jest.fn(async () => {
     if (guestsStatus !== undefined) {
@@ -259,6 +263,7 @@ function setupBooking({
     ) => {
       offeredIds.push(experience.id);
       offerOptions.push(options);
+      if (offerDelay) await offerDelay;
       void guests;
       return offerAt(offerHour);
     }
@@ -2080,6 +2085,41 @@ describe('AutopilotProvider acting on a plan that changed mid-tick', () => {
     // correct and would mask the thing under test. This asserts only that the
     // tick which started on the old date did not go on to act.
     expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // Present and unpaused is not the same as still authorised. Turning
+  // Auto-book off leaves the target exactly where it was.
+  it('does not book after its action is switched off mid-request', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    let release!: () => void;
+    const held = new Promise<void>(resolve => (release = resolve));
+    const { book, offer } = setupBooking({
+      guestsResult: held.then(() => party) as unknown,
+    });
+    await enable();
+    await act(async () => {
+      screen.getByText('unarm BZ').click();
+      release();
+      await Promise.resolve();
+    });
+    expect(offer).not.toHaveBeenCalled();
+    expect(book).not.toHaveBeenCalled();
+  });
+
+  // The last gate. Generating the offer is another round trip, so everything
+  // above ran before it; this is the moment the entitlement is spent.
+  it('does not commit an offer after the plan changes', async () => {
+    saveWatchList([{ experienceId: BZ, autoBook: true }]);
+    let release!: () => void;
+    const held = new Promise<void>(resolve => (release = resolve));
+    const { book } = setupBooking({ offerDelay: held });
+    await enable();
+    await act(async () => {
+      screen.getByText('unarm BZ').click();
+      release();
+      await Promise.resolve();
+    });
     expect(book).not.toHaveBeenCalled();
   });
 

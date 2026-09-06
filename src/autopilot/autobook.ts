@@ -69,6 +69,7 @@ export const CONFIRM_ABSENT_POLLS = 2;
 
 export type SkipReason =
   | 'not-enabled'
+  | 'no-longer-wanted'
   | 'budget-exhausted'
   | 'already-attempted'
   | 'waiting-to-retry'
@@ -449,6 +450,18 @@ export interface AutoBookDeps {
     guests: Guest[]
   ) => Promise<Offer<undefined>>;
   /** Usually LLClient.book, bound. */
+  /**
+   * Whether the action is still wanted, asked immediately before committing.
+   *
+   * Generating an offer is a round trip, and the caller's guards were all
+   * evaluated before it. Turning autopilot off, changing the day, pausing the
+   * attraction or switching this action off during that window left the
+   * booking to go through on a plan that no longer existed. This is the last
+   * gate before an entitlement is spent, so it is asked last.
+   *
+   * Optional: callers that have nothing to re-check may omit it.
+   */
+  stillWanted?: () => boolean;
   book: (offer: Offer<undefined>) => Promise<LLMP>;
   /** Cached or freshly fetched eligibility for this experience. */
   guests: Guests;
@@ -469,7 +482,7 @@ export interface AutoBookDeps {
 export async function attemptAutoBook(
   target: WatchTarget,
   experience: OfferExperience,
-  { createOffer, book, guests, ledger, clashes }: AutoBookDeps
+  { createOffer, book, guests, ledger, clashes, stillWanted }: AutoBookDeps
 ): Promise<AutoBookOutcome> {
   const allowed = shouldAttempt(target, ledger);
   if (!allowed.ok) return { status: 'skipped', reason: allowed.reason };
@@ -493,6 +506,9 @@ export async function attemptAutoBook(
 
     // Mark before booking: a timed-out request may still have succeeded, and
     // a duplicate booking is worse than a missed retry.
+    if (stillWanted && !stillWanted()) {
+      return { status: 'skipped', reason: 'no-longer-wanted' };
+    }
     ledger.markAttempted(target.experienceId);
     const booking = await book(offer);
     ledger.markBooked(target.experienceId);

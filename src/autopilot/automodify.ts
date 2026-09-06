@@ -16,6 +16,7 @@ export const MIN_IMPROVEMENT_MINUTES = 30;
 
 export type ModifySkipReason =
   | 'not-enabled'
+  | 'no-longer-wanted'
   | 'no-existing-booking'
   | 'not-modifiable'
   | 'not-an-improvement'
@@ -117,6 +118,18 @@ export interface AutoModifyDeps {
     booking: LLMP
   ) => Promise<Offer<LLMP>>;
   /** LLClient.book -- routes to modify() when the offer carries a booking. */
+  /**
+   * Whether the action is still wanted, asked immediately before committing.
+   *
+   * Generating an offer is a round trip, and the caller's guards were all
+   * evaluated before it. Turning autopilot off, changing the day, pausing the
+   * attraction or switching this action off during that window left the
+   * booking to go through on a plan that no longer existed. This is the last
+   * gate before an entitlement is spent, so it is asked last.
+   *
+   * Optional: callers that have nothing to re-check may omit it.
+   */
+  stillWanted?: () => boolean;
   book: (offer: Offer<LLMP>) => Promise<LLMP>;
   guests: Guests;
   ledger: AutoBookLedger;
@@ -149,6 +162,7 @@ export async function attemptAutoModify(
   {
     createModifyOffer,
     book,
+    stillWanted,
     guests,
     ledger,
     minImprovementMinutes = MIN_IMPROVEMENT_MINUTES,
@@ -194,6 +208,9 @@ export async function attemptAutoModify(
 
     // Marked before committing: a timed-out modify may still have applied, and
     // re-running it could move a reservation twice.
+    if (stillWanted && !stillWanted()) {
+      return { status: 'skipped', reason: 'no-longer-wanted' };
+    }
     ledger.markAttempted(target.experienceId, 'modify');
     const booking = await book(offer);
     ledger.markBooked();
