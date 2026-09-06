@@ -1,6 +1,7 @@
 import kvdb from '@/kvdb';
+import { key } from '@/storageKeys';
 
-export const NEXTLL_PENDING_KEY = 'bg1.nextll.pending';
+export const NEXTLL_PENDING_KEY = key('nextll.pending');
 
 /**
  * What a search was looking for when its screen went away.

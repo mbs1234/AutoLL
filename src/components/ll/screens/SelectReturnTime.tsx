@@ -13,6 +13,7 @@ import ThemeContext from '@/contexts/ThemeContext';
 import { DateTime, ParkTime, parkDate } from '@/datetime';
 import useDataLoader from '@/hooks/useDataLoader';
 import kvdb from '@/kvdb';
+import { FULL_AVAILABILITY_KEY } from '@/storageKeys';
 
 import BookingDate from '../BookingDate';
 import RebookingHeader from '../RebookingHeader';
@@ -21,8 +22,6 @@ import YourDayButton from '../YourDayButton';
 import Home from './Home';
 import Legend from './Home/Legend';
 import RefreshButton from './RefreshButton';
-
-export const FULL_AVAILABILITY_KEY = 'bg1.ll.fullAvailability';
 
 export default function SelectReturnTime<B extends Offer['booking']>({
   offer,

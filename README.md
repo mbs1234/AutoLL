@@ -128,6 +128,14 @@ Its watch list is stored separately, so a search does not disturb what Autopilot
 
 `src/timesync.ts` and `src/api/livedata.ts` still call `bg1.joelface.com` deliberately: clock correction, and show times unavailable through Disney's tipboard.
 
+**Storage.** The bookmarklet runs injected into `disneyworld.disney.go.com`, so
+everything it saves lives in _Disney's_ local storage rather than this site's —
+which every bg1-derived build on the same phone shares. AutoLL keeps its own
+`autoll.*` namespace so that installing it alongside another build cannot make
+the two overwrite each other's watch lists, budgets, booking tracking or
+learned drop times. Anything found under the old shared `bg1.*` keys is adopted
+once, on first load, and left in place rather than moved.
+
 **Development.**
 
 ```bash

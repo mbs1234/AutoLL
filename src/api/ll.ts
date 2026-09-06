@@ -1,5 +1,6 @@
 import { DateTime, ParkTime, parkDate } from '@/datetime';
 import kvdb from '@/kvdb';
+import { key } from '@/storageKeys';
 
 import { authStore } from './auth';
 import { avatarUrl } from './avatar';
@@ -486,7 +487,7 @@ export abstract class LLClient extends ApiClient {
   }
 }
 
-export const BOOKINGS_KEY = 'bg1.ll.bookings';
+export const BOOKINGS_KEY = key('ll.bookings');
 
 interface LLTrackerData {
   booked: Experience['id'][];

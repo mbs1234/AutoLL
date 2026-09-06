@@ -2,8 +2,9 @@ import { use, useCallback, useEffect, useState } from 'react';
 
 import ClientsContext from '@/contexts/ClientsContext';
 import kvdb from '@/kvdb';
+import { key } from '@/storageKeys';
 
-export const PARTY_IDS_KEY = 'bg1.genie.partyIds';
+export const PARTY_IDS_KEY = key('genie.partyIds');
 
 export default function useSavedParty() {
   const { ll } = use(ClientsContext);

@@ -1,4 +1,10 @@
 import { parkDate } from './datetime';
+import { migrateLegacyStorage } from './storageKeys';
+
+// On import, so it cannot be ordered after a read: consumers reach storage
+// through this module, and several of them do it while their own module is
+// still being imported.
+migrateLegacyStorage();
 
 interface DailyValue<T> {
   value: T;

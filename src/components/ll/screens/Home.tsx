@@ -13,6 +13,7 @@ import DropIcon from '@/icons/DropIcon';
 import LightningIcon from '@/icons/LightningIcon';
 import kvdb from '@/kvdb';
 import onVisible from '@/onVisible';
+import { HOME_TAB_KEY } from '@/storageKeys';
 
 import MultiPassList from './Home/MultiPassList';
 import NextLLTab from './Home/NextLL';
@@ -21,7 +22,6 @@ import TimesGuide from './Home/TimesGuide';
 import Plans from './Plans';
 
 const AUTO_REFRESH_MIN_MS = 60_000;
-export const HOME_TAB_KEY = 'bg1.tab';
 
 export interface HomeTabProps {
   ref: React.RefObject<HTMLDivElement | null>;

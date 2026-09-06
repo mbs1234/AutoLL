@@ -1,7 +1,8 @@
 import { DateTime, ParkTime } from '@/datetime';
 import kvdb from '@/kvdb';
+import { key } from '@/storageKeys';
 
-export const AUTH_KEY = 'bg1.auth';
+export const AUTH_KEY = key('auth');
 
 export interface AuthData {
   swid: string;

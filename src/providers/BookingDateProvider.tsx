@@ -4,8 +4,9 @@ import BookingDateContext from '@/contexts/BookingDateContext';
 import ClientsContext from '@/contexts/ClientsContext';
 import { modifyDate, parkDate } from '@/datetime';
 import kvdb from '@/kvdb';
+import { key } from '@/storageKeys';
 
-export const BOOKING_DATE_KEY = 'bg1.date';
+const BOOKING_DATE_KEY = key('date');
 /**
  * How far ahead the date picker offers, today inclusive.
  *

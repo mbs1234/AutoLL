@@ -7,10 +7,11 @@ import {
   renderResort,
 } from '@/__fixtures__/ll';
 import kvdb from '@/kvdb';
+import { HOME_TAB_KEY } from '@/storageKeys';
 import { click, loading, revisitTab, see, setTime } from '@/testing';
 
 import Merlock from '../Merlock';
-import Home, { HOME_TAB_KEY } from './Home';
+import Home from './Home';
 
 jest.mock('@/ping');
 jest.spyOn(das, 'parties').mockResolvedValue([]);

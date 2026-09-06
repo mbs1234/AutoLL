@@ -7,8 +7,9 @@ import PlansContext from '@/contexts/PlansContext';
 import ResortContext from '@/contexts/ResortContext';
 import useUpdateParkFromPlans from '@/hooks/useUpdateParkFromPlans';
 import kvdb from '@/kvdb';
+import { key } from '@/storageKeys';
 
-export const PARK_KEY = 'bg1.park';
+const PARK_KEY = key('park');
 
 export default function ParkProvider({
   children,
