@@ -137,23 +137,58 @@ test's mocked response no longer provides.
 
 | Command | Scope | Status |
 | --- | --- | --- |
-| `npm run test:ci` | excludes upstream's broken suites | **green** (69 suites / 593 tests) |
-| `npm test` | everything | 8 suites / 38 tests fail (pre-existing) |
+| `npm run test:ci` | excludes upstream's broken suites | **green** (79 suites / 813 tests) |
+| `npm test` | everything | 4 suites / 33 tests fail (pre-existing), 887 total |
 | `npm run lint` | | green |
 | `npm run typecheck` | | green |
+
+Four of the eight exclusions are now stale. As of the counts above, only
+`api/ll.test.ts`, `ll/ModifyButton.test.tsx`, `screens/BookExperience.test.tsx`
+and `screens/YourDay.test.tsx` still fail; `BookExperience/OfferDetails`,
+`BookingDetails`, `Home` and `Home/MultiPassList` all pass in the full run and
+could be gated on. That includes the two named below as the reason the
+Autopilot UI carries its own tests, so un-excluding them would be a real gain
+rather than bookkeeping. Left alone here deliberately — widening what gates a
+publish is its own change, made on purpose rather than in passing.
 
 CI gates on `test:ci` so it stays a real signal; the full suite also runs, as
 `continue-on-error`, to keep the pre-existing count visible. The exclusion list
 lives in `jest.ci.config.js` — delete an entry if that suite gets repaired.
+
+**What gates a publish.** `deploy.yml` runs `npm run typecheck` and
+`npm run test:ci` in its own build job, before the bundle is built, and its
+`deploy` job is `needs: build` — so a failure there skips the publish and Pages
+keeps serving what is already live. That gate is inside `deploy.yml` rather
+than a dependency on the Check workflow, because nothing then has to fire, be
+named, or stay wired for it to hold.
+
+`vite build` is why it is needed: esbuild strips types without checking them,
+so `tsc --noEmit` is the only typechecker either repo has, and until this was
+added a type error reached the phone. `npm run lint` deliberately does not
+gate — most red checks here have been formatting alone, the bundle is fine in
+every one of them, and with no local toolchain a prettier nit would otherwise
+cost a push and a round trip just to publish.
+
+Dispatching `deploy.yml` with `skip_checks: true` publishes without the gate.
+It exists for a park morning with a red unrelated test and nothing else.
 Note two of the excluded suites (`Home.test.tsx`, `Home/MultiPassList.test.tsx`)
 cover screens this fork modified, so the Autopilot UI carries its own tests
 (`screens/Autopilot.test.tsx`) rather than relying on the stale ones.
 
 ## Local toolchain
 
-Node is installed via Homebrew at `/opt/homebrew` (node 26.x). `brew shellenv`
-was appended to `~/.zprofile` and `~/.zshrc`. CI pins Node 22, so a
-version-specific failure can differ between local and CI.
+**There is none.** No `node`, `npm` or `npx` on the machine this is developed
+from, and no `/opt/homebrew`. CI is the only place tests, lint and types are
+ever run, which is why `check.yml` runs every step even after one fails — a
+round trip is the whole feedback loop.
+
+To verify a change before it lands anyway: push it to a branch and read the
+Check run, and where a test is meant to catch something, push a second branch
+with the fix reverted and confirm the test goes red on it. `verify/full` and
+`verify/mutation` were used exactly that way and deleted afterwards.
+
+(An earlier version of this section claimed Node was installed via Homebrew.
+It was not, and nothing here has ever been run locally.)
 
 ## Autopilot
 
