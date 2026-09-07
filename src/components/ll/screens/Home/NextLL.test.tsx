@@ -32,6 +32,13 @@ const RUNNING: PollerStatus = {
   consecutiveFailures: 0,
   polls: 7,
 };
+/** What usePoller leaves behind after MAX_CONSECUTIVE_FAILURES. */
+const STOPPED: PollerStatus = {
+  mode: 'stopped',
+  consecutiveFailures: 8,
+  polls: 40,
+  lastError: 'Unauthorized',
+};
 
 function llExperience(id: string): Experience {
   return {
@@ -229,6 +236,33 @@ describe('NextLL', () => {
     setup({ enabled: true, status: RUNNING, targets: [{ experienceId: BZ }] });
     expect(screen.getByText(/Nothing held yet/)).toBeVisible();
     expect(screen.getByText(name)).toBeVisible();
+  });
+
+  // The poller stops itself after eight consecutive failures and returns
+  // without scheduling another tick, but leaves `enabled` true -- so every
+  // other line on this screen goes on describing a live search. An expired
+  // session is the usual cause, and it is the one case where the user has to
+  // act, so a screen still saying "Checking..." is the worst possible answer.
+  it('says so when the search has given up', () => {
+    setup({ enabled: true, status: STOPPED, targets: [{ experienceId: BZ }] });
+    expect(screen.getByText(/Stopped after 8 failed checks/)).toBeVisible();
+    expect(screen.getByText(/Unauthorized/)).toBeVisible();
+  });
+
+  // The state that made this worth a message: something is held, so the
+  // reassuring "still looking for something earlier" line renders, and the
+  // loop behind it is dead.
+  it('says so even while it is holding something', () => {
+    setup({
+      enabled: true,
+      status: STOPPED,
+      plans: [heldAt(15)],
+      targets: [{ experienceId: BZ, before: new ParkTime(13) }],
+    });
+    expect(
+      screen.getByText(/still looking for something earlier/)
+    ).toBeVisible();
+    expect(screen.getByText(/Stopped after 8 failed checks/)).toBeVisible();
   });
 
   it('shows what it is holding, and that it is still improving on it', () => {

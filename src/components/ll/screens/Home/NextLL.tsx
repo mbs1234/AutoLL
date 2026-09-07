@@ -272,6 +272,21 @@ export function NextLL({ ref }: Partial<HomeTabProps> = {}) {
             </p>
           )}
 
+          {/* The poller gives up after MAX_CONSECUTIVE_FAILURES and returns
+              without scheduling another tick, leaving `enabled` true and the
+              wake lock released. Every line above still reads as a live
+              search, so without this the screen says "Checking..." at a loop
+              that stopped -- and an expired session, which is what usually
+              stops it, is exactly the case where the user has to do something.
+              Autopilot's screen has said this since it had one. */}
+          {status.mode === 'stopped' && (
+            <p className="mt-2 font-semibold text-red-700">
+              Stopped after {status.consecutiveFailures} failed checks
+              {status.lastError ? `: ${status.lastError}` : ''}. Tap{' '}
+              {goalMet ? 'Done' : 'Stop looking'} and start it again to retry.
+            </p>
+          )}
+
           {target?.before && (
             <p className="mt-1 text-sm text-gray-600">
               Goal: a return time at or before <Time time={target.before} />.
