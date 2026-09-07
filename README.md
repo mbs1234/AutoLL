@@ -1,6 +1,8 @@
 # AutoLL
 
-AutoLL is an independent, experimental browser companion for Lightning Lane Multi Pass and virtual queues at Walt Disney World. It runs inside your browser while you are on a supported Disney page, helping you view availability, keep track of plans, and—when you explicitly enable it—watch selected Multi Pass attractions.
+**v1.0** — the first release intended as a stable base for a trip. See [what "stable" means here](#version-and-status) before you rely on it.
+
+AutoLL is a modified version of [BG1](https://github.com/joelface/bg1), extended into a browser companion for Lightning Lane Multi Pass and virtual queues at Walt Disney World. It runs inside your browser while you are on a supported Disney page, helping you view availability, keep track of plans, and—when you explicitly enable it—watch selected Multi Pass attractions.
 
 It is designed to be useful in two ways:
 
@@ -12,6 +14,24 @@ It is designed to be useful in two ways:
 > AutoLL supports **Lightning Lane Multi Pass** and virtual queues. It does not offer a Single Pass booking workflow, so TRON, Rise of the Resistance, Seven Dwarfs Mine Train, Guardians of the Galaxy: Cosmic Rewind, and Flight of Passage are deliberately not watchable.
 
 > **Booking depends on a component this repository does not maintain.** It works here because the inherited base from jgeurts/bg1 sends a header Disney's bot filter requires. Disney has changed the rules around that header several times, so treat booking as something that can stop without warning. Watching, alerting, drop learning, return-time windows, and the corrected attraction data do not depend on it and keep working either way.
+
+## Version and status
+
+**v1.0.** What that does and does not claim:
+
+- **Does:** the feature set is complete and frozen for the trip; every guard on
+  the acting path is tested; the publish is gated on tests and typecheck, so a
+  bundle that fails either is never served; and the app keeps its own storage
+  and notification namespaces, so installing it alongside another BG1-derived
+  build cannot make the two overwrite each other.
+- **Does not:** claim a full day of real park use. Every prior tag said so
+  plainly and this one does too — the booking path has been exercised against
+  tests and by hand, not across a full park day against Disney's live systems.
+  The dry run scheduled in [docs/PLAN.md](docs/PLAN.md) is what would retire
+  this caveat.
+
+Run it in **Dry run** first. Keep the official Disney app as the source of
+truth. See [Recommended first use](#recommended-first-use).
 
 ## Install
 
@@ -203,17 +223,28 @@ npm run build:fork    # production bundle
 npm start             # development server
 ```
 
-Upstream ships a red test suite — several suites fail in a clean checkout of upstream `mickey`, mostly stale fixtures. CI gates on `test:ci` so it stays a useful signal, and runs the full suite for visibility.
+Upstream ships a red test suite — four suites still fail in a clean checkout of upstream `mickey`, stale fixtures rather than real defects. CI gates on `test:ci` so it stays a useful signal, and runs the full suite for visibility.
 
-The source branch is `mickey`; the independent installer assets are maintained on `goofy`. Pushing to `mickey` builds and deploys the combined build to GitHub Pages at <https://mbs1234.github.io/AutoLL/>.
+**The publish is gated.** `deploy.yml` runs `typecheck` and `test:ci` before it builds, and its deploy job depends on that — so a failure serves the previous bundle rather than a broken one. `vite build` does not typecheck, which is why this is not redundant with the build succeeding. Lint deliberately does not gate.
+
+The source branch is `mickey`; the installer assets are maintained on `goofy`. Pushing to `mickey` builds and deploys the combined build to GitHub Pages at <https://mbs1234.github.io/AutoLL/>.
 
 See [FORK.md](FORK.md) for the exclusion list, project structure, and upstream synchronization notes, and [docs/PLAN.md](docs/PLAN.md) for the research behind the data corrections and the feature roadmap.
 
 ## License and acknowledgments
 
-AutoLL is **GPL-3.0-only** and builds on:
+Copyright (C) 2026 the AutoLL contributors.
+Copyright (C) Joel Bruick and contributors, for the BG1 code this is modified from.
 
-- [joelface/bg1](https://github.com/joelface/bg1) by Joel Face, the original project and underlying Lightning Lane, virtual queue, DAS, itinerary, UI, and login work. For background, read the [upstream documentation](https://joelface.github.io/bg1/).
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License, version 3, as published by the
+Free Software Foundation. It is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE. See [LICENSE.txt](LICENSE.txt).
+
+AutoLL is a **modified version of BG1**, and builds on:
+
+- [joelface/bg1](https://github.com/joelface/bg1) by Joel Bruick, the original project and underlying Lightning Lane, virtual queue, DAS, itinerary, UI, and login work. For background, read the [upstream documentation](https://joelface.github.io/bg1/).
 - [jgeurts/bg1](https://github.com/jgeurts/bg1), which restored Lightning Lane booking at Walt Disney World and added tier grouping, availability sorting, an existing-bookings view, and offer auto-refresh.
 
 Upstream's acknowledgments, preserved:

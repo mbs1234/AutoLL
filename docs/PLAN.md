@@ -1,4 +1,4 @@
-# bg1 — Booking intelligence plan for December 2026
+# AutoLL — Booking intelligence plan for December 2026
 
 Written 2026-09-05. Sources: the four strategy articles supplied by the owner,
 Thrill Data's public Lightning Lane pages and Wait Magic FAQ, Disney's own
@@ -17,10 +17,12 @@ and deliberately absent here. This document is about making the booker smarter.
 
 ## Status
 
-This plan was written for the `mbs1234/bg1` fork. That work now lives in
-**AutoLL**, merged onto [jgeurts/bg1](https://github.com/jgeurts/bg1) so that
-Lightning Lane booking works; see FORK.md, "Booking". Section numbers below are
-unchanged.
+This plan was written before the fork was named, when the repository was
+`mbs1234/bg1`. That work now lives in **AutoLL**, merged onto
+[jgeurts/bg1](https://github.com/jgeurts/bg1) so that Lightning Lane booking
+works; see FORK.md, "Booking". Section numbers below are unchanged, and the
+prose below still says "bg1" in many places where it means AutoLL — this is a
+research document kept as written, not a description of the current build.
 
 **Landed:** all of Phase 0 (§3) and all of Phase 1 (§4).
 

@@ -100,7 +100,15 @@ all work regardless, and are the bulk of what this repository adds.
 | Pages URL repointed | `App.tsx`, `LoginForm.tsx`, `screens/News.tsx` + both `.test.tsx` | `LoginForm.tsx` is the critical one — it is the OneID `responderPage`. Wrong value breaks login entirely. |
 | Usage ping disabled | `src/ping.ts`, `src/ping.test.ts` | No reason for a personal build to phone home. `PING_ENABLED = false`. |
 | `repository` field | `package.json` | Points at this fork. |
+| Package identity | `package.json`, `package-lock.json` | `autoll` / `1.0.0`, and a description naming what it is and what it is modified from. Upstream's `bg1` / `0.2.0` / "boarding group client" described neither. |
 | Deploy workflow added | `.github/workflows/deploy.yml` | Upstream has no CI; it builds and commits to `goofy` by hand. |
+| Publish gated on tests and types | `.github/workflows/deploy.yml` | `vite build` does not typecheck, so a type error used to reach the phone. |
+| Own storage namespace | `src/storageKeys.ts` and every key site | `autoll.*`, adopting `bg1.*` once. The single most consequential divergence: without it two bg1-derived builds on one phone overwrite each other's watch lists, budgets and booking tracking. |
+| Own notification namespace | `src/providers/AutopilotProvider.tsx` | `autoll-autopilot-*`. Notification tags are per-origin like storage, so the same collision applied to alerts. |
+| Build identity | `src/appIdentity.ts`, `src/components/Tab.tsx` | Names the tab and labels the bottom bar `aLL`, so two builds open at once are told apart. |
+| Named as a modified version | `screens/Disclaimer.tsx`, `screens/News.tsx`, `SelectReturnTime.tsx`, `goofy` static site | GPL-3.0 §5(a): a modified version carries prominent notice that it was changed. The app and the installer said BG1 throughout. |
+| Autopilot and NextLL | `src/autopilot/*`, `src/providers/AutopilotProvider.tsx`, `screens/Autopilot.tsx`, `Home/NextLL.tsx` | The reason this fork exists. Absent upstream entirely. |
+| Corrected attraction data | `src/api/data/wdw.ts` | Stale facility IDs, wrong parks, re-ranked priorities, added drop times. |
 
 ## Verified
 
@@ -118,8 +126,17 @@ Deliberately left pointing at upstream infrastructure:
   precisely; replace only if you want zero third-party dependency.
 - `src/api/livedata.ts` → `bg1.joelface.com/livedata/*.json` — show times
   sourced from ThemeParks.wiki, not available via Disney's tipboard.
-- `github.com/joelface/bg1` source links in `start.html` / `index.html` —
-  GPL-3.0 attribution, kept intentionally.
+- `github.com/joelface/bg1` credit links in `index.html` / `contact.html` —
+  GPL-3.0 attribution, kept intentionally. Note the change at v1.0: the
+  *source* link now points at `github.com/mbs1234/AutoLL`, which is the
+  repository that actually built the bundle being served. Upstream keeps a
+  credit link beside it. Pointing "the code is open source and available on
+  GitHub" at a repository that did not build it is the opposite of what
+  GPL-3.0 §5(a) asks for.
+- The literal string `https://joelface.github.io/bg1` inside `goofy`'s
+  `index.html` and `autoloader.user.js` — **do not hand-edit these**. They are
+  the search target of the `sed` in `deploy.yml`, not stale references that
+  survived; rewriting them at rest makes the deploy-time rewrite a no-op.
 
 Not copied from `goofy`: `diu.js` (obfuscated private module),
 `sensor-data.js` (bot-detection payload, referenced by no page),
@@ -127,13 +144,14 @@ Not copied from `goofy`: `diu.js` (obfuscated private module),
 
 ## Testing
 
-Upstream ships a **red test suite**. Verified against a clean worktree of
-upstream `mickey` (f1f022a): 8 suites / 11 tests fail there, and the same 8
-suites fail here. `src/api/ll.test.ts` additionally cannot load upstream at all
-— it imports the unpublished `./diu` — so its ~27 stale failures were invisible
-until this fork's stub made the file runnable. They are genuinely stale
-fixtures, e.g. `experiences()` reads `data.availableExperiences`, which the
-test's mocked response no longer provides.
+Upstream ships a **red test suite**. Eight suites failed against a clean
+worktree of upstream `mickey` (f1f022a) when the exclusion list was written;
+four still do, and the other four are gated on again as of v1.0.
+`src/api/ll.test.ts` additionally cannot load upstream at all — it imports the
+unpublished `./diu` — so its ~27 stale failures were invisible until this
+fork's stub made the file runnable. They are genuinely stale fixtures, e.g.
+`experiences()` reads `data.availableExperiences`, which the test's mocked
+response no longer provides.
 
 | Command | Scope | Status |
 | --- | --- | --- |
@@ -142,14 +160,13 @@ test's mocked response no longer provides.
 | `npm run lint` | | green |
 | `npm run typecheck` | | green |
 
-Four of the eight exclusions are now stale. As of the counts above, only
-`api/ll.test.ts`, `ll/ModifyButton.test.tsx`, `screens/BookExperience.test.tsx`
-and `screens/YourDay.test.tsx` still fail; `BookExperience/OfferDetails`,
-`BookingDetails`, `Home` and `Home/MultiPassList` all pass in the full run and
-could be gated on. That includes the two named below as the reason the
-Autopilot UI carries its own tests, so un-excluding them would be a real gain
-rather than bookkeeping. Left alone here deliberately — widening what gates a
-publish is its own change, made on purpose rather than in passing.
+Four of the original eight exclusions were re-measured at v1.0 and no longer
+fail, so they are gated on again: `BookExperience/OfferDetails`,
+`BookingDetails`, `Home` and `Home/MultiPassList`. The last two cover screens
+this fork modified, which is why the note below about the Autopilot UI
+carrying its own tests is now belt and braces rather than the only cover. Four
+still fail and stay excluded: `api/ll.test.ts`, `ll/ModifyButton.test.tsx`,
+`screens/BookExperience.test.tsx`, `screens/YourDay.test.tsx`.
 
 CI gates on `test:ci` so it stays a real signal; the full suite also runs, as
 `continue-on-error`, to keep the pre-existing count visible. The exclusion list
@@ -171,9 +188,10 @@ cost a push and a round trip just to publish.
 
 Dispatching `deploy.yml` with `skip_checks: true` publishes without the gate.
 It exists for a park morning with a red unrelated test and nothing else.
-Note two of the excluded suites (`Home.test.tsx`, `Home/MultiPassList.test.tsx`)
-cover screens this fork modified, so the Autopilot UI carries its own tests
-(`screens/Autopilot.test.tsx`) rather than relying on the stale ones.
+The Autopilot UI also carries its own tests (`screens/Autopilot.test.tsx`)
+rather than relying on the upstream screen suites, which is why nothing was
+uncovered during the period `Home.test.tsx` and `Home/MultiPassList.test.tsx`
+were excluded.
 
 ## Local toolchain
 
@@ -235,7 +253,7 @@ Design rules that hold throughout, and that a future change should keep:
   what makes persisted arming safe.
 
 A structural limit worth knowing before anyone tries to fix it: background
-operation via a service worker is impossible, not hard. BG1 runs injected into
+operation via a service worker is impossible, not hard. AutoLL runs injected into
 a page on Disney's origin; a service worker must be same-origin with the page
 it controls, and this fork's worker would live on `mbs1234.github.io`.
 
