@@ -19,6 +19,12 @@ on:
   push:
     branches: [mickey]
   workflow_dispatch:
+    inputs:
+      skip_checks:
+        description: >-
+          Park emergency only: publish without running tests or typecheck.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,6 +44,11 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # The gate below puts jest on the publish path, and a hung job is worse
+    # than a failed one: it holds the deploy for GitHub's 360-minute default
+    # while showing in progress rather than red. This suite drives a polling
+    # loop under fake timers, so a hang is a real shape of failure here.
+    timeout-minutes: 15
     steps:
       - name: Check out source (mickey)
         uses: actions/checkout@v4
@@ -68,6 +79,40 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The gate. `deploy` below is `needs: build` with no `if:`, so a failure
+      # here skips the publish and Pages keeps serving the bundle already
+      # live. Deliberately steps in this job rather than a dependency on the
+      # Check workflow: nothing new to trigger, no second workflow whose
+      # rename or trigger failure disarms this silently, and no top-level
+      # `permissions`/`concurrency` to re-scope onto a job that runs `npm ci`.
+      #
+      # Typecheck first because it is the actual gap. `build:fork` is bare
+      # `vite build`, and esbuild strips types without checking them, so a
+      # type error has always reached the phone: on AutoLL-2 6904dda the
+      # Typecheck step failed with five errors and the next step built a
+      # 361 kB bundle. `tsc --noEmit` is the only typechecker either repo has.
+      #
+      # Lint deliberately does NOT gate. Eight of the thirteen red checks on
+      # this branch were formatting alone, the bundle was fine in every one of
+      # them, and with no local Node there is no way to clear a prettier nit
+      # except another push and another round trip. Check reports it; the
+      # publish does not wait on it.
+      #
+      # `format('{0}', ...)` rather than `!inputs.skip_checks`: a CLI dispatch
+      # sends the input as a string, and "false" is truthy in an Actions
+      # expression -- so the direct form would silently disable the gate on
+      # `gh workflow run -f skip_checks=false`. On a push the input is null,
+      # which formats to "" and runs the gate.
+      - name: Typecheck (gate)
+        if: ${{ format('{0}', inputs.skip_checks) != 'true' }}
+        run: npm run typecheck
+
+      # `!cancelled()` so one push reports both, as Check does: a round trip
+      # is the only feedback loop there is.
+      - name: Tests (gate)
+        if: ${{ format('{0}', inputs.skip_checks) != 'true' && !cancelled() }}
+        run: npm run test:ci
+
       # build:fork is `vite build` without upstream's `rm -f src/api/diu.ts`,
       # which would delete our stub and break the DLR dynamic import.
       - name: Build app bundle
@@ -89,6 +134,14 @@ jobs:
             if [ -f "goofy-static/$f" ]; then
               cp "goofy-static/$f" "dist/$f"
               echo "overlaid $f"
+            elif [ "$f" = index.html ] || [ "$f" = autoloader.user.js ]; then
+              # The two install paths: index.html generates the bookmarklet,
+              # autoloader.user.js is what the userscript loads. Publishing
+              # without either is publishing a site with no way into it, which
+              # is worth failing the deploy over. The rest are pages a link
+              # points at, where a 404 costs less than a blocked publish.
+              echo "::error::goofy-static/$f not found; the site would have no way to install it"
+              exit 1
             else
               echo "::warning::goofy-static/$f not found, skipped"
             fi
@@ -137,6 +190,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
