@@ -589,7 +589,7 @@ export default function AutopilotProvider({
             ? `Return time ${formatTime(hit.returnTime)}`
             : `Return time ${formatTime(hit.returnTime)} on ${formatDate(date, 'short')}`,
           // Same tag per ride, so a repeat alert replaces rather than stacks.
-          tag: `bg1-autopilot-${date}-${hit.experience.id}`,
+          tag: `autoll-autopilot-${date}-${hit.experience.id}`,
         });
       }
 
@@ -1003,18 +1003,18 @@ export default function AutopilotProvider({
               ? {
                   title: `Booked ${experience.name}`,
                   body: `Return time ${formatTime(outcome.returnTime)}`,
-                  tag: `bg1-autopilot-booked-${date}-${experience.id}`,
+                  tag: `autoll-autopilot-booked-${date}-${experience.id}`,
                 }
               : outcome.status === 'modified'
                 ? {
                     title: `Moved ${experience.name} earlier`,
                     body: `${formatTime(outcome.from)} to ${formatTime(outcome.to)}`,
-                    tag: `bg1-autopilot-booked-${date}-${experience.id}`,
+                    tag: `autoll-autopilot-booked-${date}-${experience.id}`,
                   }
                 : {
                     title: `Swapped in ${experience.name}`,
                     body: `Gave up ${outcome.replaced.name}; return ${formatTime(outcome.to)}`,
-                    tag: `bg1-autopilot-booked-${date}-${experience.id}`,
+                    tag: `autoll-autopilot-booked-${date}-${experience.id}`,
                   }
           );
           try {
