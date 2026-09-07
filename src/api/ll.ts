@@ -56,7 +56,12 @@ type WithParkTimes<T> = T extends object
 export function replaceTimeStrings<T extends { [k: string]: any }>(
   obj: T
 ): WithParkTimes<T> {
-  if (typeof obj !== 'object') return obj;
+  // `typeof null` is `'object'`, so null has to be named: without it the
+  // recursion below walks into one and `Object.entries(null)` throws. Disney
+  // sends explicit nulls elsewhere in its own API -- `nextScheduledOpenTime`
+  // in the virtual queue payload is declared `string | null` -- and a throw
+  // here escapes `experiences()`, which the poller reads as a failed tick.
+  if (obj === null || typeof obj !== 'object') return obj;
 
   for (const [k, v] of Object.entries(obj)) {
     switch (typeof v) {
