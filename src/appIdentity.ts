@@ -15,6 +15,16 @@
 export const APP_NAME = 'AutoLL';
 
 /**
+ * The name where space is tight.
+ *
+ * The tab bar has four buttons across a phone's width and has to stay on one
+ * line, so the full name does not fit beside them. `aLL` keeps the `LL` that
+ * every one of these builds is named for and prefixes the letter that says
+ * which.
+ */
+export const APP_SHORT = 'aLL';
+
+/**
  * A one-glyph favicon.
  *
  * An emoji rather than an image because it has to survive as a data URI --
