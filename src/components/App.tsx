@@ -17,7 +17,17 @@ import LoginForm from './LoginForm';
 import Merlock from './ll/Merlock';
 import BGClient from './vq/BGClient';
 
-export const NEWS_VERSION = 0;
+/**
+ * Bumped to show the release notes once.
+ *
+ * `useNews` renders the News screen while the stored version is lower, with a
+ * Close button that stores this one -- so a bump is seen once per device and
+ * never again. It sat at 0 forever, which made `0 < 0` false and the screen
+ * unreachable: news.html was published and linked from nothing. v1.0 renames
+ * the app and asks anyone with the old userscript to remove it, which is
+ * exactly the kind of thing worth saying once on launch.
+ */
+export const NEWS_VERSION = 1;
 
 function disableDoubleTapZoom() {
   document.body.addEventListener('click', () => null);

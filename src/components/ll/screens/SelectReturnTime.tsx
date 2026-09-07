@@ -2,6 +2,7 @@ import { use, useCallback, useLayoutEffect, useState } from 'react';
 
 import { HourlyTimes, Offer } from '@/api/ll';
 import { Overlap } from '@/api/ll/wdw';
+import { APP_NAME } from '@/appIdentity';
 import Button from '@/components/Button';
 import LandLine from '@/components/LandLine';
 import Screen from '@/components/Screen';
@@ -136,10 +137,10 @@ export default function SelectReturnTime<B extends Offer['booking']>({
 
           <p className="mt-8 text-sm">
             The Lightning Lane system reports a limited subset of available
-            return times. When &quot;show all&quot; is enabled, BG1 makes some
-            educated guesses to give you more options. The closest available
-            alternative will be offered if you select a return time that doesn't
-            actually exist.
+            return times. When &quot;show all&quot; is enabled, {APP_NAME} makes
+            some educated guesses to give you more options. The closest
+            available alternative will be offered if you select a return time
+            that doesn't actually exist.
           </p>
         </>
       ) : (

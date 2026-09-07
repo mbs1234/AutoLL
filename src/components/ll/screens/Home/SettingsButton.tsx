@@ -26,7 +26,7 @@ export default function SettingsButton() {
       action: () => authStore.deleteData(),
     },
     // {
-    //   text: 'BG1 News',
+    //   text: `${APP_NAME} News`,
     //   icon: <NewsIcon />,
     //   action: () => goTo(<News />),
     // },

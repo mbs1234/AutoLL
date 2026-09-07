@@ -1,4 +1,5 @@
 import { AuthData, ReauthNeeded, authStore } from '@/api/auth';
+import { APP_NAME } from '@/appIdentity';
 import { fetchJson } from '@/fetch';
 import { DISCLAIMER_ACCEPTED_KEY } from '@/hooks/useDisclaimer';
 import { NEWS_VERSION_KEY } from '@/hooks/useNews';
@@ -58,7 +59,7 @@ describe('App', () => {
   it('shows News if newer than last seen', async () => {
     kvdb.set(NEWS_VERSION_KEY, -1);
     renderComponent();
-    await see.screen('BG1 News');
+    await see.screen(`${APP_NAME} News`);
     click('Close');
     expect(kvdb.get(NEWS_VERSION_KEY)).toBe(NEWS_VERSION);
   });
@@ -99,7 +100,7 @@ describe('App', () => {
     await see.screen('Virtual Queues');
   });
 
-  it('redirects to start page if BG1 cannot be run from this origin', async () => {
+  it('redirects to start page if the app cannot run from this origin', async () => {
     self.origin = 'https://example.com';
     renderComponent();
     await waitFor(() => {
