@@ -1,5 +1,6 @@
 import { Children, Fragment, isValidElement, use } from 'react';
 
+import { APP_NAME } from '@/appIdentity';
 import ThemeContext from '@/contexts/ThemeContext';
 import useScreenState from '@/hooks/useScreenState';
 import BackIcon from '@/icons/BackIcon';
@@ -43,6 +44,21 @@ export default function HeaderBar({
         <h1 className="flex-1 self-center py-1 text-xl font-semibold overflow-hidden whitespace-nowrap">
           {title}
         </h1>
+        {/* Which build this is, on every screen there is.
+            `document.title` and the favicon answer the same question, but only
+            where a tab strip exists: iOS Safari shows neither in normal
+            browsing, and a page added to the Home Screen has no tab chrome at
+            all -- which is exactly how this gets used. So the answer has to
+            live inside the app.
+            Beside the heading rather than inside it. Inside, it joins the
+            heading's accessible name -- "Magic Kingdom AutoLL" to a screen
+            reader, and to anything else that finds a screen by its title. */}
+        <span
+          aria-label={`Build: ${APP_NAME}`}
+          className="self-center text-xs font-normal opacity-75 whitespace-nowrap"
+        >
+          {APP_NAME}
+        </span>
         {changeButtonColors(buttons)}
       </div>
       <div
