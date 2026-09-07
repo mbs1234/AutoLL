@@ -2,7 +2,7 @@
 <html lang="en-US">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BG1 News</title>
+<title>AutoLL News</title>
 <link rel="stylesheet" href="index.css">
 
 <style>
@@ -12,22 +12,34 @@
 </style>
 
 <main>
-  <h2>October 31, 2023</h2>
+  <h2>AutoLL v1.0 &mdash; September 7, 2026</h2>
   <dl>
-    <dt>Genie+ support restored</dt>
+    <dt>What v1.0 means</dt>
     <dd>
-      <p>You can once again book/modify Genie+ Lightning Lanes in BG1!</p>
+      <p>The feature set is complete and frozen for the trip. Every guard on the booking path is tested, and the published build is gated on those tests and on the typechecker, so a bundle that fails either is never served.</p>
+      <p>It does <b>not</b> mean a full day of real park use. The booking path has been exercised against tests and by hand, not across a whole park day against Disney's live systems. Run it in <b>Dry run</b> first, and keep the official Disney app as the source of truth.</p>
     </dd>
-  </dl>
-  <h2>March 20, 2023</h2>
-  <dl>
-    <dt>Back button/gesture support added</dt>
+    <dt>Autopilot</dt>
     <dd>
-      <p>At long last, you can now use your browser's back button or swipe gesture to return to the previous screen! You'll see a back arrow in the upper left corner of any screen where it's possible to use the back button.</p>
+      <p>Watches the attractions you star, alerts you when one becomes available, and performs only the actions you arm per attraction: book, move to a better time, take the first time and improve it, or swap out a lower-priority reservation. A daily cap is shared across all of them, and a paused attraction keeps alerting without acting.</p>
+      <p>It checks slowly when nothing is near and speeds up around known drop times and your party's booking windows. Observed drop times are learned locally and shown with the evidence behind them.</p>
     </dd>
-    <dt>Plans tab added to home screen (Genie+)</dt>
+    <dt>NextLL</dt>
     <dd>
-      <p>You can now see your plans for your entire trip instead of just today's reservations.</p>
+      <p>One attraction, one button. Takes the first practical Lightning Lane it can get, then keeps trying to move it earlier. It has its own watch list and does not spend Autopilot's daily budget.</p>
+    </dd>
+    <dt>Installs alongside BG1</dt>
+    <dd>
+      <p>AutoLL keeps its own browser storage and its own notifications, so running it beside another BG1-derived build no longer makes the two overwrite each other's watch lists, budgets or alerts. The bottom bar is labelled so you can tell which build you are looking at.</p>
+    </dd>
+    <dt>Corrected attraction data</dt>
+    <dd>
+      <p>Three attractions Disney had re-issued IDs for were invisible and are now listed; two were filed under the wrong park; priorities were re-ranked and drop times added.</p>
+    </dd>
+    <dt>Renamed throughout</dt>
+    <dd>
+      <p>This site, the installer and the app now say AutoLL rather than BG1. AutoLL is a modified version of BG1 by Joel Bruick, and says so &mdash; see <a href="contact.html">About AutoLL</a>.</p>
+      <p>If you installed the old <b>BG1 Autoloader</b> userscript, remove it: the AutoLL autoloader is a separate script rather than an update to it.</p>
     </dd>
   </dl>
 </main>

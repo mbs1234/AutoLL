@@ -168,6 +168,13 @@ footer a {
   color: white;
 }
 
+footer .licence {
+  margin: .8em 0 0;
+  font-size: .8em;
+  text-align: center;
+  opacity: .85;
+}
+
 main {
   flex: 1;
   padding-bottom: 1em;
