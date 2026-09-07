@@ -1,7 +1,7 @@
 {
-  "name": "bg1",
-  "version": "0.2.0",
-  "description": "An unofficial, experimental boarding group client",
+  "name": "autoll",
+  "version": "1.0.0",
+  "description": "An unofficial Lightning Lane Multi Pass client for Walt Disney World, modified from joelface/bg1",
   "license": "GPL-3.0-only",
   "repository": "github:mbs1234/AutoLL",
   "dependencies": {

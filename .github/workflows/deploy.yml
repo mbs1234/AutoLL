@@ -1,4 +1,4 @@
-name: Build and deploy BG1
+name: Build and deploy AutoLL
 
 # The app bundle and the static site around it live on two different
 # branches with no shared history:
