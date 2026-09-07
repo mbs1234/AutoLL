@@ -8,6 +8,7 @@ import {
   key,
   legacyKey,
   migrateLegacyStorage,
+  pingKey,
 } from './storageKeys';
 
 beforeEach(() => localStorage.clear());
@@ -72,6 +73,12 @@ describe('migrateLegacyStorage()', () => {
  * another bg1 build. `key()` accepts only a listed suffix, so a key that is
  * not on the list cannot be constructed -- but a bare string literal
  * bypasses that entirely, and this is what stops one being written.
+ *
+ * Matched against any quote character, not just an apostrophe. The first
+ * version tested for `'bg1.` alone, and `ping.ts` had been holding
+ * `` `bg1.ping.${resort.id}.${service}` `` in a template literal the whole
+ * time -- the exact bare-literal escape this test exists to catch, passing
+ * green because of the quote character it happened to use.
  */
 describe('the namespace', () => {
   function sources(dir: string): string[] {
@@ -88,7 +95,7 @@ describe('the namespace', () => {
   it('is the only one the source names', () => {
     const offenders = sources('src')
       .map(path => ({ path, text: readFileSync(path, 'utf8') }))
-      .filter(({ text }) => text.includes(`'${LEGACY_NS}.`))
+      .filter(({ text }) => new RegExp(`['"\`]${LEGACY_NS}\\.`).test(text))
       .map(({ path }) => path);
     expect(offenders).toEqual([]);
   });
@@ -105,5 +112,10 @@ describe('the namespace', () => {
 
   it('lists no suffix twice', () => {
     expect(new Set(KEY_SUFFIXES).size).toBe(KEY_SUFFIXES.length);
+  });
+
+  // The one key built rather than listed, and so the one `key()` cannot gate.
+  it('prefixes the ping key too', () => {
+    expect(pingKey('WDW', 'G')).toBe(`${NS}.ping.WDW.G`);
   });
 });

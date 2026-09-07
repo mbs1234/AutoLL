@@ -95,6 +95,21 @@ export const STARRED_KEY = key('genie.tipBoard.starred');
 export const FULL_AVAILABILITY_KEY = key('ll.fullAvailability');
 
 /**
+ * The usage ping's per-day marker.
+ *
+ * Built rather than listed, because it varies by resort and service and
+ * `KeySuffix` can only name a fixed key. Nothing migrates it: the ping is
+ * disabled (see `ping.ts`) and the value is a throwaway "already sent today"
+ * marker worth nothing to carry over. It lives here regardless, so that `NS`
+ * stays the only place this build's namespace is written down -- the one key
+ * that ever escaped it was the one built from a template literal, where the
+ * guard test in `storageKeys.test.ts` could not see it.
+ */
+export function pingKey(resortId: string, service: string): string {
+  return `${NS}.ping.${resortId}.${service}`;
+}
+
+/**
  * NextLL's own watch list.
  *
  * Separate from Autopilot's so a quick search cannot disturb a list built up
