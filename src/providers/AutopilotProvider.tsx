@@ -955,7 +955,24 @@ export default function AutopilotProvider({
         // RETRY_AFTER_MS for why the wait is the part that makes it safe.
         //
         // Autopilot keeps one action per attraction per session either way.
-        if (repeatMoves && outcome.status === 'failed' && outcome.rejected) {
+        //
+        // Gated on the lock existing, because "rejected" alone does not mean
+        // one was taken. All three helpers take theirs *after* the offer round
+        // trip, so a 4xx on the offer call -- a 410 is the ordinary outcome of
+        // a contested drop -- returns `rejected` with nothing locked. Minting a
+        // token for it left an entry keyed to an action that never happened,
+        // and the consumer above reads a token only once `hasAttempted` is
+        // true: a later attempt whose own outcome was never learned would find
+        // that stale token already expired, release its lock, and give back the
+        // doubt-hold on a booking that may well exist. That inverts the rule
+        // the ledger is built on -- mark before the request goes out, because a
+        // timed-out request may have succeeded.
+        if (
+          repeatMoves &&
+          outcome.status === 'failed' &&
+          outcome.rejected &&
+          ledgerRef.current.hasAttempted(experience.id, kind)
+        ) {
           retryAtRef.current.set(
             `${kind}:${experience.id}`,
             Date.now() + RETRY_AFTER_MS
@@ -1107,6 +1124,9 @@ export default function AutopilotProvider({
         // drop-detection baseline, so buying actions cost the first poll's
         // ability to see a drop. Use the refill button instead.
         ledgerRef.current.reset();
+        // With the locks, not merely alongside them: a token outliving the
+        // lock it was minted for is the orphan case guarded against above.
+        retryAtRef.current.clear();
         cacheRef.current.clear();
         // Re-baseline: a run comparing against the previous run's plans would
         // clear the cache on its own first poll.

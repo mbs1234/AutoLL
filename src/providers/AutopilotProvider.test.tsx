@@ -248,6 +248,10 @@ function setupBooking({
   repeatMoves = false,
   // Lets a test make `book` fail, and say how. `undefined` succeeds.
   bookErrors = [] as (number | 'no-response' | undefined)[],
+  // The same for `offer`. The stage is the point: `offer` runs before the
+  // ledger lock is taken and `book` after it, so a failure here is one that
+  // provably changed nothing and holds nothing.
+  offerErrors = [] as (number | 'no-response' | undefined)[],
   // Holds the offer request open, for the gate between offer and book.
   offerDelay = undefined as Promise<void> | undefined,
 } = {}) {
@@ -263,6 +267,7 @@ function setupBooking({
   // Also records the options argument, which is what distinguishes the two
   // paths: a fresh booking passes { date }, a modification passes { booking }.
   const offerOptions: Record<string, unknown>[] = [];
+  let offerCalls = 0;
   const offer = jest.fn(
     async (
       experience: { id: string },
@@ -273,6 +278,11 @@ function setupBooking({
       offerOptions.push(options);
       if (offerDelay) await offerDelay;
       void guests;
+      const failure = offerErrors[offerCalls++];
+      if (failure === 'no-response') throw new Error('Network request failed');
+      if (failure !== undefined) {
+        throw new RequestError({ ok: false, status: failure, data: {} });
+      }
       return offerAt(offerHour);
     }
   );
@@ -1941,6 +1951,46 @@ describe('AutopilotProvider repeated moves', () => {
     expect(Number(screen.getByTestId('remaining').textContent)).toBeGreaterThan(
       8
     );
+  });
+
+  /**
+   * The gap between "rejected" and "locked".
+   *
+   * All three helpers take their ledger lock *after* the offer round trip, so
+   * a 4xx on the offer call is rejected with nothing held -- and a 410 there
+   * is the ordinary outcome of a contested drop, not an edge case. A token
+   * minted for that attempt outlives it: the consumer reads a token only once
+   * `hasAttempted` is true, so it sits unread until some *later* attempt takes
+   * a real lock, by which time it has long expired. That later attempt is the
+   * one that matters here -- its request timed out, so whether it booked is
+   * unknown, which is the exact case the doubt-hold exists for.
+   *
+   * Every other test in this block injects through `bookErrors`, i.e. after
+   * the lock is taken, so the token is always paired with the lock it belongs
+   * to and none of them can see this.
+   */
+  it('does not retry an unknown outcome because an earlier offer was refused', async () => {
+    saveWatchList([{ experienceId: BZ, bookThenMove: true }]);
+    const { book, offer } = setupBooking({
+      repeatMoves: true,
+      // Tick 1 is refused at the offer, before any lock exists. Tick 2 gets an
+      // offer, takes the lock and the doubt-hold, and then never hears back.
+      offerErrors: [410],
+      bookErrors: ['no-response'],
+    });
+    await enable();
+    // Long enough for both attempts and for a token minted on the first to
+    // have expired several times over.
+    await runTicks(WAITED * 2);
+
+    // The second attempt happened -- otherwise this passes for the trivial
+    // reason that nothing ever took a lock.
+    expect(offer.mock.calls.length).toBeGreaterThanOrEqual(2);
+    // And it is not repeated. A request that never came back may have booked,
+    // so the lock and the doubt-hold have to stand: retrying is the dangerous
+    // option, which is the whole reason the lock is taken before the request
+    // goes out.
+    expect(book).toHaveBeenCalledTimes(1);
   });
 
   // Autopilot's rule is one action per attraction per session, which is what
